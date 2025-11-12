@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Google Login Test</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+      body {
+        font-family: sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        gap: 1rem;
+      }
+      #token {
+        width: 80%;
+        height: 150px;
+        font-family: monospace;
+        border: 1px solid #ccc;
+        padding: 10px;
+        overflow: auto;
+      }
+      button {
+        padding: 10px 16px;
+        border: none;
+        background: #4285f4;
+        color: white;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Google Login Test</h2>
+    <div id="g_id_onload"
+      data-client_id="606718704393-7uv62ijb4tsgktn831an14n7b2jf9hsf.apps.googleusercontent.com"
+      data-callback="handleCredentialResponse"
+      data-auto_prompt="false">
+    </div>
+    <div class="g_id_signin" data-type="standard"></div>
+
+    <h4>ID Token:</h4>
+    <textarea id="token" readonly></textarea>
+    <button onclick="copyToken()">Copy Token</button>
+
+    <script>
+      function handleCredentialResponse(response) {
+        console.log("Encoded JWT ID token: " + response.credential);
+        const idToken = response.credential;
+        document.getElementById("token").value = idToken;
+        console.log("Google ID Token:", idToken);
+        alert("✅ Login successful! Token printed below and console.");
+      }
+
+      function copyToken() {
+        const tokenBox = document.getElementById("token");
+        tokenBox.select();
+        document.execCommand("copy");
+        alert("Token copied!");
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,100 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../prisma/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+enum Gender {
+  male
+  female
+  other
+  prefer_not_to_say
+}
+
+enum UserStatus {
+  active
+  inactive
+  suspended
+}
+
+enum UserRole {
+  user
+  admin
+  moderator
+}
+
+model User {
+  id                 String      @id @default(uuid())
+  email              String?     @unique
+  phone              String?     @unique
+  displayName        String?
+  profileImage       String?
+  dateOfBirth        DateTime?
+  gender             Gender?
+  countryCode        String?
+  languagePreference String?     @default("en")
+  isEmailVerified    Boolean     @default(false)
+  isPhoneVerified    Boolean     @default(false)
+  fcmTokens          String[]    @default([])
+  status             UserStatus  @default(active)
+  role               UserRole    @default(user)
+  googleId           String?     @unique
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  @@index([email])
+  @@index([phone])
+  @@index([googleId])
+}
+
+
+
+model Video {
+  id           String   @id @default(cuid())
+  title        String
+  thumbnailUrl String?
+  storageKey    String
+  playbackUrl   String?
+  status       String      // uploading | processing | ready
+  duration     Int?
+  metadata    Json?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+// model Course {
+//   id           String   @id @default(cuid())
+//   title        String
+//   description  String?
+//   thumbnailUrl String?
+//   demoVideoId  String?
+//   demoVideo    Video?   @relation(fields: [demoVideoId], references: [id])
+//   contents     Content[]
+//   createdAt    DateTime  @default(now())
+//   updatedAt    DateTime  @updatedAt
+// }
+
+// model Content {
+//   id          String    @id @default(cuid())
+//   title       String
+//   type        ContentType
+//   position    Int?
+//   courseId    String
+//   course      Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+//   createdAt   DateTime   @default(now())
+//   updatedAt   DateTime   @updatedAt
+
+//   // Relations
+//   video   Video?      @relation
+// }
