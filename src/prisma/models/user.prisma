@@ -1,0 +1,42 @@
+enum Gender {
+  male
+  female
+  other
+  prefer_not_to_say
+}
+
+enum UserStatus {
+  active
+  inactive
+  suspended
+}
+
+enum UserRole {
+  user
+  admin
+  moderator
+}
+
+model User {
+  id                 String      @id @default(uuid())
+  email              String?     @unique
+  phone              String?     @unique
+  displayName        String?
+  profileImage       String?
+  dateOfBirth        DateTime?
+  gender             Gender?
+  countryCode        String?
+  languagePreference String?     @default("en")
+  isEmailVerified    Boolean     @default(false)
+  isPhoneVerified    Boolean     @default(false)
+  fcmTokens          String[]    @default([])
+  status             UserStatus  @default(active)
+  role               UserRole    @default(user)
+  googleId           String?     @unique
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  @@index([email])
+  @@index([phone])
+  @@index([googleId])
+}

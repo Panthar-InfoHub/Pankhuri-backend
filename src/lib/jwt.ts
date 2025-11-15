@@ -1,10 +1,7 @@
+import { User } from "@prisma/client";
 import jwt from "jsonwebtoken";
-import { IUser } from "../models/User.model";
 
-/**
- * Generate JWT token for authenticated user
- */
-export const generateJWT = (user: IUser): string => {
+export const generateJWT = (user: User): string => {
   const payload = {
     id: user.id,
     email: user.email,
@@ -19,9 +16,6 @@ export const generateJWT = (user: IUser): string => {
   return token;
 };
 
-/**
- * Verify JWT token
- */
 export const verifyJWT = (token: string): any => {
   try {
     return jwt.verify(token, process.env.JWT_SECRET!);

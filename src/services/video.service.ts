@@ -20,11 +20,7 @@ export interface UpdateVideoDto {
   metadata?: any;
 }
 
-/**
- * Create a new video record
- * @param data - Video creation data
- * @returns Created video
- */
+
 export const createVideo = async (data: CreateVideoDto) => {
   try {
     const video = await prisma.video.create({
@@ -45,11 +41,6 @@ export const createVideo = async (data: CreateVideoDto) => {
   }
 };
 
-/**
- * Get video by ID
- * @param id - Video ID
- * @returns Video or null
- */
 export const getVideoById = async (id: string) => {
   try {
     const video = await prisma.video.findUnique({
@@ -62,11 +53,7 @@ export const getVideoById = async (id: string) => {
   }
 };
 
-/**
- * Get all videos with optional filters
- * @param filters - Optional filters
- * @returns Array of videos
- */
+
 export const getAllVideos = async (filters?: {
   status?: string;
   limit?: number;
@@ -95,12 +82,7 @@ export const getAllVideos = async (filters?: {
   }
 };
 
-/**
- * Update video by ID
- * @param id - Video ID
- * @param data - Update data
- * @returns Updated video
- */
+
 export const updateVideo = async (id: string, data: UpdateVideoDto) => {
   try {
     // Check if video exists
@@ -131,11 +113,7 @@ export const updateVideo = async (id: string, data: UpdateVideoDto) => {
   }
 };
 
-/**
- * Delete video by ID
- * @param id - Video ID
- * @returns Deleted video
- */
+
 export const deleteVideo = async (id: string) => {
   try {
     // Check if video exists
@@ -157,12 +135,7 @@ export const deleteVideo = async (id: string) => {
   }
 };
 
-/**
- * Update video status (helper for different stages)
- * @param id - Video ID
- * @param status - New status
- * @returns Updated video
- */
+
 export const updateVideoStatus = async (id: string, status: string) => {
   try {
     const video = await prisma.video.update({
@@ -176,11 +149,7 @@ export const updateVideoStatus = async (id: string, status: string) => {
   }
 };
 
-/**
- * Bulk delete videos
- * @param ids - Array of video IDs
- * @returns Count of deleted videos
- */
+
 export const bulkDeleteVideos = async (ids: string[]) => {
   try {
     const result = await prisma.video.deleteMany({

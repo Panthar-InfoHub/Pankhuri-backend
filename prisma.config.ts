@@ -1,11 +1,12 @@
 import { config } from "dotenv";
 import { defineConfig, env } from "prisma/config";
+import path from "path";
 
 // Load environment variables from .env file
 config();
 
 export default defineConfig({
-  schema: "src/prisma/schema.prisma",
+   schema: path.join("src", "prisma"), // ROOT for Prisma
   migrations: {
     path: "src/prisma/migrations",
   },

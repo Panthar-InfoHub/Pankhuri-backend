@@ -1,19 +1,19 @@
-import { IUser, UserStatus, UserRole } from "../models/User.model";
+import { User, UserRole, UserStatus } from "@prisma/client";
 import { prisma } from "../lib/db";
 
-export const findUserByPhone = async (phone: string): Promise<IUser | null> => {
+export const findUserByPhone = async (phone: string): Promise<User | null> => {
   return await prisma.user.findUnique({
     where: { phone },
   });
 };
 
-export const findUserByEmail = async (email: string): Promise<IUser | null> => {
+export const findUserByEmail = async (email: string): Promise<User | null> => {
   return await prisma.user.findUnique({
     where: { email },
   });
 };
 
-export const createUser = async (userData: Partial<IUser>): Promise<IUser> => {
+export const createUser = async (userData: Partial<User>): Promise<User> => {
   // Validate that user has at least email OR phone
   if (!userData.email && !userData.phone) {
     throw new Error("User must have either an email or phone number");
@@ -41,8 +41,8 @@ export const createUser = async (userData: Partial<IUser>): Promise<IUser> => {
 
 export const updateUser = async (
   userId: string,
-  updates: Partial<IUser>
-): Promise<IUser | null> => {
+  updates: Partial<User>
+): Promise<User | null> => {
   return await prisma.user.update({
     where: { id: userId },
     data: updates,
@@ -52,7 +52,7 @@ export const updateUser = async (
 export const findOrCreateUserByPhone = async (
   phone: string,
   countryCode?: string
-): Promise<IUser> => {
+): Promise<User> => {
   let user = await findUserByPhone(phone);
 
   if (user) {
@@ -78,7 +78,7 @@ export const findOrCreateUserByEmail = async (
   googleId: string,
   displayName?: string,
   profileImage?: string
-): Promise<IUser> => {
+): Promise<User> => {
   // Try to find by email first
   let user = await findUserByEmail(email);
 
