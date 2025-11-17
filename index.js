@@ -2,15 +2,20 @@ import express from 'express';
 import { PubSub } from '@google-cloud/pubsub';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import { S3Client } from '@aws-sdk/client-s3';
+import path from 'path';
+import { createReadStream, promises as fs } from 'fs';
+import { spawn } from 'child_process';
+import axios from 'axios';
+import { GetObjectCommand, S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
 
 dotenv.config();
 const app = express();
 app.use(express.json());
 app.use(cors());
-const pubSubClient = new PubSub();
+// const pubSubClient = new PubSub();
 
-const topicName = process.env.PUBSUB_TPOPIC_NAME;
+// const topicName = process.env.PUBSUB_TPOPIC_NAME;
 
 
 const s3Client = new S3Client({
@@ -105,6 +110,13 @@ app.post('/transcode', async (req, res) => {
 
 
 });
+
+
+//Health check endpoint
+app.get('/health', (req, res) => {
+    console.log("\n Transoding service is running...")
+    res.status(200).send('Transcoding service is running...');
+})
 
 const PORT = process.env.PORT || 8080;
 const server = app.listen(PORT, () => {
