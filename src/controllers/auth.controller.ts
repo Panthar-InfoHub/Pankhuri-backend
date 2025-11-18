@@ -1,15 +1,17 @@
 import { Request, Response } from "express";
 import { verifyFirebaseToken, verifyGoogleToken } from "@services/auth.service";
-import {
-  findOrCreateUserByEmail,
-  findOrCreateUserByPhone,
-} from "../services/user.service";
+import { findOrCreateUserByEmail, findOrCreateUserByPhone } from "../services/user.service";
 import { generateJWT } from "../lib/jwt";
 
+/**
+ * Google OAuth login
+ * POST /api/auth/google
+ */
 export const googleLogin = async (req: Request, res: Response) => {
   try {
     const { idToken } = req.body;
 
+    // Validation
     if (!idToken) {
       return res.status(400).json({
         success: false,
@@ -27,7 +29,7 @@ export const googleLogin = async (req: Request, res: Response) => {
       });
     }
 
-    // Find or create user
+    // Find or create user - pass only specific data
     const user = await findOrCreateUserByEmail(
       googlePayload.email,
       googlePayload.sub,
@@ -64,10 +66,15 @@ export const googleLogin = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Phone/SMS authentication with Firebase
+ * POST /api/auth/phone
+ */
 export const phoneLogin = async (req: Request, res: Response) => {
   try {
     const { idToken, countryCode } = req.body;
 
+    // Validation
     if (!idToken) {
       return res.status(400).json({
         success: false,
@@ -75,7 +82,7 @@ export const phoneLogin = async (req: Request, res: Response) => {
       });
     }
 
-    // Verify Firebase ID token directly
+    // Verify Firebase ID token
     const decodedToken = await verifyFirebaseToken(idToken);
 
     if (!decodedToken.phone_number) {
@@ -85,7 +92,7 @@ export const phoneLogin = async (req: Request, res: Response) => {
       });
     }
 
-    // Find or create user by phone
+    // Find or create user by phone - pass only specific data
     const user = await findOrCreateUserByPhone(decodedToken.phone_number, countryCode);
 
     // Generate JWT
@@ -100,7 +107,6 @@ export const phoneLogin = async (req: Request, res: Response) => {
         user: user,
       },
     });
-    
   } catch (error: any) {
     console.error("Phone login error:", error);
 

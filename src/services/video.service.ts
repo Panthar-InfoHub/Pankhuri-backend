@@ -1,27 +1,7 @@
 import { prisma } from "@/lib/db";
+import { Prisma } from "@/prisma/generated/prisma/client";
 
-export interface CreateVideoDto {
-  title: string;
-  thumbnailUrl?: string;
-  storageKey: string;
-  playbackUrl?: string;
-  status?: string;
-  duration?: number;
-  metadata?: any;
-}
-
-export interface UpdateVideoDto {
-  title?: string;
-  thumbnailUrl?: string;
-  storageKey?: string;
-  playbackUrl?: string;
-  status?: string;
-  duration?: number;
-  metadata?: any;
-}
-
-
-export const createVideo = async (data: CreateVideoDto) => {
+export const createVideo = async (data: Prisma.VideoCreateInput) => {
   try {
     const video = await prisma.video.create({
       data: {
@@ -53,7 +33,6 @@ export const getVideoById = async (id: string) => {
   }
 };
 
-
 export const getAllVideos = async (filters?: {
   status?: string;
   limit?: number;
@@ -82,8 +61,7 @@ export const getAllVideos = async (filters?: {
   }
 };
 
-
-export const updateVideo = async (id: string, data: UpdateVideoDto) => {
+export const updateVideo = async (id: string, data: Prisma.VideoUpdateInput) => {
   try {
     // Check if video exists
     const existingVideo = await prisma.video.findUnique({
@@ -113,7 +91,6 @@ export const updateVideo = async (id: string, data: UpdateVideoDto) => {
   }
 };
 
-
 export const deleteVideo = async (id: string) => {
   try {
     // Check if video exists
@@ -135,7 +112,6 @@ export const deleteVideo = async (id: string) => {
   }
 };
 
-
 export const updateVideoStatus = async (id: string, status: string) => {
   try {
     const video = await prisma.video.update({
@@ -148,7 +124,6 @@ export const updateVideoStatus = async (id: string, status: string) => {
     throw new Error(`Failed to update video status: ${error.message}`);
   }
 };
-
 
 export const bulkDeleteVideos = async (ids: string[]) => {
   try {

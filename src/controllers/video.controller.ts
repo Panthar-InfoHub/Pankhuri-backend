@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import {
   createVideo,
   getVideoById,
@@ -13,7 +13,7 @@ import {
  * Create a new video
  * POST /api/videos
  */
-export const createVideoHandler = async (req: Request, res: Response) => {
+export const createVideoHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { title, thumbnailUrl, storageKey, playbackUrl, status, duration, metadata } = req.body;
 
@@ -41,11 +41,7 @@ export const createVideoHandler = async (req: Request, res: Response) => {
       data: video,
     });
   } catch (error: any) {
-    console.error("Create video error:", error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || "Failed to create video",
-    });
+    next(error);
   }
 };
 
@@ -53,7 +49,7 @@ export const createVideoHandler = async (req: Request, res: Response) => {
  * Get video by ID
  * GET /api/videos/:id
  */
-export const getVideoHandler = async (req: Request, res: Response) => {
+export const getVideoHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
 
@@ -71,11 +67,7 @@ export const getVideoHandler = async (req: Request, res: Response) => {
       data: video,
     });
   } catch (error: any) {
-    console.error("Get video error:", error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || "Failed to fetch video",
-    });
+    next(error);
   }
 };
 
@@ -83,7 +75,7 @@ export const getVideoHandler = async (req: Request, res: Response) => {
  * Get all videos
  * GET /api/videos
  */
-export const getAllVideosHandler = async (req: Request, res: Response) => {
+export const getAllVideosHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { status, limit, offset } = req.query;
 
@@ -106,11 +98,7 @@ export const getAllVideosHandler = async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
-    console.error("Get all videos error:", error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || "Failed to fetch videos",
-    });
+    next(error);
   }
 };
 
@@ -118,7 +106,7 @@ export const getAllVideosHandler = async (req: Request, res: Response) => {
  * Update video
  * PUT /api/videos/:id
  */
-export const updateVideoHandler = async (req: Request, res: Response) => {
+export const updateVideoHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const { title, thumbnailUrl, storageKey, playbackUrl, status, duration, metadata } = req.body;
@@ -148,10 +136,7 @@ export const updateVideoHandler = async (req: Request, res: Response) => {
       });
     }
 
-    return res.status(500).json({
-      success: false,
-      error: error.message || "Failed to update video",
-    });
+    next(error);
   }
 };
 
@@ -159,7 +144,7 @@ export const updateVideoHandler = async (req: Request, res: Response) => {
  * Delete video
  * DELETE /api/videos/:id
  */
-export const deleteVideoHandler = async (req: Request, res: Response) => {
+export const deleteVideoHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
 
@@ -180,10 +165,7 @@ export const deleteVideoHandler = async (req: Request, res: Response) => {
       });
     }
 
-    return res.status(500).json({
-      success: false,
-      error: error.message || "Failed to delete video",
-    });
+    next(error);
   }
 };
 
@@ -191,7 +173,7 @@ export const deleteVideoHandler = async (req: Request, res: Response) => {
  * Update video status
  * PATCH /api/videos/:id/status
  */
-export const updateVideoStatusHandler = async (req: Request, res: Response) => {
+export const updateVideoStatusHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -211,11 +193,7 @@ export const updateVideoStatusHandler = async (req: Request, res: Response) => {
       data: video,
     });
   } catch (error: any) {
-    console.error("Update video status error:", error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || "Failed to update video status",
-    });
+    next(error);
   }
 };
 
@@ -223,7 +201,7 @@ export const updateVideoStatusHandler = async (req: Request, res: Response) => {
  * Bulk delete videos
  * DELETE /api/videos/bulk
  */
-export const bulkDeleteVideosHandler = async (req: Request, res: Response) => {
+export const bulkDeleteVideosHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { ids } = req.body;
 
@@ -242,10 +220,6 @@ export const bulkDeleteVideosHandler = async (req: Request, res: Response) => {
       data: { deletedCount: result.count },
     });
   } catch (error: any) {
-    console.error("Bulk delete videos error:", error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || "Failed to delete videos",
-    });
+    next(error);
   }
 };

@@ -1,0 +1,49 @@
+enum CourseLevel {
+    beginner
+    intermediate
+    advanced
+    expert
+}
+
+enum CourseStatus {
+    active
+    inactive
+    archived
+}
+
+model Course {
+    id              String       @id @default(cuid())
+    categoryId      String
+    trainerId       String
+    title           String
+    slug            String       @unique
+    description     String?      @db.Text
+    thumbnailImage  String?
+    coverImage      String?
+    level           CourseLevel  @default(beginner)
+    duration        Int? // in minutes
+    language        String       @default("en")
+    status          CourseStatus @default(active)
+    isPublished     Boolean      @default(false)
+    hasCertificate  Boolean      @default(false)
+    enrollmentCount Int          @default(0)
+    rating          Float        @default(0)
+    tags            String[]     @default([])
+    metadata        Json?
+    demoVideoId     String?
+    createdAt       DateTime     @default(now())
+    updatedAt       DateTime     @updatedAt
+
+    // Relations
+    category    Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+    trainer     User         @relation("TrainerCourses", fields: [trainerId], references: [id], onDelete: Cascade)
+    enrollments Enrollment[]
+
+    @@index([slug])
+    @@index([categoryId])
+    @@index([trainerId])
+    @@index([status])
+    @@index([isPublished])
+    @@index([level])
+    @@index([language])
+}

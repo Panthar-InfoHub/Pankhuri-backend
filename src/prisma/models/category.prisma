@@ -1,0 +1,27 @@
+enum CategoryStatus {
+  active
+  inactive
+}
+
+model Category {
+  id          String         @id @default(cuid())
+  parentId    String?
+  name        String
+  slug        String         @unique
+  description String?        @db.Text
+  icon        String?
+  status      CategoryStatus @default(active)
+  sequence    Int            @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Relations
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[] @relation("CategoryHierarchy")
+  courses  Course[]
+
+  @@index([slug])
+  @@index([parentId])
+  @@index([status])
+  @@index([sequence])
+}
