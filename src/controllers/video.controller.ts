@@ -15,7 +15,7 @@ import {
  */
 export const createVideoHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { title, thumbnailUrl, storageKey, playbackUrl, status, duration, metadata } = req.body;
+    const { title, thumbnailUrl, storageKey, playbackUrl, status, duration, metadata, quality } = req.body;
 
     // Validation
     if (!title || !storageKey) {
@@ -33,7 +33,7 @@ export const createVideoHandler = async (req: Request, res: Response, next: Next
       status,
       duration,
       metadata,
-    });
+    }, parseInt(quality) || 1080);
 
     return res.status(201).json({
       success: true,
@@ -202,6 +202,30 @@ export const updateVideoStatusHandler = async (req: Request, res: Response, next
  * DELETE /api/videos/bulk
  */
 export const bulkDeleteVideosHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { ids } = req.body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "ids array is required",
+      });
+    }
+
+    const result = await bulkDeleteVideos(ids);
+
+    return res.status(200).json({
+      success: true,
+      message: `${result.count} video(s) deleted successfully`,
+      data: { deletedCount: result.count },
+    });
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+
+export const transcodeCompleteHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { ids } = req.body;
 

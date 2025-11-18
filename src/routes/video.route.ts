@@ -21,4 +21,6 @@ router.patch("/:id/status", authenticate, requireAdmin, updateVideoStatusHandler
 router.delete("/:id", authenticate, requireAdmin, deleteVideoHandler);
 router.delete("/bulk/delete", authenticate, requireAdmin, bulkDeleteVideosHandler);
 
+// Bulk delete videos
+router.delete("/transcode-complete", bulkDeleteVideosHandler);
 export default router;
