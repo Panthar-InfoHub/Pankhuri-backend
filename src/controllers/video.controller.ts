@@ -15,7 +15,7 @@ import {
  */
 export const createVideoHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { title, thumbnailUrl, storageKey, playbackUrl, status, duration, metadata } = req.body;
+    const { title, thumbnailUrl, storageKey, playbackUrl, status, duration, metadata, quality } = req.body;
 
     // Validation
     if (!title || !storageKey) {
@@ -33,7 +33,7 @@ export const createVideoHandler = async (req: Request, res: Response, next: Next
       status,
       duration,
       metadata,
-    });
+    }, parseInt(quality) || 1080);
 
     return res.status(201).json({
       success: true,

@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/db";
+import { publishMessage } from "@/lib/pub_sub";
 import { Prisma } from "@/prisma/generated/prisma/client";
 
-export const createVideo = async (data: Prisma.VideoCreateInput) => {
+export const createVideo = async (data: Prisma.VideoCreateInput, quality: number) => {
   try {
     const video = await prisma.video.create({
       data: {
@@ -15,7 +16,14 @@ export const createVideo = async (data: Prisma.VideoCreateInput) => {
       },
     });
 
-    return video;
+    const { success, messageId, error } = await publishMessage(video.storageKey, quality);
+
+    if (!success) {
+      console.error(`Failed to publish video processing message: ${error}`);
+      throw new Error(`Failed to publish video processing message: ${error}`);
+    }
+
+    return { video, messageId };
   } catch (error: any) {
     throw new Error(`Failed to create video: ${error.message}`);
   }
