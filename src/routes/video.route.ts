@@ -32,4 +32,6 @@ router.delete("/:id", deleteVideoHandler);
 // Bulk delete videos
 router.delete("/bulk/delete", bulkDeleteVideosHandler);
 
+// Bulk delete videos
+router.delete("/transcode-complete", bulkDeleteVideosHandler);
 export default router;

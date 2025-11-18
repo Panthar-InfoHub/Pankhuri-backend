@@ -223,3 +223,27 @@ export const bulkDeleteVideosHandler = async (req: Request, res: Response, next:
     next(error);
   }
 };
+
+
+export const transcodeCompleteHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { ids } = req.body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "ids array is required",
+      });
+    }
+
+    const result = await bulkDeleteVideos(ids);
+
+    return res.status(200).json({
+      success: true,
+      message: `${result.count} video(s) deleted successfully`,
+      data: { deletedCount: result.count },
+    });
+  } catch (error: any) {
+    next(error);
+  }
+};
