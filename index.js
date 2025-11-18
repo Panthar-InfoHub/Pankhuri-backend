@@ -52,10 +52,10 @@ app.post('/transcode', async (req, res) => {
     }
 
     const payload = JSON.parse(Buffer.from(message.data, 'base64').toString('utf-8'));
-    const { bucket, filename, quality } = payload;
+    const { filename, quality } = payload;
 
-    if (!bucket || !filename || !quality) {
-        return res.status(400).send('Bad Request: Missing bucket, filename, or quality.');
+    if (!filename || !quality) {
+        return res.status(400).send('Bad Request: Missing filename or quality.');
     }
 
     console.log(`Processing for transcode: ${filename} at ${quality}p`);
@@ -64,9 +64,9 @@ app.post('/transcode', async (req, res) => {
     try {
         await fs.mkdir(tempDir, { recursive: true });
 
-        const manifestUrl = await processVideo(bucket, filename, quality, tempDir); //Transcode video and get manifest URL
+        const hlsPath = await processVideo(OUTPUT_BUCKET, filename, quality, tempDir); //Transcode video and get manifest URL
 
-        await updateBackend(filename, manifestUrl); //Update main backend with manifest URL
+        await updateBackend(filename, hlsPath); //Update main backend with manifest URL
 
         res.status(200).send(`Successfully processed ${filename}`);
 
@@ -201,7 +201,7 @@ async function processVideo(bucket, filename, quality, tempDir) {
 
     // Upload all generated files to DigitalOcean
     console.log('Uploading transcoded files to DigitalOcean...');
-    const uploadDir = path.parse(filename).name;
+    const uploadDir = `transcoded/${path.parse(filename).name}`;
     const files = await fs.readdir(outputDir, { recursive: true });
     for (const file of files) {
         const fullPath = path.join(outputDir, file);
@@ -222,16 +222,16 @@ async function processVideo(bucket, filename, quality, tempDir) {
     // await s3Client.send(new DeleteObjectCommand({ Bucket: bucket, Key: filename }));
     // console.log(`Deleted original file: s3://${bucket}/${filename}`);
 
-    return `https://${OUTPUT_BUCKET}.blr1.digitaloceanspaces.com/${uploadDir}/master.m3u8`;
+    return `/${uploadDir}/master.m3u8`;
 }
 
-async function updateBackend(originalFilename, manifestUrl) {
+async function updateBackend(originalFilename, hlsPath) {
     console.log(`Updating backend for ${originalFilename}...`);
     try {
         await axios.post(BACKEND_API_URL,
             {
                 filename: originalFilename,
-                hls_manifest_url: manifestUrl,
+                hls_manifest_url: hlsPath,
                 status: 'COMPLETED'
             },
             {
