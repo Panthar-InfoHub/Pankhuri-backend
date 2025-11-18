@@ -14,7 +14,6 @@ enum UserStatus {
 enum UserRole {
   user
   admin
-  moderator
 }
 
 model User {
@@ -32,15 +31,14 @@ model User {
   fcmTokens          String[]   @default([])
   status             UserStatus @default(active)
   role               UserRole   @default(user)
-  googleId           String?    @unique
+  hasUsedTrial       Boolean    @default(false)
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
 
   // Relations
-  trainedCourses Course[]     @relation("TrainerCourses")
-  enrollments    Enrollment[]
+  trainerProfile Trainer?
+  trainedCourses Course[] @relation("TrainerCourses")
 
   @@index([email])
   @@index([phone])
-  @@index([googleId])
 }

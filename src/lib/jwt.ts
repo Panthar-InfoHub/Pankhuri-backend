@@ -1,4 +1,4 @@
-import { User } from "@prisma/client";
+import { User } from "@/prisma/generated/prisma/client";
 import jwt from "jsonwebtoken";
 
 export const generateJWT = (user: User): string => {

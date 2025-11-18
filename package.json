@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc && tsc-alias",
     "dev": "ts-node-dev -r tsconfig-paths/register --respawn --transpile-only src/server.ts",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "make-admin": "ts-node -r tsconfig-paths/register scripts/make-user-admin.ts"
   },
   "keywords": [],
   "author": "",
@@ -18,7 +19,6 @@
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "firebase-admin": "^13.5.0",
-    "google-auth-library": "^10.4.2",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.1"
   },

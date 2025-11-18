@@ -96,7 +96,6 @@ export const getCategoryById = async (id: string) => {
       children: true,
       courses: {
         where: {
-          isPublished: true,
           status: "active",
         },
         select: {
@@ -107,7 +106,6 @@ export const getCategoryById = async (id: string) => {
           level: true,
           duration: true,
           rating: true,
-          enrollmentCount: true,
         },
       },
       _count: {
@@ -130,7 +128,6 @@ export const getCategoryBySlug = async (slug: string) => {
       children: true,
       courses: {
         where: {
-          isPublished: true,
           status: "active",
         },
       },
@@ -215,7 +212,7 @@ export const updateCategory = async (id: string, data: Prisma.CategoryUpdateInpu
 };
 
 // Delete category (Admin)
-export const  deleteCategory = async (id: string) => {
+export const deleteCategory = async (id: string) => {
   // Check if category has children or courses
   const category = await prisma.category.findUnique({
     where: { id },

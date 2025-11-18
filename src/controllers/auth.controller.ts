@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
-import { verifyFirebaseToken, verifyGoogleToken } from "@services/auth.service";
+import { verifyFirebaseToken } from "@services/auth.service";
 import { findOrCreateUserByEmail, findOrCreateUserByPhone } from "../services/user.service";
 import { generateJWT } from "../lib/jwt";
 
 /**
- * Google OAuth login
+ * Google OAuth login via Firebase
  * POST /api/auth/google
  */
 export const googleLogin = async (req: Request, res: Response) => {
@@ -15,26 +15,26 @@ export const googleLogin = async (req: Request, res: Response) => {
     if (!idToken) {
       return res.status(400).json({
         success: false,
-        error: "Google token is required",
+        error: "Firebase ID token is required",
       });
     }
 
-    // Verify Google OAuth token
-    const googlePayload = await verifyGoogleToken(idToken);
+    // Verify Firebase ID token
+    const firebaseUser = await verifyFirebaseToken(idToken);
+    console.log("Firebase User:", firebaseUser);
 
-    if (!googlePayload.email) {
+    if (!firebaseUser.email) {
       return res.status(400).json({
         success: false,
         error: "Email not found in token",
       });
     }
 
-    // Find or create user - pass only specific data
+    // Find or create user
     const user = await findOrCreateUserByEmail(
-      googlePayload.email,
-      googlePayload.sub,
-      googlePayload.name,
-      googlePayload.picture
+      firebaseUser.email,
+      firebaseUser.name,
+      firebaseUser.picture
     );
 
     // Generate JWT
@@ -55,7 +55,7 @@ export const googleLogin = async (req: Request, res: Response) => {
     if (error.message.includes("verification failed")) {
       return res.status(401).json({
         success: false,
-        error: "Invalid Google token",
+        error: "Invalid Firebase token",
       });
     }
 
@@ -72,7 +72,7 @@ export const googleLogin = async (req: Request, res: Response) => {
  */
 export const phoneLogin = async (req: Request, res: Response) => {
   try {
-    const { idToken, countryCode } = req.body;
+    const { idToken } = req.body;
 
     // Validation
     if (!idToken) {
@@ -83,17 +83,18 @@ export const phoneLogin = async (req: Request, res: Response) => {
     }
 
     // Verify Firebase ID token
-    const decodedToken = await verifyFirebaseToken(idToken);
+    const firebaseUser = await verifyFirebaseToken(idToken);
+    console.log("Firebase User:", firebaseUser);
 
-    if (!decodedToken.phone_number) {
+    if (!firebaseUser.phone_number) {
       return res.status(400).json({
         success: false,
         error: "Phone number not found in token",
       });
     }
 
-    // Find or create user by phone - pass only specific data
-    const user = await findOrCreateUserByPhone(decodedToken.phone_number, countryCode);
+    // Find or create user by phone (country code auto-extracted)
+    const user = await findOrCreateUserByPhone(firebaseUser.phone_number);
 
     // Generate JWT
     const token = generateJWT(user);

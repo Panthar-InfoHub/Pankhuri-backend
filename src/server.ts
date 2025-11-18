@@ -3,10 +3,10 @@ import express from "express";
 import morgan from "morgan";
 import { connectDB, disconnectDB } from "@/lib/db";
 import authRoutes from "@/routes/auth.route";
+import userRoutes from "@/routes/user.route";
 import videoRoutes from "@/routes/video.route";
 import categoryRoutes from "@/routes/category.route";
 import courseRoutes from "@/routes/course.route";
-import enrollmentRoutes from "@/routes/enrollment.route";
 import { errorHandler } from "./middleware/error.middleware";
 
 //Configurations
@@ -23,16 +23,15 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/videos", videoRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/courses", courseRoutes);
-app.use("/api/enrollments", enrollmentRoutes);
 
 //Health check
 app.get("/ping", (_, res) => {
   res.status(200).send({ message: "server is running!" });
 });
-
 
 // Global error middleware
 app.use(errorHandler);

@@ -4,80 +4,97 @@
     <meta charset="UTF-8" />
     <title>Firebase Phone Auth Test</title>
     <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-  import {
-    getAuth,
-    RecaptchaVerifier,
-    signInWithPhoneNumber,
-  } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+      import {
+        getAuth,
+        RecaptchaVerifier,
+        signInWithPhoneNumber,
+      } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyCBE9bMhCvFE9UmamzVFyW6IIYRQBy-YdY",
-    authDomain: "pankhuri-74073.firebaseapp.com",
-    projectId: "pankhuri-74073",
-    storageBucket: "pankhuri-74073.firebasestorage.app",
-    messagingSenderId: "254532886233",
-    appId: "1:254532886233:web:5f46e2dadda8eb507ca8c8",
-  };
+      const firebaseConfig = {
+        apiKey: "AIzaSyCBE9bMhCvFE9UmamzVFyW6IIYRQBy-YdY",
+        authDomain: "pankhuri-74073.firebaseapp.com",
+        projectId: "pankhuri-74073",
+        storageBucket: "pankhuri-74073.firebasestorage.app",
+        messagingSenderId: "254532886233",
+        appId: "1:254532886233:web:5f46e2dadda8eb507ca8c8",
+      };
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
 
-  // ✅ Initialize reCAPTCHA once (visible for reliability)
-  window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-    size: "normal", // change from "invisible" to "normal"
-    callback: (response) => {
-      console.log("reCAPTCHA solved:", response);
-    },
-  });
+      // ✅ Initialize reCAPTCHA once (visible for reliability)
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+        size: "normal", // change from "invisible" to "normal"
+        callback: (response) => {
+          console.log("reCAPTCHA solved:", response);
+        },
+      });
 
-  window.recaptchaVerifier.render().then((widgetId) => {
-    window.recaptchaWidgetId = widgetId;
-  });
+      window.recaptchaVerifier.render().then((widgetId) => {
+        window.recaptchaWidgetId = widgetId;
+      });
 
-  // ✅ Send OTP and verify
-  document.getElementById("send-otp").addEventListener("click", async () => {
-    const phoneNumber = document.getElementById("phone").value.trim();
-    if (!phoneNumber) return alert("Please enter a phone number with +91 prefix.");
+      // ✅ Send OTP
+      let confirmationResult;
 
-    try {
-      document.getElementById("send-otp").innerText = "Sending...";
-      document.getElementById("send-otp").disabled = true;
+      document.getElementById("send-otp").addEventListener("click", async () => {
+        const phoneNumber = document.getElementById("phone").value.trim();
+        if (!phoneNumber) return alert("Please enter a phone number with +91 prefix.");
 
-      const confirmationResult = await signInWithPhoneNumber(
-        auth,
-        phoneNumber,
-        window.recaptchaVerifier
-      );
-      alert("OTP sent! Check your phone.");
+        try {
+          document.getElementById("send-otp").innerText = "Sending...";
+          document.getElementById("send-otp").disabled = true;
 
-      const otp = prompt("Enter the OTP you received:");
-      if (!otp) return alert("OTP is required!");
+          confirmationResult = await signInWithPhoneNumber(
+            auth,
+            phoneNumber,
+            window.recaptchaVerifier
+          );
 
-      const result = await confirmationResult.confirm(otp);
-      const idToken = await result.user.getIdToken();
+          alert("OTP sent! Check your phone.");
+          document.getElementById("otp-section").style.display = "block";
+          document.getElementById("otp").focus();
+        } catch (error) {
+          console.error("❌ Error:", error);
+          alert("Error: " + error.message);
+          document.getElementById("send-otp").innerText = "Send OTP";
+          document.getElementById("send-otp").disabled = false;
+        }
+      });
 
-      document.getElementById("token").value = idToken;
-      console.log("✅ Firebase ID Token:", idToken);
-      alert("✅ OTP verified! Token shown below.");
-    } catch (error) {
-      console.error("❌ Error:", error);
-      alert("Error: " + error.message);
-    } finally {
-      document.getElementById("send-otp").innerText = "Send OTP";
-      document.getElementById("send-otp").disabled = false;
-    }
-  });
+      // ✅ Verify OTP
+      document.getElementById("verify-otp").addEventListener("click", async () => {
+        const otp = document.getElementById("otp").value.trim();
+        if (!otp) return alert("Please enter the OTP!");
 
-  // ✅ Copy token
-  window.copyToken = function () {
-    const tokenBox = document.getElementById("token");
-    tokenBox.select();
-    document.execCommand("copy");
-    alert("Token copied to clipboard!");
-  };
-</script>
+        try {
+          document.getElementById("verify-otp").innerText = "Verifying...";
+          document.getElementById("verify-otp").disabled = true;
 
+          const result = await confirmationResult.confirm(otp);
+          const idToken = await result.user.getIdToken();
+
+          document.getElementById("token").value = idToken;
+          document.getElementById("copy-btn").style.display = "inline-block";
+          console.log("✅ Firebase ID Token:", idToken);
+          alert("✅ OTP verified! Token shown below.");
+        } catch (error) {
+          console.error("❌ Error:", error);
+          alert("Error: " + error.message);
+          document.getElementById("verify-otp").innerText = "Verify OTP";
+          document.getElementById("verify-otp").disabled = false;
+        }
+      });
+
+      // ✅ Copy token
+      window.copyToken = function () {
+        const tokenBox = document.getElementById("token");
+        tokenBox.select();
+        document.execCommand("copy");
+        alert("Token copied to clipboard!");
+      };
+    </script>
 
     <style>
       body {
@@ -156,9 +173,15 @@
       <button id="send-otp">Send OTP</button>
       <div id="recaptcha-container"></div>
 
-      <h4 style="margin-top: 1.5rem;">Your ID Token:</h4>
+      <div id="otp-section" style="display: none; margin-top: 1.5rem">
+        <h4>Enter OTP:</h4>
+        <input id="otp" type="text" placeholder="Enter 6-digit OTP" maxlength="6" />
+        <button id="verify-otp">Verify OTP</button>
+      </div>
+
+      <h4 style="margin-top: 1.5rem">Your ID Token:</h4>
       <textarea id="token" readonly></textarea>
-      <button onclick="copyToken()">Copy Token</button>
+      <button onclick="copyToken()" style="display: none" id="copy-btn">Copy Token</button>
     </div>
   </body>
 </html>

@@ -8,28 +8,17 @@ import {
   updateVideoStatusHandler,
   bulkDeleteVideosHandler,
 } from "@/controllers/video.controller";
+import { authenticate, requireAdmin } from "../middleware/auth.middleware";
 
 const router = express.Router();
 
-// Create video
-router.post("/", createVideoHandler);
-
-// Get all videos (with optional filters)
-router.get("/", getAllVideosHandler);
-
-// Get single video by ID
-router.get("/:id", getVideoHandler);
-
-// Update video by ID
-router.put("/:id", updateVideoHandler);
-
-// Update video status
-router.patch("/:id/status", updateVideoStatusHandler);
-
-// Delete single video by ID
-router.delete("/:id", deleteVideoHandler);
-
-// Bulk delete videos
-router.delete("/bulk/delete", bulkDeleteVideosHandler);
+// Admin routes - all video operations require admin access
+router.post("/", authenticate, requireAdmin, createVideoHandler);
+router.get("/", authenticate, requireAdmin, getAllVideosHandler);
+router.get("/:id", authenticate, requireAdmin, getVideoHandler);
+router.put("/:id", authenticate, requireAdmin, updateVideoHandler);
+router.patch("/:id/status", authenticate, requireAdmin, updateVideoStatusHandler);
+router.delete("/:id", authenticate, requireAdmin, deleteVideoHandler);
+router.delete("/bulk/delete", authenticate, requireAdmin, bulkDeleteVideosHandler);
 
 export default router;
