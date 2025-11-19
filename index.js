@@ -1,21 +1,17 @@
-import express from 'express';
-import { PubSub } from '@google-cloud/pubsub';
-import dotenv from 'dotenv';
-import cors from 'cors';
-import path from 'path';
-import { createReadStream, promises as fs } from 'fs';
-import { spawn } from 'child_process';
-import axios from 'axios';
-import { GetObjectCommand, S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
+import axios from 'axios';
+import { spawn } from 'child_process';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import express from 'express';
+import { createReadStream, promises as fs } from 'fs';
+import path from 'path';
 
 dotenv.config();
 const app = express();
 app.use(express.json());
 app.use(cors());
-// const pubSubClient = new PubSub();
-
-// const topicName = process.env.PUBSUB_TPOPIC_NAME;
 
 
 const s3Client = new S3Client({
@@ -37,11 +33,6 @@ const BACKEND_API_KEY = process.env.BACKEND_API_KEY; // A secret key to secure y
  */
 app.post('/transcode', async (req, res) => {
     console.log('Received a dispatch request.');
-
-    if (!req.body || !req.body.bucket || !req.body.filename) {
-        console.error('Invalid request body:', req.body);
-        return res.status(400).send('Bad Request: Missing bucket or filename.');
-    }
 
 
     const message = req.body.message;
@@ -78,37 +69,6 @@ app.post('/transcode', async (req, res) => {
             await fs.rm(tempDir, { recursive: true, force: true });
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // const messageData = JSON.stringify({
-    //     bucket: req.body.bucket,
-    //     filename: req.body.filename,
-    // });
-
-    // const dataBuffer = Buffer.from(messageData);
-
-    // const messageId = await pubSubClient.topic(topicName).publishMessage({ data: dataBuffer });
-    // console.log(`Message ${messageId} published to topic ${topicName}.`);
-
-    // // Respond with success
-    // res.status(200).json({ message: `Job dispatched with Message ID: ${messageId}` });
-
-
 });
 
 
@@ -140,7 +100,11 @@ process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 async function processVideo(bucket, filename, quality, tempDir) {
     const localInputPath = path.join(tempDir, filename);
     const outputDir = path.join(tempDir, 'transcoded');
+    console.log(`\nInput dir ==> ${localInputPath}`);
+    console.log(`Output dir ==> ${outputDir}\n`);
+
     await fs.mkdir(outputDir);
+    await fs.mkdir(path.dirname(localInputPath), { recursive: true });
 
     // Download the video from DigitalOcean
     console.log(`Downloading s3://${bucket}/${filename}...`);
@@ -166,9 +130,11 @@ async function processVideo(bucket, filename, quality, tempDir) {
     let streamMap = '';
     const masterPlaylistEntries = [];
 
-    qualitiesToTranscode.forEach((profile, index) => {
+    let index = 0;
+    for (const profile of qualitiesToTranscode) {
+        // qualitiesToTranscode.forEach((profile, index) => {
         const outputSubDir = path.join(outputDir, `${profile.quality}p`);
-        fs.mkdirSync(outputSubDir);
+        await fs.mkdir(outputSubDir);
         ffmpegArgs.push(
             '-map', '0:v:0', '-map', '0:a:0',
             `-vf`, `scale=${profile.resolution}`,
@@ -179,11 +145,13 @@ async function processVideo(bucket, filename, quality, tempDir) {
             '-hls_time', '4',
             '-hls_playlist_type', 'vod',
             '-hls_segment_filename', `${outputSubDir}/segment%03d.ts`,
-            '-hls_header_url', `/${outputSubDir}/playlist.m3u8`
+            // '-hls_header_url', `/${outputSubDir}/playlist.m3u8`
+            `${outputSubDir}/playlist.m3u8` // Output file path
         );
         streamMap += `v:${index},a:${index} `;
         masterPlaylistEntries.push(`#EXT-X-STREAM-INF:BANDWIDTH=${parseInt(profile.bitrate) * 1000},RESOLUTION=${profile.resolution}\n${profile.quality}p/playlist.m3u8`);
-    });
+        index++;
+    }
 
     // Creating master playlist file
     const masterPlaylistContent = `#EXTM3U\n#EXT-X-VERSION:3\n${masterPlaylistEntries.join('\n')}`;
@@ -202,20 +170,34 @@ async function processVideo(bucket, filename, quality, tempDir) {
     // Upload all generated files to DigitalOcean
     console.log('Uploading transcoded files to DigitalOcean...');
     const uploadDir = `transcoded/${path.parse(filename).name}`;
-    const files = await fs.readdir(outputDir, { recursive: true });
-    for (const file of files) {
-        const fullPath = path.join(outputDir, file);
-        const uploadPath = path.join(uploadDir, file);
-        const uploader = new Upload({
-            client: s3Client,
-            params: {
-                Bucket: OUTPUT_BUCKET,
-                Key: uploadPath,
-                Body: createReadStream(fullPath),
-            },
-        });
-        await uploader.done();
+    async function uploadRecursive(dir) {
+        const items = await fs.readdir(dir, { withFileTypes: true });
+        for (const item of items) {
+            const fullPath = path.join(dir, item.name);
+
+            if (item.isDirectory()) {
+                // Recursively process subdirectories
+                await uploadRecursive(fullPath);
+            } else {
+                // Upload only if it's a file
+                const relativePath = path.relative(outputDir, fullPath);
+                const uploadKey = path.join(uploadDir, relativePath).split(path.sep).join('/');
+
+                console.log(`Uploading: ${uploadKey}`);
+                const uploader = new Upload({
+                    client: s3Client,
+                    params: {
+                        Bucket: OUTPUT_BUCKET,
+                        Key: uploadKey,
+                        Body: createReadStream(fullPath),
+                    },
+                });
+                await uploader.done();
+            }
+        }
     }
+
+    await uploadRecursive(outputDir);
     console.log('Uploading complete....');
 
     // Clean up the original raw video file
@@ -226,13 +208,12 @@ async function processVideo(bucket, filename, quality, tempDir) {
 }
 
 async function updateBackend(originalFilename, hlsPath) {
-    console.log(`Updating backend for ${originalFilename}...`);
+    console.log(`Updating backend for ${originalFilename}... to HLS path: ${hlsPath}`);
     try {
         await axios.post(BACKEND_API_URL,
             {
-                filename: originalFilename,
-                hls_manifest_url: hlsPath,
-                status: 'COMPLETED'
+                playbackUrl: hlsPath,
+                status: 'ready'
             },
             {
                 headers: { 'Authorization': `Bearer ${BACKEND_API_KEY}` }
