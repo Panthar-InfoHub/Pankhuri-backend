@@ -53,6 +53,12 @@ export const findUserByPhone = async (phone: string): Promise<User | null> => {
   });
 };
 
+export const findAdminByEmail = async (email: string): Promise<User | null> => {
+  return await prisma.user.findUnique({
+    where: { email, role: UserRole.admin },
+  });
+};
+
 export const findUserByEmail = async (email: string): Promise<User | null> => {
   return await prisma.user.findUnique({
     where: { email },

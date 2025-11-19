@@ -1,7 +1,8 @@
-import { Request, Response } from "express";
+import { UserRole } from "@/prisma/generated/prisma/client";
 import { verifyFirebaseToken } from "@services/auth.service";
-import { findOrCreateUserByEmail, findOrCreateUserByPhone } from "../services/user.service";
+import { Request, Response } from "express";
 import { generateJWT } from "../lib/jwt";
+import { findAdminByEmail, findOrCreateUserByEmail, findOrCreateUserByPhone } from "../services/user.service";
 
 /**
  * Google OAuth login via Firebase
@@ -117,6 +118,63 @@ export const phoneLogin = async (req: Request, res: Response) => {
         error: "Invalid Firebase token",
       });
     }
+
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Authentication failed",
+    });
+  }
+};
+
+/**
+ * Google OAuth admin verification
+ * POST /api/auth/google-verify-admin
+ */
+export const googleVerifyAdmin = async (req: Request, res: Response) => {
+  try {
+    const { admin_mail } = req.body;
+
+    // Validation
+    if (!admin_mail) {
+      return res.status(400).json({
+        success: false,
+        error: "Admin email is required",
+      });
+    }
+
+
+    // Find user by email (don't create if not exists)
+    const user = await findAdminByEmail(admin_mail);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "Admin user not found",
+      });
+    }
+
+    // Check if user has admin role
+    if (user.role !== UserRole.admin) {
+      return res.status(403).json({
+        success: false,
+        error: "Access denied. Admin privileges required",
+      });
+    }
+
+    // Generate JWT
+    const jwtToken = generateJWT(user);
+
+    // Send response
+    return res.status(200).json({
+      success: true,
+      message: "Admin authentication successful",
+      data: {
+        token: jwtToken,
+        user: user,
+      },
+    });
+  } catch (error: any) {
+    console.error("Admin Google login error:", error);
 
     return res.status(500).json({
       success: false,
