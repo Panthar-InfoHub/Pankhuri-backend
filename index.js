@@ -43,7 +43,7 @@ app.post('/transcode', async (req, res) => {
     }
 
     const payload = JSON.parse(Buffer.from(message.data, 'base64').toString('utf-8'));
-    const { filename, quality } = payload;
+    const { filePath: filename, quality, videoId } = payload;
 
     if (!filename || !quality) {
         return res.status(400).send('Bad Request: Missing filename or quality.');
@@ -57,7 +57,7 @@ app.post('/transcode', async (req, res) => {
 
         const hlsPath = await processVideo(OUTPUT_BUCKET, filename, quality, tempDir); //Transcode video and get manifest URL
 
-        await updateBackend(filename, hlsPath); //Update main backend with manifest URL
+        await updateBackend(filename, hlsPath, videoId); //Update main backend with manifest URL
 
         res.status(200).send(`Successfully processed ${filename}`);
 
@@ -207,11 +207,12 @@ async function processVideo(bucket, filename, quality, tempDir) {
     return `/${uploadDir}/master.m3u8`;
 }
 
-async function updateBackend(originalFilename, hlsPath) {
+async function updateBackend(originalFilename, hlsPath, videoId) {
     console.log(`Updating backend for ${originalFilename}... to HLS path: ${hlsPath}`);
     try {
         await axios.post(BACKEND_API_URL,
             {
+                video_id: videoId,
                 playbackUrl: hlsPath,
                 status: 'ready'
             },
