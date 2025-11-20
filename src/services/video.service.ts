@@ -17,7 +17,7 @@ export const createVideo = async (data: Prisma.VideoCreateInput, quality: number
     });
 
     console.debug("\nPublishing video processing message to Pub/Sub...");
-    const { success, messageId, error } = await publishMessage(video.storageKey, quality);
+    const { success, messageId, error } = await publishMessage(video.storageKey, quality, video.id);
 
     if (!success) {
       console.error(`Failed to publish video processing message: ${error}`);

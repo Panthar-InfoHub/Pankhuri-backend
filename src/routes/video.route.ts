@@ -7,6 +7,7 @@ import {
   deleteVideoHandler,
   updateVideoStatusHandler,
   bulkDeleteVideosHandler,
+  transcodeCompleteHandler,
 } from "@/controllers/video.controller";
 import { authenticate, requireAdmin } from "../middleware/auth.middleware";
 
@@ -22,5 +23,5 @@ router.delete("/:id", authenticate, requireAdmin, deleteVideoHandler);
 router.delete("/bulk/delete", authenticate, requireAdmin, bulkDeleteVideosHandler);
 
 // Bulk delete videos
-router.delete("/transcode-complete", bulkDeleteVideosHandler);
+router.post("/transcode-complete", transcodeCompleteHandler);
 export default router;
