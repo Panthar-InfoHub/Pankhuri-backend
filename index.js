@@ -44,6 +44,7 @@ app.post('/transcode', async (req, res) => {
 
     const payload = JSON.parse(Buffer.from(message.data, 'base64').toString('utf-8'));
     const { filePath: filename, quality, videoId } = payload;
+    console.log("Payload decoded ==> ", payload)
 
     if (!filename || !quality) {
         return res.status(400).send('Bad Request: Missing filename or quality.');
