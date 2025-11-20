@@ -33,11 +33,11 @@ export const getAllTrainers = async (filters?: {
             email: true,
             profileImage: true,
             status: true,
-            _count: {
-              select: {
-                trainedCourses: true,
-              },
-            },
+          },
+        },
+        _count: {
+          select: {
+            courses: true,
           },
         },
       },
@@ -67,17 +67,22 @@ export const getTrainerById = async (id: string) => {
     where: { id },
     include: {
       user: {
-        include: {
-          trainedCourses: {
-            select: {
-              id: true,
-              title: true,
-              slug: true,
-              thumbnailImage: true,
-              rating: true,
-              status: true,
-            },
-          },
+        select: {
+          id: true,
+          displayName: true,
+          email: true,
+          profileImage: true,
+          status: true,
+        },
+      },
+      courses: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          thumbnailImage: true,
+          level: true,
+          status: true,
         },
       },
     },
@@ -163,13 +168,9 @@ export const deleteTrainerProfile = async (id: string) => {
   const trainer = await prisma.trainer.findUnique({
     where: { id },
     include: {
-      user: {
-        include: {
-          _count: {
-            select: {
-              trainedCourses: true,
-            },
-          },
+      _count: {
+        select: {
+          courses: true,
         },
       },
     },
@@ -179,7 +180,7 @@ export const deleteTrainerProfile = async (id: string) => {
     throw new Error("Trainer not found");
   }
 
-  if (trainer.user._count.trainedCourses > 0) {
+  if (trainer._count.courses > 0) {
     throw new Error("Cannot delete trainer profile with associated courses");
   }
 

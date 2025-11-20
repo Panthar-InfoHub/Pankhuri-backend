@@ -171,10 +171,19 @@ export const getAllUsers = async (filters?: {
     prisma.user.findMany({
       where,
       include: {
-        trainerProfile: true,
-        _count: {
+        trainerProfile: {
           select: {
-            trainedCourses: true,
+            id: true,
+            bio: true,
+            specialization: true,
+            experience: true,
+            rating: true,
+            status: true,
+            _count: {
+              select: {
+                courses: true,
+              },
+            },
           },
         },
       },
@@ -203,23 +212,26 @@ export const getUserById = async (id: string) => {
   const user = await prisma.user.findUnique({
     where: { id },
     include: {
-      trainerProfile: true,
-      trainedCourses: {
-        select: {
-          id: true,
-          title: true,
-          slug: true,
-          thumbnailImage: true,
-          rating: true,
-          status: true,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
-      _count: {
-        select: {
-          trainedCourses: true,
+      trainerProfile: {
+        include: {
+          courses: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              thumbnailImage: true,
+              rating: true,
+              status: true,
+            },
+            orderBy: {
+              createdAt: "desc",
+            },
+          },
+          _count: {
+            select: {
+              courses: true,
+            },
+          },
         },
       },
     },
@@ -305,9 +317,13 @@ export const deleteUser = async (id: string) => {
   const user = await prisma.user.findUnique({
     where: { id },
     include: {
-      _count: {
+      trainerProfile: {
         select: {
-          trainedCourses: true,
+          _count: {
+            select: {
+              courses: true,
+            },
+          },
         },
       },
     },
@@ -318,7 +334,7 @@ export const deleteUser = async (id: string) => {
   }
 
   // Don't allow deletion of users with active courses (as trainer)
-  if (user._count.trainedCourses > 0) {
+  if (user.trainerProfile?._count.courses && user.trainerProfile._count.courses > 0) {
     // Soft delete - just deactivate
     await prisma.user.update({
       where: { id },
