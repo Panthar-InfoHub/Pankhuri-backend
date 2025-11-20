@@ -1,14 +1,17 @@
 import { PubSub } from "@google-cloud/pubsub";
 
-const pubSubClient = new PubSub();
+const pubSubClient = new PubSub({
+    projectId: process.env.GOOGLE_CLOUD_PROJECT
+});
 
-export const publishMessage = async (filePath: string , quality : number) => {
+export const publishMessage = async (filePath: string, quality: number, videoId: string) => {
     try {
 
         const topicName = process.env.PUBSUB_TOPIC_NAME || "video-transcoding-jobs-asia-001";
         const messageData = JSON.stringify({
             filePath,
-            quality: "1080p"
+            quality,
+            videoId
         });
 
         const dataBuffer = Buffer.from(messageData);

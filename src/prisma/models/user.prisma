@@ -37,6 +37,7 @@ model User {
 
   // Relations
   trainerProfile Trainer? @relation("TrainerProfile")
+  sessions       Session[]
 
   @@index([email])
   @@index([phone])

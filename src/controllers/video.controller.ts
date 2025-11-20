@@ -227,21 +227,15 @@ export const bulkDeleteVideosHandler = async (req: Request, res: Response, next:
 
 export const transcodeCompleteHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { ids } = req.body;
+    const { video_id, playbackUrl, status } = req.body;
 
-    if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: "ids array is required",
-      });
-    }
 
-    const result = await bulkDeleteVideos(ids);
+    const result = await updateVideo(video_id, { playbackUrl, status });
 
     return res.status(200).json({
       success: true,
-      message: `${result.count} video(s) deleted successfully`,
-      data: { deletedCount: result.count },
+      message: "Video updated successfully",
+      data: result,
     });
   } catch (error: any) {
     next(error);

@@ -1,12 +1,13 @@
 import { User } from "@/prisma/generated/prisma/client";
 import jwt from "jsonwebtoken";
 
-export const generateJWT = (user: User): string => {
+export const generateJWT = (user: User, sessionId?: string): string => {
   const payload = {
     id: user.id,
     email: user.email,
     phone: user.phone,
     role: user.role,
+    ...(sessionId && { sessionId }),
   };
 
   const token = jwt.sign(payload, process.env.JWT_SECRET!, {

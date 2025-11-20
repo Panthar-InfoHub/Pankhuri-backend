@@ -13,6 +13,7 @@ declare global {
         role: UserRole;
         status: string;
       };
+      sessionId?: string;
     }
   }
 }
@@ -36,6 +37,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     try {
       const decoded = verifyJWT(token);
       req.user = decoded;
+      req.sessionId = decoded.sessionId;
       next();
     } catch (error: any) {
       return res.status(401).json({
