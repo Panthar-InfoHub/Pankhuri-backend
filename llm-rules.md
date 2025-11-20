@@ -326,8 +326,10 @@ declare global {
 ### Prisma Schema Organization
 
 - Split models into separate files in `src/prisma/models/`
-- Main schema: `src/prisma/index.prisma`
-- One model per file (e.g., `user.prisma`, `course.prisma`)
+- Main schema: `src/prisma/index.prisma` (contains only generator and datasource)
+- One model per file (e.g., `user.prisma`, `course.prisma`, `module.prisma`, `lesson.prisma`)
+- Prisma config at root (`prisma.config.ts`) handles multi-file schema automatically
+- No need for import statements - Prisma reads all files in the schema directory
 
 ### Prisma Client Usage
 
@@ -416,9 +418,11 @@ export const updateUser = async (
 
 ---
 
-## 7. ERROR HANDLING
+## 7. ERROR HANDLING & SECURITY
 
 ### Error Handling Pattern
+
+**CRITICAL**: Never expose internal system details, file paths, or database errors to users. All error messages must be user-friendly and safe.
 
 ```typescript
 // In controllers - always use try-catch
@@ -444,34 +448,138 @@ export const someHandler = async (req: Request, res: Response, next: NextFunctio
 
 ### Global Error Middleware
 
-Located at `src/middleware/error.middleware.ts`:
+Located at `src/middleware/error.middleware.ts` - **AUTOMATICALLY SANITIZES ALL ERRORS**:
 
 ```typescript
+// Sanitize error messages to hide sensitive information
+function sanitizeErrorMessage(error: any): string {
+  const message = error.message || "";
+
+  // Prisma errors - convert to user-friendly messages
+  if (message.includes("Invalid `prisma.")) {
+    if (message.includes("No 'Category' record")) {
+      return "Category not found. Please select a valid category.";
+    }
+    if (message.includes("No 'Trainer' record")) {
+      return "Trainer not found. Please select a valid trainer.";
+    }
+    if (message.includes("Unique constraint failed")) {
+      return "A record with this information already exists.";
+    }
+    if (message.includes("Foreign key constraint failed")) {
+      return "Invalid reference. Please check your input data.";
+    }
+    return "Invalid data provided. Please check your input.";
+  }
+
+  // Database error codes
+  if (error.code) {
+    switch (error.code) {
+      case "P2002":
+        return "A record with this information already exists.";
+      case "P2003":
+        return "Invalid reference. Please check your input data.";
+      case "P2025":
+        return "Record not found.";
+      default:
+        return "Database operation failed. Please try again.";
+    }
+  }
+
+  // Return original only if it's a safe custom error
+  if (!message.includes("prisma") && !message.includes("\\Users\\")) {
+    return message;
+  }
+
+  return "Something went wrong. Please try again.";
+}
+
 export function errorHandler(err: any, req: Request, res: Response, next: NextFunction) {
-  console.error("Error:", err);
+  // Log full error server-side only
+  if (process.env.NODE_ENV === "development") {
+    console.error("Error:", err);
+  } else {
+    console.error("Error:", err.message);
+  }
 
   const statusCode = err.statusCode || 500;
+  const userMessage = sanitizeErrorMessage(err);
 
   res.status(statusCode).json({
     success: false,
-    message: err.message || "Something went wrong!",
-    stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    message: userMessage,
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
 }
 ```
 
 ### Service Layer Errors
 
+**Use clear, user-friendly error messages**:
+
 ```typescript
-// Throw errors in services
+// ✅ Good - user-friendly
 if (!user) {
   throw new Error("User not found");
 }
 
-if (existingEmail) {
-  throw new Error("User with this email already exists");
+if (!category) {
+  throw new Error("Category not found. Please select a valid category.");
 }
+
+// ✅ Good - validate before operations
+export const validateCategory = async (categoryId: string): Promise<boolean> => {
+  const category = await prisma.category.findUnique({
+    where: { id: categoryId },
+  });
+
+  if (!category) {
+    throw new Error("Category not found. Please select a valid category.");
+  }
+
+  return true;
+};
+
+// ❌ Bad - exposes internal details
+throw new Error(`Database error: ${dbError.message}`);
+
+// ❌ Bad - exposes file paths
+throw new Error(`Failed in file C:\Users\...`);
 ```
+
+### Validation Before Database Operations
+
+**ALWAYS validate foreign keys exist before creating records**:
+
+```typescript
+// ✅ Validate category exists before creating course
+export const createCourse = async (data: Prisma.CourseCreateInput) => {
+  // Validate category exists
+  if (data.category && "connect" in data.category) {
+    const categoryExists = await prisma.category.findUnique({
+      where: { id: data.category.connect.id },
+    });
+
+    if (!categoryExists) {
+      throw new Error("Category not found. Please select a valid category.");
+    }
+  }
+
+  // Proceed with creation
+  return await prisma.course.create({ data });
+};
+```
+
+### Error Security Checklist
+
+- [ ] Never expose file paths to users
+- [ ] Never expose database schema details
+- [ ] Never expose internal error messages from Prisma
+- [ ] Always validate foreign keys before operations
+- [ ] Always log full errors server-side (for debugging)
+- [ ] Always return sanitized errors to users
+- [ ] Use custom error messages for business logic violations
+- [ ] Stack traces only in development environment
 
 ---
 

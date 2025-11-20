@@ -19,6 +19,7 @@ export const verifyFirebaseToken = async (idToken: string) => {
       firebase: decodedToken, // Full decoded token if needed
     };
   } catch (error: any) {
-    throw new Error(`Firebase token verification failed: ${error.message}`);
+    console.error("Firebase token verification error:", error);
+    throw new Error("Invalid or expired authentication token");
   }
 };

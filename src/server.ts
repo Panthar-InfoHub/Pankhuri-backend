@@ -7,6 +7,8 @@ import userRoutes from "@/routes/user.route";
 import videoRoutes from "@/routes/video.route";
 import categoryRoutes from "@/routes/category.route";
 import courseRoutes from "@/routes/course.route";
+import moduleRoutes from "@/routes/module.route";
+import lessonRoutes from "@/routes/lesson.route";
 import { errorHandler } from "./middleware/error.middleware";
 
 //Configurations
@@ -27,6 +29,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/videos", videoRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/courses", courseRoutes);
+app.use("/api/modules", moduleRoutes);
+app.use("/api/lessons", lessonRoutes);
 
 //Health check
 app.get("/ping", (_, res) => {

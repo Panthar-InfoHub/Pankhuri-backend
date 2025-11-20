@@ -145,6 +145,12 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
       });
     }
 
+    // Validate that the user has an active trainer profile and get trainer ID
+    const actualTrainerId = await courseService.validateTrainer(trainerId);
+
+    // Validate category exists
+    await courseService.validateCategory(categoryId);
+
     const course = await courseService.createCourse({
       title,
       slug,
@@ -160,7 +166,7 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
       metadata,
       demoVideoId,
       category: { connect: { id: categoryId } },
-      trainer: { connect: { id: trainerId } },
+      trainer: { connect: { id: actualTrainerId } },
     });
 
     res.status(201).json({
@@ -221,6 +227,12 @@ export const updateCourse = async (req: Request, res: Response, next: NextFuncti
 
     if (categoryId !== undefined) {
       updateData.category = { connect: { id: categoryId } };
+    }
+
+    // If trainerId is being updated, validate the new trainer
+    if (updateData.trainer) {
+      const actualTrainerId = await courseService.validateTrainer(trainerId);
+      updateData.trainer = { connect: { id: actualTrainerId } };
     }
 
     const course = await courseService.updateCourse(id, trainerId, updateData, isAdmin || false);

@@ -9,4 +9,7 @@ model Video {
   metadata     Json?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  // Relations
+  videoLessons VideoLesson[]
 }

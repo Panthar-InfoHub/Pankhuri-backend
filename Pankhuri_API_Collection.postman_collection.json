@@ -1,1637 +1,2128 @@
 {
-	"info": {
-		"_postman_id": "60c7daea-8e65-4747-9b01-783ad1588e84",
-		"name": "Pankhuri Backend API",
-		"description": "Complete API collection for Pankhuri Backend - Auth, Categories, Courses, and Videos",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "27592795",
-		"_collection_link": "https://devs-09069ab9-6199077.postman.co/workspace/devlopers's-Team's-Workspace~4b317406-0f97-4c6e-89ff-a3482b26c70c/collection/27592795-60c7daea-8e65-4747-9b01-783ad1588e84?action=share&source=collection_link&creator=27592795"
-	},
-	"item": [
-		{
-			"name": "Health Check",
-			"item": [
-				{
-					"name": "Ping Server",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/ping",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"ping"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Authentication",
-			"item": [
-				{
-					"name": "Google Login",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"if (pm.response.code === 200) {",
-									"    const response = pm.response.json();",
-									"    pm.collectionVariables.set('authToken', response.data.token);",
-									"    pm.collectionVariables.set('userId', response.data.user.id);",
-									"    console.log('Auth token saved:', response.data.token);",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"idToken\": \"your-google-id-token-here\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/auth/google-verify",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"google-verify"
-							]
-						},
-						"description": "Authenticate using Google OAuth token"
-					},
-					"response": []
-				},
-				{
-					"name": "Phone Login",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"if (pm.response.code === 200) {",
-									"    const response = pm.response.json();",
-									"    pm.collectionVariables.set('authToken', response.data.token);",
-									"    pm.collectionVariables.set('userId', response.data.user.id);",
-									"    console.log('Auth token saved:', response.data.token);",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"idToken\": \"your-firebase-id-token-here\",\n    \"countryCode\": \"+91\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/auth/phone-verify",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"phone-verify"
-							]
-						},
-						"description": "Authenticate using Firebase phone authentication"
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Users",
-			"item": [
-				{
-					"name": "Get Current User Profile",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{authToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/users/me",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"me"
-							]
-						},
-						"description": "Get current authenticated user's profile (requires authentication)"
-					},
-					"response": []
-				},
-				{
-					"name": "Update Current User Profile",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{authToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"John Doe\",\n    \"profileImage\": \"https://example.com/profile.jpg\",\n    \"dateOfBirth\": \"1990-01-15\",\n    \"gender\": \"male\",\n    \"countryCode\": \"+1\",\n    \"languagePreference\": \"en\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/users/me",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"me"
-							]
-						},
-						"description": "Update current user's profile (requires authentication)"
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Trainers (Public)",
-			"item": [
-				{
-					"name": "Get All Trainers",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/users/trainers?search=&page=1&limit=20",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"trainers"
-							],
-							"query": [
-								{
-									"key": "search",
-									"value": "",
-									"description": "Search by name or bio"
-								},
-								{
-									"key": "page",
-									"value": "1"
-								},
-								{
-									"key": "limit",
-									"value": "20"
-								}
-							]
-						},
-						"description": "Get all active trainers (public endpoint)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Trainer by ID",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/users/trainers/{{trainerId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"trainers",
-								"{{trainerId}}"
-							]
-						},
-						"description": "Get trainer details by ID (public endpoint)"
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Admin - User Management",
-			"item": [
-				{
-					"name": "Get All Users",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{authToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/users/admin/users?page=1&limit=50&role=user&status=active&search=",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"admin",
-								"users"
-							],
-							"query": [
-								{
-									"key": "page",
-									"value": "1"
-								},
-								{
-									"key": "limit",
-									"value": "50"
-								},
-								{
-									"key": "role",
-									"value": "user",
-									"description": "user | admin | moderator"
-								},
-								{
-									"key": "status",
-									"value": "active",
-									"description": "active | inactive | suspended"
-								},
-								{
-									"key": "search",
-									"value": "",
-									"description": "Search by name, email, or phone"
-								}
-							]
-						},
-						"description": "Get all users with filters (Admin only)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get User by ID",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{authToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/users/admin/users/{{userId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"admin",
-								"users",
-								"{{userId}}"
-							]
-						},
-						"description": "Get user details by ID (Admin only)"
-					},
-					"response": []
-				},
-				{
-					"name": "Create User",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{authToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"email\": \"user@example.com\",\n    \"phone\": \"+1234567890\",\n    \"displayName\": \"John Doe\",\n    \"profileImage\": \"https://example.com/profile.jpg\",\n    \"dateOfBirth\": \"1990-01-15\",\n    \"gender\": \"male\",\n    \"countryCode\": \"+1\",\n    \"role\": \"user\",\n    \"status\": \"active\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/users/admin/users",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"admin",
-								"users"
-							]
-						},
-						"description": "Create a new user (Admin only)"
-					},
-					"response": []
-				},
-				{
-					"name": "Update User",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{authToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"displayName\": \"John Doe Updated\",\n    \"role\": \"moderator\",\n    \"status\": \"active\",\n    \"hasUsedTrial\": true\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/users/admin/users/{{userId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"admin",
-								"users",
-								"{{userId}}"
-							]
-						},
-						"description": "Update user details (Admin only)"
-					},
-					"response": []
-				},
-				{
-					"name": "Delete User",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{authToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/users/admin/users/{{userId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"admin",
-								"users",
-								"{{userId}}"
-							]
-						},
-						"description": "Delete user (Admin only). Users with courses will be suspended instead."
-					},
-					"response": []
-				},
-				{
-					"name": "Update User Status",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{authToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"status\": \"suspended\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/users/admin/users/{{userId}}/status",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"admin",
-								"users",
-								"{{userId}}",
-								"status"
-							]
-						},
-						"description": "Update user status: active | inactive | suspended (Admin only)"
-					},
-					"response": []
-				},
-				{
-					"name": "Update User Role",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{authToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"role\": \"admin\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/users/admin/users/{{userId}}/role",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"admin",
-								"users",
-								"{{userId}}",
-								"role"
-							]
-						},
-						"description": "Update user role: user | admin | moderator (Admin only)"
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Admin - Trainer Management",
-			"item": [
-				{
-					"name": "Get All Trainers",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{authToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/users/admin/trainers?status=active&search=&page=1&limit=50",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"admin",
-								"trainers"
-							],
-							"query": [
-								{
-									"key": "status",
-									"value": "active",
-									"description": "active | inactive"
-								},
-								{
-									"key": "search",
-									"value": "",
-									"description": "Search by name or bio"
-								},
-								{
-									"key": "page",
-									"value": "1"
-								},
-								{
-									"key": "limit",
-									"value": "50"
-								}
-							]
-						},
-						"description": "Get all trainers with filters (Admin only)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Trainer by ID",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{authToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/users/admin/trainers/{{trainerId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"admin",
-								"trainers",
-								"{{trainerId}}"
-							]
-						},
-						"description": "Get trainer details by ID (Admin only)"
-					},
-					"response": []
-				},
-				{
-					"name": "Create Trainer Profile",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"if (pm.response.code === 201) {",
-									"    const response = pm.response.json();",
-									"    pm.collectionVariables.set('trainerId', response.data.id);",
-									"    console.log('Trainer ID saved:', response.data.id);",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{authToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"userId\": \"{{userId}}\",\n    \"bio\": \"Experienced yoga instructor with 10 years of teaching experience. Specialized in Hatha and Vinyasa yoga.\",\n    \"specialization\": [\"yoga\", \"meditation\", \"pranayama\", \"wellness\"],\n    \"experience\": 10,\n    \"socialLinks\": {\n        \"linkedin\": \"https://linkedin.com/in/johndoe\",\n        \"instagram\": \"@johndoe_yoga\",\n        \"twitter\": \"@johndoe\",\n        \"website\": \"https://johndoe.com\"\n    }\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/users/admin/trainers",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"admin",
-								"trainers"
-							]
-						},
-						"description": "Create trainer profile for a user (Admin only)"
-					},
-					"response": []
-				},
-				{
-					"name": "Update Trainer Profile",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{authToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"bio\": \"Updated bio with more experience\",\n    \"specialization\": [\"yoga\", \"meditation\", \"fitness\"],\n    \"experience\": 12,\n    \"status\": \"active\",\n    \"socialLinks\": {\n        \"linkedin\": \"https://linkedin.com/in/johndoe-updated\",\n        \"instagram\": \"@johndoe_yoga_updated\"\n    }\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/users/admin/trainers/{{trainerId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"admin",
-								"trainers",
-								"{{trainerId}}"
-							]
-						},
-						"description": "Update trainer profile (Admin only)"
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Trainer Profile",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{authToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/users/admin/trainers/{{trainerId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"users",
-								"admin",
-								"trainers",
-								"{{trainerId}}"
-							]
-						},
-						"description": "Delete trainer profile (Admin only). Cannot delete if trainer has associated courses."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Categories",
-			"item": [
-				{
-					"name": "Get All Categories (Tree)",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/categories?status=active",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"categories"
-							],
-							"query": [
-								{
-									"key": "status",
-									"value": "active",
-									"description": "active | inactive"
-								}
-							]
-						},
-						"description": "Get hierarchical category tree structure"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Flat Categories",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/categories/flat?page=1&limit=20&status=active&search=",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"categories",
-								"flat"
-							],
-							"query": [
-								{
-									"key": "page",
-									"value": "1"
-								},
-								{
-									"key": "limit",
-									"value": "20"
-								},
-								{
-									"key": "status",
-									"value": "active",
-									"description": "active | inactive"
-								},
-								{
-									"key": "search",
-									"value": ""
-								}
-							]
-						},
-						"description": "Get flat list of categories with pagination"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Category by ID",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/categories/{{categoryId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"categories",
-								"{{categoryId}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Category by Slug",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/categories/slug/yoga-basics",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"categories",
-								"slug",
-								"yoga-basics"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Child Categories",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/categories/{{categoryId}}/children",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"categories",
-								"{{categoryId}}",
-								"children"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Create Category",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"if (pm.response.code === 201) {",
-									"    const response = pm.response.json();",
-									"    pm.collectionVariables.set('categoryId', response.data.id);",
-									"    console.log('Category ID saved:', response.data.id);",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"name\": \"Yoga Basics\",\n    \"slug\": \"yoga-basics\",\n    \"description\": \"Introduction to yoga and basic poses\",\n    \"icon\": \"🧘\",\n    \"status\": \"active\",\n    \"sequence\": 1,\n    \"parentId\": null\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/categories",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"categories"
-							]
-						},
-						"description": "Create a new category (Admin only)"
-					},
-					"response": []
-				},
-				{
-					"name": "Update Category",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"name\": \"Yoga Basics Updated\",\n    \"description\": \"Updated description for yoga basics\",\n    \"status\": \"active\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/categories/{{categoryId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"categories",
-								"{{categoryId}}"
-							]
-						},
-						"description": "Update category (Admin only)"
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Category",
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/categories/{{categoryId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"categories",
-								"{{categoryId}}"
-							]
-						},
-						"description": "Delete category (Admin only)"
-					},
-					"response": []
-				},
-				{
-					"name": "Update Category Sequence",
-					"request": {
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"sequence\": 5\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/categories/{{categoryId}}/sequence",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"categories",
-								"{{categoryId}}",
-								"sequence"
-							]
-						},
-						"description": "Update category display sequence (Admin only)"
-					},
-					"response": []
-				},
-				{
-					"name": "Toggle Category Status",
-					"request": {
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"status\": \"inactive\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/categories/{{categoryId}}/status",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"categories",
-								"{{categoryId}}",
-								"status"
-							]
-						},
-						"description": "Toggle category status: active | inactive (Admin only)"
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Courses",
-			"item": [
-				{
-					"name": "Get All Courses",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/courses?page=1&limit=20&status=active&level=beginner&language=en&sort=newest",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"courses"
-							],
-							"query": [
-								{
-									"key": "page",
-									"value": "1"
-								},
-								{
-									"key": "limit",
-									"value": "20"
-								},
-								{
-									"key": "categoryId",
-									"value": "{{categoryId}}",
-									"disabled": true
-								},
-								{
-									"key": "trainerId",
-									"value": "{{userId}}",
-									"disabled": true
-								},
-								{
-									"key": "status",
-									"value": "active",
-									"description": "active | inactive | archived"
-								},
-								{
-									"key": "level",
-									"value": "beginner",
-									"description": "beginner | intermediate | advanced | expert"
-								},
-								{
-									"key": "language",
-									"value": "en"
-								},
-								{
-									"key": "search",
-									"value": "",
-									"disabled": true
-								},
-								{
-									"key": "tags",
-									"value": "yoga,meditation",
-									"disabled": true
-								},
-								{
-									"key": "sort",
-									"value": "newest",
-									"description": "newest | popular | rating | title"
-								}
-							]
-						},
-						"description": "Get all courses with filters and pagination"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Trending Courses",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/courses/trending?limit=10",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"courses",
-								"trending"
-							],
-							"query": [
-								{
-									"key": "limit",
-									"value": "10"
-								}
-							]
-						},
-						"description": "Get trending courses based on rating"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Course by ID",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/courses/{{courseId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"courses",
-								"{{courseId}}"
-							],
-							"query": [
-								{
-									"key": "userId",
-									"value": "{{userId}}",
-									"disabled": true
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Course by Slug",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/courses/slug/yoga-for-beginners?userId={{userId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"courses",
-								"slug",
-								"yoga-for-beginners"
-							],
-							"query": [
-								{
-									"key": "userId",
-									"value": "{{userId}}"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Related Courses",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/courses/{{courseId}}/related?limit=6",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"courses",
-								"{{courseId}}",
-								"related"
-							],
-							"query": [
-								{
-									"key": "limit",
-									"value": "6"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Courses by Trainer",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/courses/trainer/{{userId}}?includeUnpublished=false",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"courses",
-								"trainer",
-								"{{userId}}"
-							],
-							"query": [
-								{
-									"key": "includeUnpublished",
-									"value": "false"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Create Course",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"if (pm.response.code === 201) {",
-									"    const response = pm.response.json();",
-									"    pm.collectionVariables.set('courseId', response.data.id);",
-									"    console.log('Course ID saved:', response.data.id);",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"title\": \"Yoga for Beginners\",\n    \"slug\": \"yoga-for-beginners\",\n    \"description\": \"Complete beginner's guide to yoga with step-by-step instructions\",\n    \"categoryId\": \"{{categoryId}}\",\n    \"trainerId\": \"{{userId}}\",\n    \"thumbnailImage\": \"https://example.com/thumbnail.jpg\",\n    \"coverImage\": \"https://example.com/cover.jpg\",\n    \"level\": \"beginner\",\n    \"duration\": 600,\n    \"language\": \"en\",\n    \"status\": \"active\",\n    \"hasCertificate\": false,\n    \"tags\": [\"yoga\", \"beginner\", \"wellness\"],\n    \"metadata\": {\n        \"instructor\": \"John Doe\",\n        \"difficulty\": \"Easy\"\n    }\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/courses",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"courses"
-							]
-						},
-						"description": "Create a new course (Admin/Trainer)"
-					},
-					"response": []
-				},
-				{
-					"name": "Update Course",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"trainerId\": \"{{userId}}\",\n    \"isAdmin\": false,\n    \"title\": \"Yoga for Beginners - Updated\",\n    \"description\": \"Updated description\",\n    \"duration\": 720,\n    \"status\": \"active\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/courses/{{courseId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"courses",
-								"{{courseId}}"
-							]
-						},
-						"description": "Update course (Admin/Trainer)"
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Course",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"trainerId\": \"{{userId}}\",\n    \"isAdmin\": false\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/courses/{{courseId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"courses",
-								"{{courseId}}"
-							]
-						},
-						"description": "Delete course (Admin/Trainer)"
-					},
-					"response": []
-				},
-				{
-					"name": "Toggle Course Publish Status",
-					"request": {
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"trainerId\": \"{{userId}}\",\n    \"isAdmin\": false,\n    \"status\": \"active\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/courses/{{courseId}}/publish",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"courses",
-								"{{courseId}}",
-								"publish"
-							]
-						},
-						"description": "Publish or unpublish course (Admin/Trainer)"
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Videos",
-			"item": [
-				{
-					"name": "Create Video",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"if (pm.response.code === 201) {",
-									"    const response = pm.response.json();",
-									"    pm.collectionVariables.set('videoId', response.data.id);",
-									"    console.log('Video ID saved:', response.data.id);",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"title\": \"Introduction to Yoga\",\n    \"thumbnailUrl\": \"https://example.com/thumbnail.jpg\",\n    \"storageKey\": \"videos/intro-yoga.mp4\",\n    \"playbackUrl\": \"https://example.com/videos/intro-yoga.mp4\",\n    \"status\": \"published\",\n    \"duration\": 600,\n    \"metadata\": {\n        \"resolution\": \"1080p\",\n        \"format\": \"mp4\",\n        \"size\": 52428800\n    }\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/videos",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"videos"
-							]
-						},
-						"description": "Create a new video"
-					},
-					"response": []
-				},
-				{
-					"name": "Get All Videos",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/videos?status=published&limit=20&offset=0",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"videos"
-							],
-							"query": [
-								{
-									"key": "status",
-									"value": "published",
-									"description": "published | draft | processing | failed"
-								},
-								{
-									"key": "limit",
-									"value": "20"
-								},
-								{
-									"key": "offset",
-									"value": "0"
-								}
-							]
-						},
-						"description": "Get all videos with optional filters"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Video by ID",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/videos/{{videoId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"videos",
-								"{{videoId}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Update Video",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"title\": \"Introduction to Yoga - Updated\",\n    \"status\": \"published\",\n    \"duration\": 720,\n    \"metadata\": {\n        \"resolution\": \"4K\",\n        \"format\": \"mp4\"\n    }\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/videos/{{videoId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"videos",
-								"{{videoId}}"
-							]
-						},
-						"description": "Update video details"
-					},
-					"response": []
-				},
-				{
-					"name": "Update Video Status",
-					"request": {
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"status\": \"published\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/videos/{{videoId}}/status",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"videos",
-								"{{videoId}}",
-								"status"
-							]
-						},
-						"description": "Update only the video status"
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Video",
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/videos/{{videoId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"videos",
-								"{{videoId}}"
-							]
-						},
-						"description": "Delete a single video"
-					},
-					"response": []
-				},
-				{
-					"name": "Bulk Delete Videos",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"ids\": [\"video-id-1\", \"video-id-2\", \"video-id-3\"]\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/videos/bulk/delete",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"videos",
-								"bulk",
-								"delete"
-							]
-						},
-						"description": "Delete multiple videos at once"
-					},
-					"response": []
-				}
-			]
-		}
-	],
-	"auth": {
-		"type": "bearer",
-		"bearer": [
-			{
-				"key": "token",
-				"value": "{{authToken}}",
-				"type": "string"
-			}
-		]
-	},
-	"variable": [
-		{
-			"key": "authToken",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "userId",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "categoryId",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "courseId",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "videoId",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "trainerId",
-			"value": "",
-			"type": "string"
-		}
-	]
+  "info": {
+    "_postman_id": "60c7daea-8e65-4747-9b01-783ad1588e84",
+    "name": "Pankhuri Backend API",
+    "description": "Complete API collection for Pankhuri Backend - Auth, Categories, Courses, and Videos",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "27592795",
+    "_collection_link": "https://devs-09069ab9-6199077.postman.co/workspace/devlopers's-Team's-Workspace~4b317406-0f97-4c6e-89ff-a3482b26c70c/collection/27592795-60c7daea-8e65-4747-9b01-783ad1588e84?action=share&source=collection_link&creator=27592795"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "Ping Server",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ping",
+              "host": ["{{baseUrl}}"],
+              "path": ["ping"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Google Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('authToken', response.data.token);",
+                  "    pm.collectionVariables.set('userId', response.data.user.id);",
+                  "    console.log('Auth token saved:', response.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"idToken\": \"your-google-id-token-here\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/google-verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "google-verify"]
+            },
+            "description": "Authenticate using Google OAuth token"
+          },
+          "response": []
+        },
+        {
+          "name": "Phone Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('authToken', response.data.token);",
+                  "    pm.collectionVariables.set('userId', response.data.user.id);",
+                  "    console.log('Auth token saved:', response.data.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"idToken\": \"your-firebase-id-token-here\",\n    \"countryCode\": \"+91\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/phone-verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "phone-verify"]
+            },
+            "description": "Authenticate using Firebase phone authentication"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get Current User Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "me"]
+            },
+            "description": "Get current authenticated user's profile (requires authentication)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Current User Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"displayName\": \"John Doe\",\n    \"profileImage\": \"https://example.com/profile.jpg\",\n    \"dateOfBirth\": \"1990-01-15\",\n    \"gender\": \"male\",\n    \"countryCode\": \"+1\",\n    \"languagePreference\": \"en\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "me"]
+            },
+            "description": "Update current user's profile (requires authentication)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Trainers (Public)",
+      "item": [
+        {
+          "name": "Get All Trainers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/trainers?search=&page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "trainers"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by name or bio"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get all active trainers (public endpoint)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Trainer by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/trainers/{{trainerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "trainers", "{{trainerId}}"]
+            },
+            "description": "Get trainer details by ID (public endpoint)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin - User Management",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/admin/users?page=1&limit=50&role=user&status=active&search=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "admin", "users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "role",
+                  "value": "user",
+                  "description": "user | admin | moderator"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "active | inactive | suspended"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by name, email, or phone"
+                }
+              ]
+            },
+            "description": "Get all users with filters (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/admin/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "admin", "users", "{{userId}}"]
+            },
+            "description": "Get user details by ID (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"user@example.com\",\n    \"phone\": \"+1234567890\",\n    \"displayName\": \"John Doe\",\n    \"profileImage\": \"https://example.com/profile.jpg\",\n    \"dateOfBirth\": \"1990-01-15\",\n    \"gender\": \"male\",\n    \"countryCode\": \"+1\",\n    \"role\": \"user\",\n    \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/admin/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "admin", "users"]
+            },
+            "description": "Create a new user (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"displayName\": \"John Doe Updated\",\n    \"role\": \"moderator\",\n    \"status\": \"active\",\n    \"hasUsedTrial\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/admin/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "admin", "users", "{{userId}}"]
+            },
+            "description": "Update user details (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/admin/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "admin", "users", "{{userId}}"]
+            },
+            "description": "Delete user (Admin only). Users with courses will be suspended instead."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"suspended\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/admin/users/{{userId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "admin", "users", "{{userId}}", "status"]
+            },
+            "description": "Update user status: active | inactive | suspended (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Role",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"role\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/admin/users/{{userId}}/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "admin", "users", "{{userId}}", "role"]
+            },
+            "description": "Update user role: user | admin | moderator (Admin only)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin - Trainer Management",
+      "item": [
+        {
+          "name": "Get All Trainers",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/admin/trainers?status=active&search=&page=1&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "admin", "trainers"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "active | inactive"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by name or bio"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            },
+            "description": "Get all trainers with filters (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Trainer by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/admin/trainers/{{trainerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "admin", "trainers", "{{trainerId}}"]
+            },
+            "description": "Get trainer details by ID (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Trainer Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('trainerId', response.data.id);",
+                  "    console.log('Trainer ID saved:', response.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"bio\": \"Experienced yoga instructor with 10 years of teaching experience. Specialized in Hatha and Vinyasa yoga.\",\n    \"specialization\": [\"yoga\", \"meditation\", \"pranayama\", \"wellness\"],\n    \"experience\": 10,\n    \"socialLinks\": {\n        \"linkedin\": \"https://linkedin.com/in/johndoe\",\n        \"instagram\": \"@johndoe_yoga\",\n        \"twitter\": \"@johndoe\",\n        \"website\": \"https://johndoe.com\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/admin/trainers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "admin", "trainers"]
+            },
+            "description": "Create trainer profile for a user (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Trainer Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"bio\": \"Updated bio with more experience\",\n    \"specialization\": [\"yoga\", \"meditation\", \"fitness\"],\n    \"experience\": 12,\n    \"status\": \"active\",\n    \"socialLinks\": {\n        \"linkedin\": \"https://linkedin.com/in/johndoe-updated\",\n        \"instagram\": \"@johndoe_yoga_updated\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/admin/trainers/{{trainerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "admin", "trainers", "{{trainerId}}"]
+            },
+            "description": "Update trainer profile (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Trainer Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/admin/trainers/{{trainerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "admin", "trainers", "{{trainerId}}"]
+            },
+            "description": "Delete trainer profile (Admin only). Cannot delete if trainer has associated courses."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Get All Categories (Tree)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/categories?status=active",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "categories"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "active | inactive"
+                }
+              ]
+            },
+            "description": "Get hierarchical category tree structure"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Flat Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/flat?page=1&limit=20&status=active&search=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "categories", "flat"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "active | inactive"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Get flat list of categories with pagination"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Category by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "categories", "{{categoryId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Category by Slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/slug/yoga-basics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "categories", "slug", "yoga-basics"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Child Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/{{categoryId}}/children",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "categories", "{{categoryId}}", "children"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('categoryId', response.data.id);",
+                  "    console.log('Category ID saved:', response.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Yoga Basics\",\n    \"slug\": \"yoga-basics\",\n    \"description\": \"Introduction to yoga and basic poses\",\n    \"icon\": \"🧘\",\n    \"status\": \"active\",\n    \"sequence\": 1,\n    \"parentId\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "categories"]
+            },
+            "description": "Create a new category (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Yoga Basics Updated\",\n    \"description\": \"Updated description for yoga basics\",\n    \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "categories", "{{categoryId}}"]
+            },
+            "description": "Update category (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "categories", "{{categoryId}}"]
+            },
+            "description": "Delete category (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Category Sequence",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"sequence\": 5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/{{categoryId}}/sequence",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "categories", "{{categoryId}}", "sequence"]
+            },
+            "description": "Update category display sequence (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Category Status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"inactive\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/categories/{{categoryId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "categories", "{{categoryId}}", "status"]
+            },
+            "description": "Toggle category status: active | inactive (Admin only)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Courses",
+      "item": [
+        {
+          "name": "Get All Courses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses?page=1&limit=20&status=active&level=beginner&language=en&sort=newest",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "trainerId",
+                  "value": "{{userId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "active | inactive | archived"
+                },
+                {
+                  "key": "level",
+                  "value": "beginner",
+                  "description": "beginner | intermediate | advanced | expert"
+                },
+                {
+                  "key": "language",
+                  "value": "en"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "tags",
+                  "value": "yoga,meditation",
+                  "disabled": true
+                },
+                {
+                  "key": "sort",
+                  "value": "newest",
+                  "description": "newest | popular | rating | title"
+                }
+              ]
+            },
+            "description": "Get all courses with filters and pagination"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Trending Courses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/trending?limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses", "trending"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get trending courses based on rating"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Course by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{courseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses", "{{courseId}}"],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "{{userId}}",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Course by Slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/slug/yoga-for-beginners?userId={{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses", "slug", "yoga-for-beginners"],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "{{userId}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Related Courses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{courseId}}/related?limit=6",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses", "{{courseId}}", "related"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "6"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Courses by Trainer",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/trainer/{{userId}}?includeUnpublished=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses", "trainer", "{{userId}}"],
+              "query": [
+                {
+                  "key": "includeUnpublished",
+                  "value": "false"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Course",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('courseId', response.data.id);",
+                  "    console.log('Course ID saved:', response.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Yoga for Beginners\",\n    \"slug\": \"yoga-for-beginners\",\n    \"description\": \"Complete beginner's guide to yoga with step-by-step instructions\",\n    \"categoryId\": \"{{categoryId}}\",\n    \"trainerId\": \"{{userId}}\",\n    \"thumbnailImage\": \"https://example.com/thumbnail.jpg\",\n    \"coverImage\": \"https://example.com/cover.jpg\",\n    \"level\": \"beginner\",\n    \"duration\": 600,\n    \"language\": \"en\",\n    \"status\": \"active\",\n    \"hasCertificate\": false,\n    \"tags\": [\"yoga\", \"beginner\", \"wellness\"],\n    \"metadata\": {\n        \"instructor\": \"John Doe\",\n        \"difficulty\": \"Easy\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/courses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses"]
+            },
+            "description": "Create a new course (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Course",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Yoga for Beginners - Updated\",\n    \"description\": \"Updated description\",\n    \"duration\": 720,\n    \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{courseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses", "{{courseId}}"]
+            },
+            "description": "Update course (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Course",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{courseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses", "{{courseId}}"]
+            },
+            "description": "Delete course (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Course Publish Status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{courseId}}/publish",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses", "{{courseId}}", "publish"]
+            },
+            "description": "Publish or unpublish course (Admin only)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Modules",
+      "item": [
+        {
+          "name": "Get Modules by Course",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/modules/course/{{courseId}}?status=published&isPublished=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "modules", "course", "{{courseId}}"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "published",
+                  "description": "draft | published | archived"
+                },
+                {
+                  "key": "isPublished",
+                  "value": "true",
+                  "description": "true | false"
+                }
+              ]
+            },
+            "description": "Get all modules for a course with lessons"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Module by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/modules/{{moduleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "modules", "{{moduleId}}"]
+            },
+            "description": "Get module by ID with lessons and navigation"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Module by Slug",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/modules/course/{{courseId}}/slug/introduction",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "modules", "course", "{{courseId}}", "slug", "introduction"]
+            },
+            "description": "Get module by slug within a course"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Module",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('moduleId', response.data.id);",
+                  "    console.log('Module ID saved:', response.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"courseId\": \"{{courseId}}\",\n    \"title\": \"Introduction to Yoga\",\n    \"slug\": \"introduction-to-yoga\",\n    \"description\": \"This module covers the basics of yoga philosophy and essential poses\",\n    \"sequence\": 1,\n    \"duration\": 120,\n    \"metadata\": {\n        \"difficulty\": \"beginner\",\n        \"estimatedTime\": \"2 hours\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/modules",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "modules"]
+            },
+            "description": "Create a new module (Admin/Trainer)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Module",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Introduction to Yoga - Updated\",\n    \"description\": \"Updated description with more details\",\n    \"sequence\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/modules/{{moduleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "modules", "{{moduleId}}"]
+            },
+            "description": "Update module (Admin/Trainer)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Module",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/modules/{{moduleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "modules", "{{moduleId}}"]
+            },
+            "description": "Delete module (Admin/Trainer). Cannot delete if module has lessons."
+          },
+          "response": []
+        },
+        {
+          "name": "Bulk Update Module Sequences",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"updates\": [\n        { \"id\": \"module-id-1\", \"sequence\": 1 },\n        { \"id\": \"module-id-2\", \"sequence\": 2 },\n        { \"id\": \"module-id-3\", \"sequence\": 3 }\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/modules/sequences",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "modules", "sequences"]
+            },
+            "description": "Update multiple module sequences at once"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Module Status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"published\",\n    \"updateLessons\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/modules/{{moduleId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "modules", "{{moduleId}}", "status"]
+            },
+            "description": "Update module status (draft/published/archived). Set updateLessons=true to also update all lessons in the module."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Module Duration",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/modules/{{moduleId}}/duration",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "modules", "{{moduleId}}", "duration"]
+            },
+            "description": "Recalculate and update module duration from its lessons"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Lessons",
+      "item": [
+        {
+          "name": "Get Lessons by Course",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/lessons/course/{{courseId}}?moduleId=&type=video&status=published&isFree=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lessons", "course", "{{courseId}}"],
+              "query": [
+                {
+                  "key": "moduleId",
+                  "value": "",
+                  "description": "Filter by module (leave empty for direct lessons or null for moduleId = null)"
+                },
+                {
+                  "key": "type",
+                  "value": "video",
+                  "description": "video | text | quiz | assignment"
+                },
+                {
+                  "key": "status",
+                  "value": "published",
+                  "description": "draft | published | archived"
+                },
+                {
+                  "key": "isFree",
+                  "value": "false",
+                  "description": "true | false"
+                }
+              ]
+            },
+            "description": "Get all lessons for a course with optional filters"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Free Lessons",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/lessons/course/{{courseId}}/free",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lessons", "course", "{{courseId}}", "free"]
+            },
+            "description": "Get free/preview lessons for a course (public endpoint)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Lessons by Module",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/lessons/module/{{moduleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lessons", "module", "{{moduleId}}"]
+            },
+            "description": "Get all lessons in a specific module"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Lesson by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/lessons/{{lessonId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lessons", "{{lessonId}}"]
+            },
+            "description": "Get lesson by ID with navigation (next/previous)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Lesson by Slug",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/lessons/course/{{courseId}}/slug/welcome-to-yoga",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lessons", "course", "{{courseId}}", "slug", "welcome-to-yoga"]
+            },
+            "description": "Get lesson by slug within a course"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Lesson (Auto-detect Type)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('lessonId', response.data.id);",
+                  "    console.log('Lesson ID saved:', response.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"courseId\": \"{{courseId}}\",\n    \"moduleId\": \"{{moduleId}}\",\n    \"videoId\": \"{{videoId}}\",\n    \"title\": \"Welcome to Yoga\",\n    \"slug\": \"welcome-to-yoga\",\n    \"description\": \"An introductory video about yoga philosophy and benefits\",\n    \"sequence\": 1,\n    \"duration\": 15,\n    \"isFree\": true,\n    \"isMandatory\": true,\n    \"metadata\": {\n        \"difficulty\": \"beginner\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/lessons",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lessons"]
+            },
+            "description": "Create a video lesson. Lesson type is auto-detected: provide videoId for video lesson, or textContent for text lesson. Leave moduleId null/empty for direct course lessons."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Text Lesson Example",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"courseId\": \"{{courseId}}\",\n    \"moduleId\": null,\n    \"textContent\": \"# Yoga Philosophy\\n\\nYoga is an ancient practice that combines physical postures, breathing exercises, and meditation...\\n\\n## The Eight Limbs of Yoga\\n\\n1. Yama (moral disciplines)\\n2. Niyama (positive duties)\\n3. Asana (postures)...\",\n    \"title\": \"Understanding Yoga Philosophy\",\n    \"slug\": \"understanding-yoga-philosophy\",\n    \"description\": \"A comprehensive guide to yoga philosophy\",\n    \"sequence\": 2,\n    \"estimatedReadTime\": 10,\n    \"isFree\": false,\n    \"isMandatory\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/lessons",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lessons"]
+            },
+            "description": "Create a text lesson. Provide textContent instead of videoId. The system auto-detects it as a text lesson."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Lesson",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Welcome to Yoga - Updated\",\n    \"description\": \"Updated description with more details\",\n    \"duration\": 20,\n    \"isFree\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/lessons/{{lessonId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lessons", "{{lessonId}}"]
+            },
+            "description": "Update lesson (Admin/Trainer)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Lesson",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/lessons/{{lessonId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lessons", "{{lessonId}}"]
+            },
+            "description": "Delete lesson (Admin/Trainer)"
+          },
+          "response": []
+        },
+        {
+          "name": "Bulk Update Lesson Sequences",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"updates\": [\n        { \"id\": \"lesson-id-1\", \"sequence\": 1 },\n        { \"id\": \"lesson-id-2\", \"sequence\": 2 },\n        { \"id\": \"lesson-id-3\", \"sequence\": 3 }\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/lessons/sequences",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lessons", "sequences"]
+            },
+            "description": "Update multiple lesson sequences at once"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Lesson Status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"published\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/lessons/{{lessonId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lessons", "{{lessonId}}", "status"]
+            },
+            "description": "Update lesson status. Valid values: draft, published, archived"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Videos",
+      "item": [
+        {
+          "name": "Create Video",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('videoId', response.data.id);",
+                  "    console.log('Video ID saved:', response.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Introduction to Yoga\",\n    \"thumbnailUrl\": \"https://example.com/thumbnail.jpg\",\n    \"storageKey\": \"videos/intro-yoga.mp4\",\n    \"playbackUrl\": \"https://example.com/videos/intro-yoga.mp4\",\n    \"status\": \"published\",\n    \"duration\": 600,\n    \"metadata\": {\n        \"resolution\": \"1080p\",\n        \"format\": \"mp4\",\n        \"size\": 52428800\n    }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/videos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "videos"]
+            },
+            "description": "Create a new video (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Videos",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/videos?status=published&limit=20&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "videos"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "published",
+                  "description": "published | draft | processing | failed"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Get all videos with optional filters (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Video by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/videos/{{videoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "videos", "{{videoId}}"]
+            },
+            "description": "Get video by ID (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Video",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Introduction to Yoga - Updated\",\n    \"status\": \"published\",\n    \"duration\": 720,\n    \"metadata\": {\n        \"resolution\": \"4K\",\n        \"format\": \"mp4\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/videos/{{videoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "videos", "{{videoId}}"]
+            },
+            "description": "Update video details (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Video Status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"published\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/videos/{{videoId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "videos", "{{videoId}}", "status"]
+            },
+            "description": "Update only the video status (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Video",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/videos/{{videoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "videos", "{{videoId}}"]
+            },
+            "description": "Delete a single video (Admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Bulk Delete Videos",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"ids\": [\"video-id-1\", \"video-id-2\", \"video-id-3\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/videos/bulk/delete",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "videos", "bulk", "delete"]
+            },
+            "description": "Delete multiple videos at once (Admin only)"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "categoryId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "courseId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "videoId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "trainerId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "moduleId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "lessonId",
+      "value": "",
+      "type": "string"
+    }
+  ]
 }

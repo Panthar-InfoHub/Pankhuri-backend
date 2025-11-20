@@ -17,7 +17,8 @@ model Trainer {
     updatedAt      DateTime      @updatedAt
 
     // Relations
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    user    User     @relation("TrainerProfile", fields: [userId], references: [id], onDelete: Cascade)
+    courses Course[] @relation("TrainerCourses")
 
     @@index([userId])
     @@index([status])

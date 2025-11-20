@@ -16,16 +16,17 @@ export const createVideo = async (data: Prisma.VideoCreateInput, quality: number
       },
     });
 
-    const { success, messageId, error } = await publishMessage(video.storageKey, quality);
+    // const { success, messageId, error } = await publishMessage(video.storageKey, quality);
 
-    if (!success) {
-      console.error(`Failed to publish video processing message: ${error}`);
-      throw new Error(`Failed to publish video processing message: ${error}`);
-    }
+    // if (!success) {
+    //   console.error(`Failed to publish video processing message: ${error}`);
+    //   throw new Error("Failed to initiate video processing. Please try again.");
+    // }
 
-    return { video, messageId };
+    return { video };
   } catch (error: any) {
-    throw new Error(`Failed to create video: ${error.message}`);
+    console.error("Video creation error:", error);
+    throw new Error("Failed to create video. Please try again.");
   }
 };
 
@@ -37,7 +38,8 @@ export const getVideoById = async (id: string) => {
 
     return video;
   } catch (error: any) {
-    throw new Error(`Failed to fetch video: ${error.message}`);
+    console.error("Get video error:", error);
+    throw new Error("Failed to fetch video. Please try again.");
   }
 };
 
@@ -65,7 +67,8 @@ export const getAllVideos = async (filters?: {
       offset: filters?.offset || 0,
     };
   } catch (error: any) {
-    throw new Error(`Failed to fetch videos: ${error.message}`);
+    console.error("Get videos error:", error);
+    throw new Error("Failed to fetch videos. Please try again.");
   }
 };
 
@@ -95,7 +98,12 @@ export const updateVideo = async (id: string, data: Prisma.VideoUpdateInput) => 
 
     return video;
   } catch (error: any) {
-    throw new Error(`Failed to update video: ${error.message}`);
+    console.error("Update video error:", error);
+    // Re-throw if it's a custom error message
+    if (error.message === "Video not found") {
+      throw error;
+    }
+    throw new Error("Failed to update video. Please try again.");
   }
 };
 
@@ -116,7 +124,12 @@ export const deleteVideo = async (id: string) => {
 
     return video;
   } catch (error: any) {
-    throw new Error(`Failed to delete video: ${error.message}`);
+    console.error("Delete video error:", error);
+    // Re-throw if it's a custom error message
+    if (error.message === "Video not found") {
+      throw error;
+    }
+    throw new Error("Failed to delete video. Please try again.");
   }
 };
 
@@ -129,7 +142,8 @@ export const updateVideoStatus = async (id: string, status: string) => {
 
     return video;
   } catch (error: any) {
-    throw new Error(`Failed to update video status: ${error.message}`);
+    console.error("Update video status error:", error);
+    throw new Error("Failed to update video status. Please try again.");
   }
 };
 
@@ -145,6 +159,7 @@ export const bulkDeleteVideos = async (ids: string[]) => {
 
     return result;
   } catch (error: any) {
-    throw new Error(`Failed to bulk delete videos: ${error.message}`);
+    console.error("Bulk delete videos error:", error);
+    throw new Error("Failed to delete videos. Please try again.");
   }
 };

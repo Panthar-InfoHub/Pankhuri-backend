@@ -75,8 +75,12 @@ export const getAllCourses = async (filters?: {
         trainer: {
           select: {
             id: true,
-            displayName: true,
-            profileImage: true,
+            user: {
+              select: {
+                displayName: true,
+                profileImage: true,
+              },
+            },
           },
         },
       },
@@ -98,7 +102,7 @@ export const getAllCourses = async (filters?: {
   };
 };
 
-// Get course by ID
+// Get course by ID with modules and lessons
 export const getCourseById = async (id: string, userId?: string) => {
   const course = await prisma.course.findUnique({
     where: { id },
@@ -107,18 +111,112 @@ export const getCourseById = async (id: string, userId?: string) => {
       trainer: {
         select: {
           id: true,
-          displayName: true,
-          profileImage: true,
-          email: true,
+          user: {
+            select: {
+              displayName: true,
+              profileImage: true,
+              email: true,
+            },
+          },
+        },
+      },
+      // Get modules with their lessons
+      modules: {
+        where: { status: "published" },
+        orderBy: { sequence: "asc" },
+        include: {
+          lessons: {
+            where: { status: "published" },
+            orderBy: { sequence: "asc" },
+            include: {
+              videoLesson: {
+                include: {
+                  video: {
+                    select: {
+                      id: true,
+                      title: true,
+                      thumbnailUrl: true,
+                      duration: true,
+                      status: true,
+                    },
+                  },
+                },
+              },
+              textLesson: true,
+            },
+          },
+          _count: {
+            select: {
+              lessons: true,
+            },
+          },
+        },
+      },
+      // Get direct lessons (not in modules)
+      lessons: {
+        where: {
+          moduleId: null,
+          status: "published",
+        },
+        orderBy: { sequence: "asc" },
+        include: {
+          videoLesson: {
+            include: {
+              video: {
+                select: {
+                  id: true,
+                  title: true,
+                  thumbnailUrl: true,
+                  duration: true,
+                  status: true,
+                },
+              },
+            },
+          },
+          textLesson: true,
+        },
+      },
+      _count: {
+        select: {
+          modules: true,
+          lessons: true,
         },
       },
     },
   });
 
-  return course;
+  if (!course) {
+    return null;
+  }
+
+  // Calculate total lessons and duration
+  let totalLessons = (course as any).lessons.length;
+  let totalDuration = 0;
+
+  // Count lessons in modules
+  (course as any).modules.forEach((module: any) => {
+    totalLessons += module.lessons.length;
+    module.lessons.forEach((lesson: any) => {
+      totalDuration += lesson.duration || 0;
+    });
+  });
+
+  // Count direct lessons duration
+  (course as any).lessons.forEach((lesson: any) => {
+    totalDuration += lesson.duration || 0;
+  });
+
+  return {
+    ...course,
+    stats: {
+      totalModules: (course as any)._count.modules,
+      totalLessons,
+      totalDuration, // in minutes
+    },
+  };
 };
 
-// Get course by slug
+// Get course by slug with modules and lessons
 export const getCourseBySlug = async (slug: string, userId?: string) => {
   const course = await prisma.course.findUnique({
     where: { slug },
@@ -127,14 +225,108 @@ export const getCourseBySlug = async (slug: string, userId?: string) => {
       trainer: {
         select: {
           id: true,
-          displayName: true,
-          profileImage: true,
+          user: {
+            select: {
+              displayName: true,
+              profileImage: true,
+            },
+          },
+        },
+      },
+      // Get modules with their lessons
+      modules: {
+        where: { status: "published" },
+        orderBy: { sequence: "asc" },
+        include: {
+          lessons: {
+            where: { status: "published" },
+            orderBy: { sequence: "asc" },
+            include: {
+              videoLesson: {
+                include: {
+                  video: {
+                    select: {
+                      id: true,
+                      title: true,
+                      thumbnailUrl: true,
+                      duration: true,
+                      status: true,
+                    },
+                  },
+                },
+              },
+              textLesson: true,
+            },
+          },
+          _count: {
+            select: {
+              lessons: true,
+            },
+          },
+        },
+      },
+      // Get direct lessons (not in modules)
+      lessons: {
+        where: {
+          moduleId: null,
+          status: "published",
+        },
+        orderBy: { sequence: "asc" },
+        include: {
+          videoLesson: {
+            include: {
+              video: {
+                select: {
+                  id: true,
+                  title: true,
+                  thumbnailUrl: true,
+                  duration: true,
+                  status: true,
+                },
+              },
+            },
+          },
+          textLesson: true,
+        },
+      },
+      _count: {
+        select: {
+          modules: true,
+          lessons: true,
         },
       },
     },
   });
 
-  return course;
+  if (!course) {
+    return null;
+  }
+
+  // Calculate total lessons and duration
+  let totalLessons = (course as any).lessons.length;
+  let totalDuration = 0;
+
+  // Count lessons in modules
+  (course as any).modules.forEach((module: any) => {
+    totalLessons += module.lessons.length;
+    module.lessons.forEach((lesson: any) => {
+      totalDuration += lesson.duration || 0;
+    });
+  });
+
+  // Count direct lessons duration
+  (course as any).lessons.forEach((lesson: any) => {
+    totalDuration += lesson.duration || 0;
+  });
+
+  return {
+    ...course,
+    stats: {
+      totalModules: (course as any)._count.modules,
+      totalLessons,
+      totalDuration, // in minutes
+    },
+  };
 };
 
 // Get related courses
@@ -163,8 +355,13 @@ export const getRelatedCourses = async (courseId: string, limit = 6) => {
     include: {
       trainer: {
         select: {
-          displayName: true,
-          profileImage: true,
+          id: true,
+          user: {
+            select: {
+              displayName: true,
+              profileImage: true,
+            },
+          },
         },
       },
     },
@@ -192,8 +389,13 @@ export const getTrendingCourses = async (limit = 10) => {
       },
       trainer: {
         select: {
-          displayName: true,
-          profileImage: true,
+          id: true,
+          user: {
+            select: {
+              displayName: true,
+              profileImage: true,
+            },
+          },
         },
       },
     },
@@ -215,6 +417,22 @@ export const createCourse = async (data: Prisma.CourseCreateInput) => {
     throw new Error("Course with this slug already exists");
   }
 
+  // Validate category exists
+  if (
+    data.category &&
+    "connect" in data.category &&
+    data.category.connect &&
+    "id" in data.category.connect
+  ) {
+    const categoryExists = await prisma.category.findUnique({
+      where: { id: data.category.connect.id as string },
+    });
+
+    if (!categoryExists) {
+      throw new Error("Category not found. Please select a valid category.");
+    }
+  }
+
   const course = await prisma.course.create({
     data,
     include: {
@@ -222,14 +440,50 @@ export const createCourse = async (data: Prisma.CourseCreateInput) => {
       trainer: {
         select: {
           id: true,
-          displayName: true,
-          email: true,
+          user: {
+            select: {
+              displayName: true,
+              email: true,
+            },
+          },
         },
       },
     },
   });
 
   return course;
+};
+
+// Validate trainer exists and return trainer ID
+export const validateTrainer = async (userId: string): Promise<string> => {
+  const trainer = await prisma.trainer.findUnique({
+    where: { userId },
+    select: { id: true, status: true },
+  });
+
+  if (!trainer) {
+    throw new Error("User does not have a trainer profile");
+  }
+
+  if (trainer.status !== "active") {
+    throw new Error("Trainer profile is not active");
+  }
+
+  return trainer.id;
+};
+
+// Validate category exists
+export const validateCategory = async (categoryId: string): Promise<boolean> => {
+  const category = await prisma.category.findUnique({
+    where: { id: categoryId },
+    select: { id: true },
+  });
+
+  if (!category) {
+    throw new Error("Category not found. Please select a valid category.");
+  }
+
+  return true;
 };
 
 // Update course (Admin/Trainer)
@@ -276,7 +530,12 @@ export const updateCourse = async (
       category: true,
       trainer: {
         select: {
-          displayName: true,
+          id: true,
+          user: {
+            select: {
+              displayName: true,
+            },
+          },
         },
       },
     },
