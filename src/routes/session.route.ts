@@ -7,8 +7,7 @@ import {
     logoutAllSessions,
     cleanupSessions,
 } from "../controllers/session.controller";
-import { authenticateWithSession } from "../middleware/session.middleware";
-import { requireAdmin } from "@/middleware/auth.middleware";
+import { authenticateWithSession, requireAdmin } from "../middleware/session.middleware";
 
 const router = express.Router();
 
