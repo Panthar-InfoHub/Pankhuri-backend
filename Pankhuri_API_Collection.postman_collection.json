@@ -1864,6 +1864,282 @@
             "description": "Update lesson status. Valid values: draft, published, archived"
           },
           "response": []
+        },
+        {
+          "name": "Upsert Lesson Description",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"textContent\": \"# Course Overview\\n\\nThis is a comprehensive lesson about...\\n\\n## Key Topics\\n- Topic 1\\n- Topic 2\\n\\n**Useful Links:**\\n- [Documentation](https://example.com)\\n- [GitHub Repo](https://github.com/example)\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/lessons/{{lessonId}}/description",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lessons", "{{lessonId}}", "description"]
+            },
+            "description": "Create or update lesson description with rich text (supports markdown, links, formatting)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Lesson Description",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/lessons/{{lessonId}}/description",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lessons", "{{lessonId}}", "description"]
+            },
+            "description": "Get lesson description"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Lesson Description",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/lessons/{{lessonId}}/description",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lessons", "{{lessonId}}", "description"]
+            },
+            "description": "Delete lesson description"
+          },
+          "response": []
+        },
+        {
+          "name": "Add Lesson Attachment",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Course Material PDF\",\n    \"fileUrl\": \"https://storage.example.com/files/lesson-material.pdf\",\n    \"fileName\": \"lesson-material.pdf\",\n    \"fileSize\": 2048576,\n    \"mimeType\": \"application/pdf\",\n    \"type\": \"pdf\",\n    \"sequence\": 0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/lessons/{{lessonId}}/attachments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lessons", "{{lessonId}}", "attachments"]
+            },
+            "description": "Add attachment to lesson (PDF, images, documents, zip files). Types: pdf, image, document, zip, other"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Lesson Attachments",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/lessons/{{lessonId}}/attachments",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lessons", "{{lessonId}}", "attachments"]
+            },
+            "description": "Get all attachments for a lesson"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attachment by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/lessons/attachments/{{attachmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lessons", "attachments", "{{attachmentId}}"]
+            },
+            "description": "Get single attachment details"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Attachment",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Updated Material Title\",\n    \"sequence\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/lessons/attachments/{{attachmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lessons", "attachments", "{{attachmentId}}"]
+            },
+            "description": "Update attachment metadata (title, sequence, etc)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Attachment",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/lessons/attachments/{{attachmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lessons", "attachments", "{{attachmentId}}"]
+            },
+            "description": "Delete a specific attachment"
+          },
+          "response": []
+        },
+        {
+          "name": "Bulk Update Attachment Sequences",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"updates\": [\n        { \"id\": \"attachment-id-1\", \"sequence\": 0 },\n        { \"id\": \"attachment-id-2\", \"sequence\": 1 },\n        { \"id\": \"attachment-id-3\", \"sequence\": 2 }\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/lessons/attachments/sequences",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lessons", "attachments", "sequences"]
+            },
+            "description": "Update multiple attachment sequences at once"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete All Lesson Attachments",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/lessons/{{lessonId}}/attachments/all",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "lessons", "{{lessonId}}", "attachments", "all"]
+            },
+            "description": "Delete all attachments for a lesson"
+          },
+          "response": []
         }
       ]
     },
@@ -2962,6 +3238,11 @@
     },
     {
       "key": "sessionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "attachmentId",
       "value": "",
       "type": "string"
     }

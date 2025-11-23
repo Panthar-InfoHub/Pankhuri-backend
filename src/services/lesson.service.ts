@@ -39,6 +39,10 @@ export const getLessonsByCourse = async (
           slug: true,
         },
       },
+      lessonDescription: true,
+      lessonAttachments: {
+        orderBy: { sequence: "asc" },
+      },
     },
     orderBy: { sequence: "asc" },
   });
@@ -57,6 +61,10 @@ export const getLessonsByModule = async (moduleId: string): Promise<Lesson[]> =>
         },
       },
       textLesson: true,
+      lessonDescription: true,
+      lessonAttachments: {
+        orderBy: { sequence: "asc" },
+      },
     },
     orderBy: { sequence: "asc" },
   });
@@ -89,6 +97,10 @@ export const getLessonById = async (lessonId: string): Promise<Lesson | null> =>
         },
       },
       textLesson: true,
+      lessonDescription: true,
+      lessonAttachments: {
+        orderBy: { sequence: "asc" },
+      },
     },
   });
 };
@@ -125,6 +137,10 @@ export const getLessonBySlug = async (courseId: string, slug: string): Promise<L
         },
       },
       textLesson: true,
+      lessonDescription: true,
+      lessonAttachments: {
+        orderBy: { sequence: "asc" },
+      },
     },
   });
 };
@@ -210,6 +226,10 @@ export const createLesson = async (data: {
         },
         textLesson: true,
         module: true,
+        lessonDescription: true,
+        lessonAttachments: {
+          orderBy: { sequence: "asc" },
+        },
       },
     })) as Lesson;
   });
@@ -298,6 +318,10 @@ export const updateLesson = async (
         },
         textLesson: true,
         module: true,
+        lessonDescription: true,
+        lessonAttachments: {
+          orderBy: { sequence: "asc" },
+        },
       },
     })) as Lesson;
   });
@@ -309,19 +333,6 @@ export const updateLesson = async (
 export const deleteLesson = async (lessonId: string): Promise<void> => {
   await prisma.lesson.delete({
     where: { id: lessonId },
-  });
-};
-
-/**
- * Update lesson sequence/order
- */
-export const updateLessonSequence = async (
-  lessonId: string,
-  newSequence: number
-): Promise<Lesson> => {
-  return await prisma.lesson.update({
-    where: { id: lessonId },
-    data: { sequence: newSequence },
   });
 };
 
@@ -341,50 +352,7 @@ export const bulkUpdateLessonSequences = async (
   );
 };
 
-// ==================== LESSON STATUS MANAGEMENT ====================
-
-/**
- * Publish a lesson
- */
-export const publishLesson = async (lessonId: string): Promise<Lesson> => {
-  return await prisma.lesson.update({
-    where: { id: lessonId },
-    data: { status: LessonStatus.published },
-  });
-};
-
-/**
- * Archive a lesson
- */
-export const archiveLesson = async (lessonId: string): Promise<Lesson> => {
-  return await prisma.lesson.update({
-    where: { id: lessonId },
-    data: { status: LessonStatus.archived },
-  });
-};
-
 // ==================== LESSON ANALYTICS ====================
-
-/**
- * Get lesson count by course
- */
-export const getLessonCountByCourse = async (courseId: string): Promise<number> => {
-  return await prisma.lesson.count({
-    where: { courseId },
-  });
-};
-
-/**
- * Get total duration of lessons in a course
- */
-export const getTotalCourseDuration = async (courseId: string): Promise<number> => {
-  const lessons = await prisma.lesson.findMany({
-    where: { courseId },
-    select: { duration: true },
-  });
-
-  return lessons.reduce((total, lesson) => total + (lesson.duration || 0), 0);
-};
 
 /**
  * Get free lessons for a course (for preview)
@@ -409,6 +377,10 @@ export const getFreeLessons = async (courseId: string): Promise<Lesson[]> => {
           title: true,
           slug: true,
         },
+      },
+      lessonDescription: true,
+      lessonAttachments: {
+        orderBy: { sequence: "asc" },
       },
     },
     orderBy: { sequence: "asc" },
@@ -440,6 +412,10 @@ export const getNextLesson = async (
         },
       },
       textLesson: true,
+      lessonDescription: true,
+      lessonAttachments: {
+        orderBy: { sequence: "asc" },
+      },
     },
   });
 };
@@ -467,7 +443,204 @@ export const getPreviousLesson = async (
         },
       },
       textLesson: true,
+      lessonDescription: true,
+      lessonAttachments: {
+        orderBy: { sequence: "asc" },
+      },
     },
+  });
+};
+
+// ==================== LESSON DESCRIPTION MANAGEMENT ====================
+
+/**
+ * Create or update lesson description
+ */
+export const upsertLessonDescription = async (
+  lessonId: string,
+  textContent: string
+): Promise<any> => {
+  // Check if lesson exists
+  const lesson = await prisma.lesson.findUnique({ where: { id: lessonId } });
+  if (!lesson) {
+    throw new Error("Lesson not found");
+  }
+
+  // Upsert description
+  return await prisma.lessonDescription.upsert({
+    where: { lessonId },
+    create: {
+      lessonId,
+      textContent,
+    },
+    update: {
+      textContent,
+    },
+  });
+};
+
+/**
+ * Get lesson description
+ */
+export const getLessonDescription = async (lessonId: string): Promise<any | null> => {
+  return await prisma.lessonDescription.findUnique({
+    where: { lessonId },
+  });
+};
+
+/**
+ * Delete lesson description
+ */
+export const deleteLessonDescription = async (lessonId: string): Promise<void> => {
+  await prisma.lessonDescription.delete({
+    where: { lessonId },
+  });
+};
+
+// ==================== LESSON ATTACHMENT MANAGEMENT ====================
+
+/**
+ * Add attachment to lesson
+ */
+export const addLessonAttachment = async (data: {
+  lessonId: string;
+  title: string;
+  fileUrl: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  type?: string;
+  sequence?: number;
+}): Promise<any> => {
+  // Check if lesson exists
+  const lesson = await prisma.lesson.findUnique({ where: { id: data.lessonId } });
+  if (!lesson) {
+    throw new Error("Lesson not found");
+  }
+
+  // Determine attachment type from mimeType if not provided
+  let attachmentType = data.type || "other";
+  if (!data.type) {
+    if (data.mimeType.startsWith("image/")) {
+      attachmentType = "image";
+    } else if (data.mimeType === "application/pdf") {
+      attachmentType = "pdf";
+    } else if (
+      data.mimeType.includes("document") ||
+      data.mimeType.includes("word") ||
+      data.mimeType.includes("text")
+    ) {
+      attachmentType = "document";
+    } else if (data.mimeType.includes("zip") || data.mimeType.includes("compressed")) {
+      attachmentType = "zip";
+    }
+  }
+
+  // Get next sequence if not provided
+  let sequence = data.sequence;
+  if (sequence === undefined) {
+    const maxSequence = await prisma.lessonAttachment.findFirst({
+      where: { lessonId: data.lessonId },
+      orderBy: { sequence: "desc" },
+      select: { sequence: true },
+    });
+    sequence = (maxSequence?.sequence ?? -1) + 1;
+  }
+
+  return await prisma.lessonAttachment.create({
+    data: {
+      lessonId: data.lessonId,
+      title: data.title,
+      fileUrl: data.fileUrl,
+      fileName: data.fileName,
+      fileSize: data.fileSize,
+      mimeType: data.mimeType,
+      type: attachmentType as any,
+      sequence,
+    },
+  });
+};
+
+/**
+ * Get all attachments for a lesson
+ */
+export const getLessonAttachments = async (lessonId: string): Promise<any[]> => {
+  return await prisma.lessonAttachment.findMany({
+    where: { lessonId },
+    orderBy: { sequence: "asc" },
+  });
+};
+
+/**
+ * Get single attachment by ID
+ */
+export const getLessonAttachmentById = async (attachmentId: string): Promise<any | null> => {
+  return await prisma.lessonAttachment.findUnique({
+    where: { id: attachmentId },
+  });
+};
+
+/**
+ * Update attachment metadata
+ */
+export const updateLessonAttachment = async (
+  attachmentId: string,
+  data: {
+    title?: string;
+    fileUrl?: string;
+    fileName?: string;
+    fileSize?: number;
+    mimeType?: string;
+    type?: string;
+    sequence?: number;
+  }
+): Promise<any> => {
+  const updateData: any = {};
+  if (data.title !== undefined) updateData.title = data.title;
+  if (data.fileUrl !== undefined) updateData.fileUrl = data.fileUrl;
+  if (data.fileName !== undefined) updateData.fileName = data.fileName;
+  if (data.fileSize !== undefined) updateData.fileSize = data.fileSize;
+  if (data.mimeType !== undefined) updateData.mimeType = data.mimeType;
+  if (data.type !== undefined) updateData.type = data.type;
+  if (data.sequence !== undefined) updateData.sequence = data.sequence;
+
+  return await prisma.lessonAttachment.update({
+    where: { id: attachmentId },
+    data: updateData,
+  });
+};
+
+/**
+ * Delete attachment
+ */
+export const deleteLessonAttachment = async (attachmentId: string): Promise<void> => {
+  await prisma.lessonAttachment.delete({
+    where: { id: attachmentId },
+  });
+};
+
+/**
+ * Bulk update attachment sequences
+ */
+export const bulkUpdateAttachmentSequences = async (
+  updates: Array<{ id: string; sequence: number }>
+): Promise<void> => {
+  await prisma.$transaction(
+    updates.map((update) =>
+      prisma.lessonAttachment.update({
+        where: { id: update.id },
+        data: { sequence: update.sequence },
+      })
+    )
+  );
+};
+
+/**
+ * Delete all attachments for a lesson
+ */
+export const deleteAllLessonAttachments = async (lessonId: string): Promise<void> => {
+  await prisma.lessonAttachment.deleteMany({
+    where: { lessonId },
   });
 };
 

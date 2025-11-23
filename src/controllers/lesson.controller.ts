@@ -212,28 +212,28 @@ export const createLessonHandler = async (req: Request, res: Response, next: Nex
     if (!courseId || !title || !slug || sequence === undefined) {
       return res.status(400).json({
         success: false,
-        error: "courseId, title, slug, and sequence are required",
+        message: "courseId, title, slug, and sequence are required",
       });
     }
 
     if (!type) {
       return res.status(400).json({
         success: false,
-        error: "Either videoId (for video lesson) or textContent (for text lesson) is required",
+        message: "Either videoId (for video lesson) or textContent (for text lesson) is required",
       });
     }
 
     if (type === LessonType.video && !videoId) {
       return res.status(400).json({
         success: false,
-        error: "videoId is required for video lessons",
+        message: "videoId is required for video lessons",
       });
     }
 
     if (type === LessonType.text && !textContent) {
       return res.status(400).json({
         success: false,
-        error: "textContent is required for text lessons",
+        message: "textContent is required for text lessons",
       });
     }
 
@@ -358,7 +358,7 @@ export const updateLessonStatusHandler = async (
     if (!status || !["draft", "published", "archived"].includes(status)) {
       return res.status(400).json({
         success: false,
-        error: "Valid status is required (draft, published, or archived)",
+        message: "Valid status is required (draft, published, or archived)",
       });
     }
 
@@ -371,6 +371,342 @@ export const updateLessonStatusHandler = async (
     });
   } catch (error: any) {
     console.error("Error updating lesson status:", error);
+    next(error);
+  }
+};
+
+// ==================== LESSON DESCRIPTIONS ====================
+
+/**
+ * Create or update lesson description
+ * PUT /api/lessons/:id/description
+ */
+export const upsertLessonDescriptionHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const { textContent } = req.body;
+
+    if (!textContent || typeof textContent !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "textContent is required and must be a string",
+      });
+    }
+
+    const { upsertLessonDescription } = await import("@services/lesson.service");
+    const description = await upsertLessonDescription(id, textContent);
+
+    return res.status(200).json({
+      success: true,
+      message: "Lesson description saved successfully",
+      data: description,
+    });
+  } catch (error: any) {
+    console.error("Error upserting lesson description:", error);
+    if (error.message === "Lesson not found") {
+      return res.status(404).json({
+        success: false,
+        error: "Lesson not found",
+      });
+    }
+    next(error);
+  }
+};
+
+/**
+ * Get lesson description
+ * GET /api/lessons/:id/description
+ */
+export const getLessonDescriptionHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    const { getLessonDescription } = await import("@services/lesson.service");
+    const description = await getLessonDescription(id);
+
+    if (!description) {
+      return res.status(404).json({
+        success: false,
+        message: "Lesson description not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: description,
+    });
+  } catch (error: any) {
+    console.error("Error fetching lesson description:", error);
+    next(error);
+  }
+};
+
+/**
+ * Delete lesson description
+ * DELETE /api/lessons/:id/description
+ */
+export const deleteLessonDescriptionHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    const { deleteLessonDescription } = await import("@services/lesson.service");
+    await deleteLessonDescription(id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Lesson description deleted successfully",
+    });
+  } catch (error: any) {
+    console.error("Error deleting lesson description:", error);
+    if (error.code === "P2025") {
+      return res.status(404).json({
+        success: false,
+        message: "Lesson description not found",
+      });
+    }
+    next(error);
+  }
+};
+
+// ==================== LESSON ATTACHMENTS ====================
+
+/**
+ * Add attachment to lesson
+ * POST /api/lessons/:id/attachments
+ */
+export const addLessonAttachmentHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id: lessonId } = req.params;
+    const { title, fileUrl, fileName, fileSize, mimeType, type, sequence } = req.body;
+
+    // Validation
+    if (!title || !fileUrl || !fileName || !fileSize || !mimeType) {
+      return res.status(400).json({
+        success: false,
+        message: "title, fileUrl, fileName, fileSize, and mimeType are required",
+      });
+    }
+
+    const { addLessonAttachment } = await import("@services/lesson.service");
+    const attachment = await addLessonAttachment({
+      lessonId,
+      title,
+      fileUrl,
+      fileName,
+      fileSize,
+      mimeType,
+      type,
+      sequence,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Attachment added successfully",
+      data: attachment,
+    });
+  } catch (error: any) {
+    console.error("Error adding lesson attachment:", error);
+    if (error.message === "Lesson not found") {
+      return res.status(404).json({
+        success: false,
+        error: "Lesson not found",
+      });
+    }
+    next(error);
+  }
+};
+
+/**
+ * Get all attachments for a lesson
+ * GET /api/lessons/:id/attachments
+ */
+export const getLessonAttachmentsHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id: lessonId } = req.params;
+
+    const { getLessonAttachments } = await import("@services/lesson.service");
+    const attachments = await getLessonAttachments(lessonId);
+
+    return res.status(200).json({
+      success: true,
+      data: attachments,
+      count: attachments.length,
+    });
+  } catch (error: any) {
+    console.error("Error fetching lesson attachments:", error);
+    next(error);
+  }
+};
+
+/**
+ * Get single attachment by ID
+ * GET /api/lessons/attachments/:attachmentId
+ */
+export const getLessonAttachmentByIdHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { attachmentId } = req.params;
+
+    const { getLessonAttachmentById } = await import("@services/lesson.service");
+    const attachment = await getLessonAttachmentById(attachmentId);
+
+    if (!attachment) {
+      return res.status(404).json({
+        success: false,
+        message: "Attachment not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: attachment,
+    });
+  } catch (error: any) {
+    console.error("Error fetching attachment:", error);
+    next(error);
+  }
+};
+
+/**
+ * Update attachment metadata
+ * PUT /api/lessons/attachments/:attachmentId
+ */
+export const updateLessonAttachmentHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { attachmentId } = req.params;
+    const updates = req.body;
+
+    const { updateLessonAttachment } = await import("@services/lesson.service");
+    const attachment = await updateLessonAttachment(attachmentId, updates);
+
+    return res.status(200).json({
+      success: true,
+      message: "Attachment updated successfully",
+      data: attachment,
+    });
+  } catch (error: any) {
+    console.error("Error updating attachment:", error);
+    if (error.code === "P2025") {
+      return res.status(404).json({
+        success: false,
+        error: "Attachment not found",
+      });
+    }
+    next(error);
+  }
+};
+
+/**
+ * Delete attachment
+ * DELETE /api/lessons/attachments/:attachmentId
+ */
+export const deleteLessonAttachmentHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { attachmentId } = req.params;
+
+    const { deleteLessonAttachment } = await import("@services/lesson.service");
+    await deleteLessonAttachment(attachmentId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Attachment deleted successfully",
+    });
+  } catch (error: any) {
+    console.error("Error deleting attachment:", error);
+    if (error.code === "P2025") {
+      return res.status(404).json({
+        success: false,
+        error: "Attachment not found",
+      });
+    }
+    next(error);
+  }
+};
+
+/**
+ * Bulk update attachment sequences
+ * PATCH /api/lessons/attachments/sequences
+ */
+export const bulkUpdateAttachmentSequencesHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { updates } = req.body;
+
+    if (!updates || !Array.isArray(updates)) {
+      return res.status(400).json({
+        success: false,
+        error: "Updates array is required",
+      });
+    }
+
+    const { bulkUpdateAttachmentSequences } = await import("@services/lesson.service");
+    await bulkUpdateAttachmentSequences(updates);
+
+    return res.status(200).json({
+      success: true,
+      message: "Attachment sequences updated successfully",
+    });
+  } catch (error: any) {
+    console.error("Error updating attachment sequences:", error);
+    next(error);
+  }
+};
+
+/**
+ * Delete all attachments for a lesson
+ * DELETE /api/lessons/:id/attachments/all
+ */
+export const deleteAllLessonAttachmentsHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id: lessonId } = req.params;
+
+    const { deleteAllLessonAttachments } = await import("@services/lesson.service");
+    await deleteAllLessonAttachments(lessonId);
+
+    return res.status(200).json({
+      success: true,
+      message: "All attachments deleted successfully",
+    });
+  } catch (error: any) {
+    console.error("Error deleting all attachments:", error);
     next(error);
   }
 };

@@ -39,6 +39,15 @@ app.get("/ping", (_, res) => {
   res.status(200).send({ message: "server is running!" });
 });
 
+// 404 handler - must be before error middleware
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    error: `Cannot ${req.method} ${req.path}`,
+    message: "Route not found",
+  });
+});
+
 // Global error middleware
 app.use(errorHandler);
 
