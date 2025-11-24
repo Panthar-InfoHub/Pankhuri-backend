@@ -1,47 +1,47 @@
 enum CourseLevel {
-    beginner
-    intermediate
-    advanced
-    expert
+  beginner
+  intermediate
+  advanced
+  expert
 }
 
 enum CourseStatus {
-    active
-    inactive
-    archived
+  active
+  inactive
+  archived
 }
 
 model Course {
-    id             String       @id @default(cuid())
-    categoryId     String
-    trainerId      String
-    title          String
-    slug           String       @unique
-    description    String?      @db.Text
-    thumbnailImage String?
-    coverImage     String?
-    level          CourseLevel  @default(beginner)
-    duration       Int? // in minutes
-    language       String       @default("en")
-    status         CourseStatus @default(active)
-    hasCertificate Boolean      @default(false)
-    rating         Float        @default(0)
-    tags           String[]     @default([])
-    metadata       Json?
-    demoVideoId    String?
-    createdAt      DateTime     @default(now())
-    updatedAt      DateTime     @updatedAt
+  id             String       @id @default(cuid())
+  categoryId     String
+  trainerId      String
+  title          String
+  slug           String       @unique
+  description    String?      @db.Text
+  thumbnailImage String?
+  coverImage     String?
+  level          CourseLevel  @default(beginner)
+  duration       Int? // in minutes
+  language       String       @default("en")
+  status         CourseStatus @default(inactive)
+  hasCertificate Boolean      @default(false)
+  rating         Float        @default(0)
+  tags           String[]     @default([])
+  metadata       Json?
+  demoVideoId    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
-    // Relations
-    category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-    trainer  Trainer  @relation("TrainerCourses", fields: [trainerId], references: [id], onDelete: Cascade)
-    modules  Module[]
-    lessons  Lesson[] // Direct lessons (not inside modules)
+  // Relations
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  trainer  Trainer  @relation("TrainerCourses", fields: [trainerId], references: [id], onDelete: Cascade)
+  modules  Module[]
+  lessons  Lesson[] // Direct lessons (not inside modules)
 
-    @@index([slug])
-    @@index([categoryId])
-    @@index([trainerId])
-    @@index([status])
-    @@index([level])
-    @@index([language])
+  @@index([slug])
+  @@index([categoryId])
+  @@index([trainerId])
+  @@index([status])
+  @@index([level])
+  @@index([language])
 }

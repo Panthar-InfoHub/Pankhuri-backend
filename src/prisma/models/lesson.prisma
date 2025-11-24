@@ -27,10 +27,12 @@ model Lesson {
   updatedAt   DateTime     @updatedAt
 
   // Relations
-  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  module      Module?      @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  textLesson  TextLesson?
-  videoLesson VideoLesson?
+  course            Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  module            Module?            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  textLesson        TextLesson?
+  videoLesson       VideoLesson?
+  lessonDescription LessonDescription?
+  lessonAttachments LessonAttachment[]
 
   @@unique([courseId, slug])
   @@index([courseId])

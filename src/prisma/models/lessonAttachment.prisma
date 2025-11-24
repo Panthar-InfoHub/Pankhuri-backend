@@ -1,0 +1,28 @@
+enum AttachmentType {
+    pdf
+    image
+    document
+    zip
+    other
+}
+
+model LessonAttachment {
+    id        String         @id @default(cuid())
+    lessonId  String
+    title     String // User-friendly name for the attachment
+    fileUrl   String // URL to the uploaded file (S3, Cloudinary, etc.)
+    fileName  String // Original filename
+    fileSize  Int // in bytes
+    mimeType  String // e.g., application/pdf, image/png
+    type      AttachmentType @default(other) // Categorized type for easy filtering
+    sequence  Int            @default(0) // Order for displaying multiple attachments
+    createdAt DateTime       @default(now())
+    updatedAt DateTime       @updatedAt
+
+    // Relations
+    lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+    @@index([lessonId])
+    @@index([type])
+    @@index([sequence])
+}

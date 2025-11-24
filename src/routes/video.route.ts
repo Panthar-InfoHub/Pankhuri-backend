@@ -9,18 +9,18 @@ import {
   bulkDeleteVideosHandler,
   transcodeCompleteHandler,
 } from "@/controllers/video.controller";
-import { authenticate, requireAdmin } from "../middleware/auth.middleware";
+import { authenticateWithSession, requireAdmin } from "../middleware/session.middleware";
 
 const router = express.Router();
 
 // Admin routes - all video operations require admin access
-router.post("/", authenticate, requireAdmin, createVideoHandler);
-router.get("/", authenticate, requireAdmin, getAllVideosHandler);
-router.get("/:id", authenticate, requireAdmin, getVideoHandler);
-router.put("/:id", authenticate, requireAdmin, updateVideoHandler);
-router.patch("/:id/status", authenticate, requireAdmin, updateVideoStatusHandler);
-router.delete("/:id", authenticate, requireAdmin, deleteVideoHandler);
-router.delete("/bulk/delete", authenticate, requireAdmin, bulkDeleteVideosHandler);
+router.post("/", authenticateWithSession, requireAdmin, createVideoHandler);
+router.get("/", authenticateWithSession, requireAdmin, getAllVideosHandler);
+router.get("/:id", authenticateWithSession, requireAdmin, getVideoHandler);
+router.put("/:id", authenticateWithSession, requireAdmin, updateVideoHandler);
+router.patch("/:id/status", authenticateWithSession, requireAdmin, updateVideoStatusHandler);
+router.delete("/:id", authenticateWithSession, requireAdmin, deleteVideoHandler);
+router.delete("/bulk/delete", authenticateWithSession, requireAdmin, bulkDeleteVideosHandler);
 
 // Bulk delete videos
 router.post("/transcode-complete", transcodeCompleteHandler);

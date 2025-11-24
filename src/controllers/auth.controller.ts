@@ -2,7 +2,12 @@ import { UserRole } from "@/prisma/generated/prisma/client";
 import { verifyFirebaseToken } from "@services/auth.service";
 import { Request, Response } from "express";
 import { generateJWT } from "../lib/jwt";
-import { findAdminByEmail, findOrCreateUserByEmail, findOrCreateUserByPhone } from "../services/user.service";
+import {
+  findAdminByEmail,
+  findOrCreateUserByEmail,
+  findOrCreateUserByPhone,
+} from "../services/user.service";
+import { manageUserSessions } from "../services/session.service";
 
 /**
  * Google OAuth login via Firebase
@@ -38,8 +43,11 @@ export const googleLogin = async (req: Request, res: Response) => {
       firebaseUser.picture
     );
 
-    // Generate JWT
-    const jwtToken = generateJWT(user);
+    // Create session and manage max 2 sessions per user
+    const session = await manageUserSessions(user.id);
+
+    // Generate JWT with session ID
+    const jwtToken = generateJWT(user, session.id);
 
     // Send response
     return res.status(200).json({
@@ -47,6 +55,7 @@ export const googleLogin = async (req: Request, res: Response) => {
       message: "Google authentication successful",
       data: {
         token: jwtToken,
+        sessionId: session.id,
         user: user,
       },
     });
@@ -97,8 +106,11 @@ export const phoneLogin = async (req: Request, res: Response) => {
     // Find or create user by phone (country code auto-extracted)
     const user = await findOrCreateUserByPhone(firebaseUser.phone_number);
 
-    // Generate JWT
-    const token = generateJWT(user);
+    // Create session and manage max 2 sessions per user
+    const session = await manageUserSessions(user.id);
+
+    // Generate JWT with session ID
+    const token = generateJWT(user, session.id);
 
     // Send response
     return res.status(200).json({
@@ -106,6 +118,7 @@ export const phoneLogin = async (req: Request, res: Response) => {
       message: "Phone authentication successful",
       data: {
         token,
+        sessionId: session.id,
         user: user,
       },
     });
@@ -142,7 +155,6 @@ export const googleVerifyAdmin = async (req: Request, res: Response) => {
       });
     }
 
-
     // Find user by email (don't create if not exists)
     const user = await findAdminByEmail(admin_mail);
 
@@ -161,8 +173,11 @@ export const googleVerifyAdmin = async (req: Request, res: Response) => {
       });
     }
 
-    // Generate JWT
-    const jwtToken = generateJWT(user);
+    // Create session and manage max 2 sessions per user
+    const session = await manageUserSessions(user.id);
+
+    // Generate JWT with session ID
+    const jwtToken = generateJWT(user, session.id);
 
     // Send response
     return res.status(200).json({
@@ -170,6 +185,7 @@ export const googleVerifyAdmin = async (req: Request, res: Response) => {
       message: "Admin authentication successful",
       data: {
         token: jwtToken,
+        sessionId: session.id,
         user: user,
       },
     });
