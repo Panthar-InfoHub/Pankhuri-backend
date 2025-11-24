@@ -23,7 +23,7 @@ model Course {
   level          CourseLevel  @default(beginner)
   duration       Int? // in minutes
   language       String       @default("en")
-  status         CourseStatus @default(inactive)
+  status         CourseStatus @default(active)
   hasCertificate Boolean      @default(false)
   rating         Float        @default(0)
   tags           String[]     @default([])
