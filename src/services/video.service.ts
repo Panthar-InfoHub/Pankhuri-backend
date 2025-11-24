@@ -48,9 +48,19 @@ export const getAllVideos = async (filters?: {
   status?: string;
   limit?: number;
   offset?: number;
+  search?: string;
 }) => {
+
+  const { search } = filters || {}
   try {
-    const where = filters?.status ? { status: filters.status } : {};
+    const where = filters?.status ? {
+      status: filters.status,
+      ...(search && {
+        OR: [
+          { title: { contains: search, mode: "insensitive" } },
+        ],
+      }),
+    } : {};
 
     const videos = await prisma.video.findMany({
       where,
