@@ -77,10 +77,11 @@ export const getVideoHandler = async (req: Request, res: Response, next: NextFun
  */
 export const getAllVideosHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { status, limit, offset } = req.query;
+    const { status, limit, offset, search } = req.query;
 
     const filters = {
       status: status as string | undefined,
+      search: search as string | undefined,
       limit: limit ? parseInt(limit as string) : undefined,
       offset: offset ? parseInt(offset as string) : undefined,
     };
