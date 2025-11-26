@@ -12,7 +12,7 @@ model Module {
   description String?      @db.Text
   sequence    Int // Order within course
   duration    Int? // Total duration in minutes (calculated from lessons)
-  status      ModuleStatus @default(draft)
+  status      ModuleStatus @default(published)
   metadata    Json?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt

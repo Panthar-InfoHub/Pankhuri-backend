@@ -36,8 +36,10 @@ model User {
   updatedAt          DateTime   @updatedAt
 
   // Relations
-  trainerProfile Trainer?  @relation("TrainerProfile")
+  trainerProfile Trainer?             @relation("TrainerProfile")
   sessions       Session[]
+  lessonProgress UserLessonProgress[]
+  courseProgress UserCourseProgress[]
 
   @@index([email])
   @@index([phone])

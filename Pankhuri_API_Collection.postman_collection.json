@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "60c7daea-8e65-4747-9b01-783ad1588e84",
     "name": "Pankhuri Backend API",
-    "description": "Complete API collection for Pankhuri Backend - Auth, Categories, Courses, and Videos",
+    "description": "## Pankhuri Learning Management System API\n\n**Base URL:** http://localhost:8080\n\n### Features:\n\n- Authentication (Google OAuth, Phone, Admin)\n- User & Trainer Management\n- Hierarchical Categories\n- Courses with Modules\n- Lessons (Video & Text) with Attachments\n- Progress Tracking (Auto-calculated)\n- Video Management\n- Session Management\n\n### Authentication:\n\nMost endpoints require Bearer token authentication.\n\n**How to use:**\n\n1. Login using Google/Phone auth\n2. Token auto-saves to {{authToken}}\n3. All requests use token automatically\n\n### Enum Values:\n\n**Gender:**\n- male, female, other, prefer_not_to_say\n\n**UserStatus:**\n- active - Can access system\n- inactive - Temporarily disabled\n- suspended - Banned\n\n**UserRole:**\n- user - Regular user\n- admin - Full admin access\n\n**CourseLevel:**\n- beginner, intermediate, advanced, expert\n\n**CourseStatus:**\n- active - Published and visible\n- inactive - Unpublished\n- archived - Hidden but preserved\n\n**LessonType:**\n- video - Video lesson\n- text - Text/article lesson\n\n**LessonStatus:**\n- draft - Work in progress\n- published - Visible to users\n- archived - Hidden but preserved\n\n**ModuleStatus:**\n- draft, published, archived\n\n**VideoStatus:**\n- draft, processing, published, failed\n\n### Quick Start:\n\n1. Use Health Check to verify server\n2. Login with Google/Phone\n3. Create/Browse content\n4. Track progress automatically\n\n### Progress System:\n\n- Tracks lesson completion\n- Auto-calculates course progress\n- Handles edge cases (lesson add/delete)\n- Admin analytics available\n\n### Collection Variables:\n\nAuto-saved when created:\n\n- authToken - JWT token\n- userId - Current user ID\n- trainerId - Trainer profile ID\n- categoryId, courseId, moduleId, lessonId, videoId\n\n### Important Notes:\n\n- Only published lessons count toward progress\n- Adding lessons drops existing progress\n- Certificates NOT revoked when progress drops\n- Modules are organizational only\n- Progress based on lessons (not modules)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "27592795",
     "_collection_link": "https://devs-09069ab9-6199077.postman.co/workspace/devlopers's-Team's-Workspace~4b317406-0f97-4c6e-89ff-a3482b26c70c/collection/27592795-60c7daea-8e65-4747-9b01-783ad1588e84?action=share&source=collection_link&creator=27592795"
@@ -767,175 +767,180 @@
           "response": []
         },
         {
-          "name": "Create Category",
-          "event": [
+          "name": "Admin",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "    const response = pm.response.json();",
-                  "    pm.collectionVariables.set('categoryId', response.data.id);",
-                  "    console.log('Category ID saved:', response.data.id);",
-                  "}"
+              "name": "Create Category",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    const response = pm.response.json();",
+                      "    pm.collectionVariables.set('categoryId', response.data.id);",
+                      "    console.log('Category ID saved:', response.data.id);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
                 ],
-                "type": "text/javascript"
-              }
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"Yoga Basics\",\n    \"slug\": \"yoga-basics\",\n    \"description\": \"Introduction to yoga and basic poses\",\n    \"icon\": \"🧘\",\n    \"status\": \"active\",\n    \"sequence\": 1,\n    \"parentId\": null\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/categories",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "categories"]
+                },
+                "description": "Create a new category (Admin only)"
+              },
+              "response": []
+            },
+            {
+              "name": "Update Category",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"Yoga Basics Updated\",\n    \"description\": \"Updated description for yoga basics\",\n    \"status\": \"active\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "categories", "{{categoryId}}"]
+                },
+                "description": "Update category (Admin only)"
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Category",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "categories", "{{categoryId}}"]
+                },
+                "description": "Delete category (Admin only)"
+              },
+              "response": []
+            },
+            {
+              "name": "Update Category Sequence",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"sequence\": 5\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/categories/{{categoryId}}/sequence",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "categories", "{{categoryId}}", "sequence"]
+                },
+                "description": "Update category display sequence (Admin only)"
+              },
+              "response": []
+            },
+            {
+              "name": "Toggle Category Status",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"status\": \"inactive\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/categories/{{categoryId}}/status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "categories", "{{categoryId}}", "status"]
+                },
+                "description": "Toggle category status: active | inactive (Admin only)"
+              },
+              "response": []
             }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"name\": \"Yoga Basics\",\n    \"slug\": \"yoga-basics\",\n    \"description\": \"Introduction to yoga and basic poses\",\n    \"icon\": \"🧘\",\n    \"status\": \"active\",\n    \"sequence\": 1,\n    \"parentId\": null\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/categories",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "categories"]
-            },
-            "description": "Create a new category (Admin only)"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Category",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"name\": \"Yoga Basics Updated\",\n    \"description\": \"Updated description for yoga basics\",\n    \"status\": \"active\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "categories", "{{categoryId}}"]
-            },
-            "description": "Update category (Admin only)"
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Category",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "categories", "{{categoryId}}"]
-            },
-            "description": "Delete category (Admin only)"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Category Sequence",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"sequence\": 5\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/categories/{{categoryId}}/sequence",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "categories", "{{categoryId}}", "sequence"]
-            },
-            "description": "Update category display sequence (Admin only)"
-          },
-          "response": []
-        },
-        {
-          "name": "Toggle Category Status",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"status\": \"inactive\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/categories/{{categoryId}}/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "categories", "{{categoryId}}", "status"]
-            },
-            "description": "Toggle category status: active | inactive (Admin only)"
-          },
-          "response": []
+          ]
         }
       ]
     },
@@ -1089,156 +1094,163 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/courses/trainer/{{userId}}?includeUnpublished=false",
+              "raw": "{{baseUrl}}/api/courses/trainer/{{trainerId}}?includeUnpublished=false",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "courses", "trainer", "{{userId}}"],
+              "path": ["api", "courses", "trainer", "{{trainerId}}"],
               "query": [
                 {
                   "key": "includeUnpublished",
-                  "value": "false"
+                  "value": "false",
+                  "description": "Include draft/inactive courses (default: false)"
                 }
               ]
-            }
+            },
+            "description": "Get all courses by a specific trainer. Use trainerId from trainer profile."
           },
           "response": []
         },
         {
-          "name": "Create Course",
-          "event": [
+          "name": "Admin",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "    const response = pm.response.json();",
-                  "    pm.collectionVariables.set('courseId', response.data.id);",
-                  "    console.log('Course ID saved:', response.data.id);",
-                  "}"
+              "name": "Create Course",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    const response = pm.response.json();",
+                      "    pm.collectionVariables.set('courseId', response.data.id);",
+                      "    console.log('Course ID saved:', response.data.id);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
                 ],
-                "type": "text/javascript"
-              }
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\": \"Yoga for Beginners\",\n    \"slug\": \"yoga-for-beginners\",\n    \"description\": \"Complete beginner's guide to yoga with step-by-step instructions\",\n    \"categoryId\": \"{{categoryId}}\",\n    \"trainerId\": \"{{trainerId}}\",\n    \"thumbnailImage\": \"https://example.com/thumbnail.jpg\",\n    \"coverImage\": \"https://example.com/cover.jpg\",\n    \"level\": \"beginner\",\n    \"duration\": 600,\n    \"language\": \"en\",\n    \"status\": \"active\",\n    \"hasCertificate\": false,\n    \"tags\": [\"yoga\", \"beginner\", \"wellness\"],\n    \"metadata\": {\n        \"instructor\": \"John Doe\",\n        \"difficulty\": \"Easy\"\n    }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/courses",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "courses"]
+                },
+                "description": "Create a new course (Admin only)"
+              },
+              "response": []
+            },
+            {
+              "name": "Update Course",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\": \"Yoga for Beginners - Updated\",\n    \"description\": \"Updated description\",\n    \"duration\": 720,\n    \"status\": \"active\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/courses/{{courseId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "courses", "{{courseId}}"]
+                },
+                "description": "Update course (Admin only)"
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Course",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/courses/{{courseId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "courses", "{{courseId}}"]
+                },
+                "description": "Delete course (Admin only)"
+              },
+              "response": []
+            },
+            {
+              "name": "Toggle Course Publish Status",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"status\": \"active\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/courses/{{courseId}}/publish",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "courses", "{{courseId}}", "publish"]
+                },
+                "description": "Publish or unpublish course (Admin only)"
+              },
+              "response": []
             }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"title\": \"Yoga for Beginners\",\n    \"slug\": \"yoga-for-beginners\",\n    \"description\": \"Complete beginner's guide to yoga with step-by-step instructions\",\n    \"categoryId\": \"{{categoryId}}\",\n    \"trainerId\": \"{{userId}}\",\n    \"thumbnailImage\": \"https://example.com/thumbnail.jpg\",\n    \"coverImage\": \"https://example.com/cover.jpg\",\n    \"level\": \"beginner\",\n    \"duration\": 600,\n    \"language\": \"en\",\n    \"status\": \"active\",\n    \"hasCertificate\": false,\n    \"tags\": [\"yoga\", \"beginner\", \"wellness\"],\n    \"metadata\": {\n        \"instructor\": \"John Doe\",\n        \"difficulty\": \"Easy\"\n    }\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/courses",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "courses"]
-            },
-            "description": "Create a new course (Admin only)"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Course",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"title\": \"Yoga for Beginners - Updated\",\n    \"description\": \"Updated description\",\n    \"duration\": 720,\n    \"status\": \"active\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/courses/{{courseId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "courses", "{{courseId}}"]
-            },
-            "description": "Update course (Admin only)"
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Course",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/courses/{{courseId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "courses", "{{courseId}}"]
-            },
-            "description": "Delete course (Admin only)"
-          },
-          "response": []
-        },
-        {
-          "name": "Toggle Course Publish Status",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"status\": \"active\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/courses/{{courseId}}/publish",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "courses", "{{courseId}}", "publish"]
-            },
-            "description": "Publish or unpublish course (Admin only)"
-          },
-          "response": []
+          ]
         }
       ]
     },
@@ -1330,199 +1342,204 @@
           "response": []
         },
         {
-          "name": "Create Module",
-          "event": [
+          "name": "Admin",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "    const response = pm.response.json();",
-                  "    pm.collectionVariables.set('moduleId', response.data.id);",
-                  "    console.log('Module ID saved:', response.data.id);",
-                  "}"
+              "name": "Create Module",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    const response = pm.response.json();",
+                      "    pm.collectionVariables.set('moduleId', response.data.id);",
+                      "    console.log('Module ID saved:', response.data.id);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
                 ],
-                "type": "text/javascript"
-              }
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"courseId\": \"{{courseId}}\",\n    \"title\": \"Introduction to Yoga\",\n    \"slug\": \"introduction-to-yoga\",\n    \"description\": \"This module covers the basics of yoga philosophy and essential poses\",\n    \"sequence\": 1,\n    \"duration\": 120,\n    \"metadata\": {\n        \"difficulty\": \"beginner\",\n        \"estimatedTime\": \"2 hours\"\n    }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/modules",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "modules"]
+                },
+                "description": "Create a new module (Admin/Trainer)"
+              },
+              "response": []
+            },
+            {
+              "name": "Update Module",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\": \"Introduction to Yoga - Updated\",\n    \"description\": \"Updated description with more details\",\n    \"sequence\": 1\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/modules/{{moduleId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "modules", "{{moduleId}}"]
+                },
+                "description": "Update module (Admin/Trainer)"
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Module",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/modules/{{moduleId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "modules", "{{moduleId}}"]
+                },
+                "description": "Delete module (Admin/Trainer). Cannot delete if module has lessons."
+              },
+              "response": []
+            },
+            {
+              "name": "Bulk Update Module Sequences",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"updates\": [\n        { \"id\": \"module-id-1\", \"sequence\": 1 },\n        { \"id\": \"module-id-2\", \"sequence\": 2 },\n        { \"id\": \"module-id-3\", \"sequence\": 3 }\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/modules/sequences",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "modules", "sequences"]
+                },
+                "description": "Update multiple module sequences at once"
+              },
+              "response": []
+            },
+            {
+              "name": "Update Module Status",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"status\": \"published\",\n    \"updateLessons\": false\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/modules/{{moduleId}}/status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "modules", "{{moduleId}}", "status"]
+                },
+                "description": "Update module status (draft/published/archived). Set updateLessons=true to also update all lessons in the module."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Module Duration",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/modules/{{moduleId}}/duration",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "modules", "{{moduleId}}", "duration"]
+                },
+                "description": "Recalculate and update module duration from its lessons"
+              },
+              "response": []
             }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"courseId\": \"{{courseId}}\",\n    \"title\": \"Introduction to Yoga\",\n    \"slug\": \"introduction-to-yoga\",\n    \"description\": \"This module covers the basics of yoga philosophy and essential poses\",\n    \"sequence\": 1,\n    \"duration\": 120,\n    \"metadata\": {\n        \"difficulty\": \"beginner\",\n        \"estimatedTime\": \"2 hours\"\n    }\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/modules",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "modules"]
-            },
-            "description": "Create a new module (Admin/Trainer)"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Module",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"title\": \"Introduction to Yoga - Updated\",\n    \"description\": \"Updated description with more details\",\n    \"sequence\": 1\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/modules/{{moduleId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "modules", "{{moduleId}}"]
-            },
-            "description": "Update module (Admin/Trainer)"
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Module",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/modules/{{moduleId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "modules", "{{moduleId}}"]
-            },
-            "description": "Delete module (Admin/Trainer). Cannot delete if module has lessons."
-          },
-          "response": []
-        },
-        {
-          "name": "Bulk Update Module Sequences",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"updates\": [\n        { \"id\": \"module-id-1\", \"sequence\": 1 },\n        { \"id\": \"module-id-2\", \"sequence\": 2 },\n        { \"id\": \"module-id-3\", \"sequence\": 3 }\n    ]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/modules/sequences",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "modules", "sequences"]
-            },
-            "description": "Update multiple module sequences at once"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Module Status",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"status\": \"published\",\n    \"updateLessons\": false\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/modules/{{moduleId}}/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "modules", "{{moduleId}}", "status"]
-            },
-            "description": "Update module status (draft/published/archived). Set updateLessons=true to also update all lessons in the module."
-          },
-          "response": []
-        },
-        {
-          "name": "Update Module Duration",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/modules/{{moduleId}}/duration",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "modules", "{{moduleId}}", "duration"]
-            },
-            "description": "Recalculate and update module duration from its lessons"
-          },
-          "response": []
+          ]
         }
       ]
     },
@@ -1552,26 +1569,26 @@
                 {
                   "key": "moduleId",
                   "value": "",
-                  "description": "Filter by module (leave empty for direct lessons or null for moduleId = null)"
+                  "description": "Optional: Filter by specific module ID, leave empty for all lessons, or 'null' for moduleId = null"
                 },
                 {
                   "key": "type",
                   "value": "video",
-                  "description": "video | text | quiz | assignment"
+                  "description": "Optional: Filter by type - video | text | quiz | assignment"
                 },
                 {
                   "key": "status",
                   "value": "published",
-                  "description": "draft | published | archived"
+                  "description": "Optional: Filter by status - draft | published | archived"
                 },
                 {
                   "key": "isFree",
                   "value": "false",
-                  "description": "true | false"
+                  "description": "Optional: Filter free lessons - true | false"
                 }
               ]
             },
-            "description": "Get all lessons for a course with optional filters"
+            "description": "Get all lessons for a course. Includes lesson description and attachments. Supports filtering by module, type, status, and free status."
           },
           "response": []
         },
@@ -1585,7 +1602,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "lessons", "course", "{{courseId}}", "free"]
             },
-            "description": "Get free/preview lessons for a course (public endpoint)"
+            "description": "Get free/preview lessons for a course (public endpoint - no authentication required). Useful for course previews."
           },
           "response": []
         },
@@ -1609,7 +1626,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "lessons", "module", "{{moduleId}}"]
             },
-            "description": "Get all lessons in a specific module"
+            "description": "Get all lessons within a specific module, ordered by sequence. Includes lesson description and attachments."
           },
           "response": []
         },
@@ -1633,7 +1650,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "lessons", "{{lessonId}}"]
             },
-            "description": "Get lesson by ID with navigation (next/previous)"
+            "description": "Get lesson by ID with full details including description, attachments, and navigation (next/previous lesson info). Includes related video/text content."
           },
           "response": []
         },
@@ -1657,244 +1674,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "lessons", "course", "{{courseId}}", "slug", "welcome-to-yoga"]
             },
-            "description": "Get lesson by slug within a course"
-          },
-          "response": []
-        },
-        {
-          "name": "Create Lesson (Auto-detect Type)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "    const response = pm.response.json();",
-                  "    pm.collectionVariables.set('lessonId', response.data.id);",
-                  "    console.log('Lesson ID saved:', response.data.id);",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"courseId\": \"{{courseId}}\",\n    \"moduleId\": \"{{moduleId}}\",\n    \"videoId\": \"{{videoId}}\",\n    \"title\": \"Welcome to Yoga\",\n    \"slug\": \"welcome-to-yoga\",\n    \"description\": \"An introductory video about yoga philosophy and benefits\",\n    \"sequence\": 1,\n    \"duration\": 15,\n    \"isFree\": true,\n    \"isMandatory\": true,\n    \"metadata\": {\n        \"difficulty\": \"beginner\"\n    }\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons"]
-            },
-            "description": "Create a video lesson. Lesson type is auto-detected: provide videoId for video lesson, or textContent for text lesson. Leave moduleId null/empty for direct course lessons."
-          },
-          "response": []
-        },
-        {
-          "name": "Create Text Lesson Example",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"courseId\": \"{{courseId}}\",\n    \"moduleId\": null,\n    \"textContent\": \"# Yoga Philosophy\\n\\nYoga is an ancient practice that combines physical postures, breathing exercises, and meditation...\\n\\n## The Eight Limbs of Yoga\\n\\n1. Yama (moral disciplines)\\n2. Niyama (positive duties)\\n3. Asana (postures)...\",\n    \"title\": \"Understanding Yoga Philosophy\",\n    \"slug\": \"understanding-yoga-philosophy\",\n    \"description\": \"A comprehensive guide to yoga philosophy\",\n    \"sequence\": 2,\n    \"estimatedReadTime\": 10,\n    \"isFree\": false,\n    \"isMandatory\": true\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons"]
-            },
-            "description": "Create a text lesson. Provide textContent instead of videoId. The system auto-detects it as a text lesson."
-          },
-          "response": []
-        },
-        {
-          "name": "Update Lesson",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"title\": \"Welcome to Yoga - Updated\",\n    \"description\": \"Updated description with more details\",\n    \"duration\": 20,\n    \"isFree\": false\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons/{{lessonId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons", "{{lessonId}}"]
-            },
-            "description": "Update lesson (Admin/Trainer)"
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Lesson",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons/{{lessonId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons", "{{lessonId}}"]
-            },
-            "description": "Delete lesson (Admin/Trainer)"
-          },
-          "response": []
-        },
-        {
-          "name": "Bulk Update Lesson Sequences",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"updates\": [\n        { \"id\": \"lesson-id-1\", \"sequence\": 1 },\n        { \"id\": \"lesson-id-2\", \"sequence\": 2 },\n        { \"id\": \"lesson-id-3\", \"sequence\": 3 }\n    ]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons/sequences",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons", "sequences"]
-            },
-            "description": "Update multiple lesson sequences at once"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Lesson Status",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"status\": \"published\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons/{{lessonId}}/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons", "{{lessonId}}", "status"]
-            },
-            "description": "Update lesson status. Valid values: draft, published, archived"
-          },
-          "response": []
-        },
-        {
-          "name": "Upsert Lesson Description",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"textContent\": \"# Course Overview\\n\\nThis is a comprehensive lesson about...\\n\\n## Key Topics\\n- Topic 1\\n- Topic 2\\n\\n**Useful Links:**\\n- [Documentation](https://example.com)\\n- [GitHub Repo](https://github.com/example)\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons/{{lessonId}}/description",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons", "{{lessonId}}", "description"]
-            },
-            "description": "Create or update lesson description with rich text (supports markdown, links, formatting)"
+            "description": "Get lesson by slug within a course. Useful for SEO-friendly URLs. Includes description, attachments, and navigation."
           },
           "response": []
         },
@@ -1918,64 +1698,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "lessons", "{{lessonId}}", "description"]
             },
-            "description": "Get lesson description"
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Lesson Description",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons/{{lessonId}}/description",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons", "{{lessonId}}", "description"]
-            },
-            "description": "Delete lesson description"
-          },
-          "response": []
-        },
-        {
-          "name": "Add Lesson Attachment",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"title\": \"Course Material PDF\",\n    \"fileUrl\": \"https://storage.example.com/files/lesson-material.pdf\",\n    \"fileName\": \"lesson-material.pdf\",\n    \"fileSize\": 2048576,\n    \"mimeType\": \"application/pdf\",\n    \"type\": \"pdf\",\n    \"sequence\": 0\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons/{{lessonId}}/attachments",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons", "{{lessonId}}", "attachments"]
-            },
-            "description": "Add attachment to lesson (PDF, images, documents, zip files). Types: pdf, image, document, zip, other"
+            "description": "Get detailed lesson description. Returns 404 if no description exists for this lesson. Description is also included in lesson detail endpoints."
           },
           "response": []
         },
@@ -1999,147 +1722,539 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "lessons", "{{lessonId}}", "attachments"]
             },
-            "description": "Get all attachments for a lesson"
+            "description": "Get all attachments for a lesson, ordered by sequence. Returns empty array if no attachments. Attachments are also included in lesson detail endpoints."
           },
           "response": []
         },
         {
-          "name": "Get Attachment by ID",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
+          "name": "Admin",
+          "item": [
+            {
+              "name": "Create Video Lesson",
+              "event": [
                 {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Auto-save lesson ID to collection variable",
+                      "if (pm.response.code === 201) {",
+                      "    const response = pm.response.json();",
+                      "    pm.collectionVariables.set('lessonId', response.data.id);",
+                      "    console.log('✅ Lesson ID saved:', response.data.id);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"courseId\": \"{{courseId}}\",\n    \"moduleId\": \"{{moduleId}}\",\n    \"videoId\": \"{{videoId}}\",\n    \"title\": \"Welcome to Yoga\",\n    \"slug\": \"welcome-to-yoga\",\n    \"description\": \"An introductory video about yoga philosophy and benefits\",\n    \"sequence\": 1,\n    \"duration\": 900,\n    \"isFree\": true,\n    \"isMandatory\": true,\n    \"status\": \"published\",\n    \"metadata\": {\n        \"difficulty\": \"beginner\",\n        \"language\": \"English\",\n        \"tags\": [\"introduction\", \"philosophy\", \"basics\"]\n    }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/lessons",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "lessons"]
+                },
+                "description": "Create a video lesson (type auto-detected by presence of videoId). Set moduleId to null for direct course lessons. Duration in seconds."
+              },
+              "response": []
+            },
+            {
+              "name": "Create Text Lesson",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"courseId\": \"{{courseId}}\",\n    \"moduleId\": null,\n    \"textContent\": \"# Yoga Philosophy\\n\\nYoga is an ancient practice that combines physical postures, breathing exercises, and meditation to promote physical, mental, and spiritual well-being.\\n\\n## The Eight Limbs of Yoga\\n\\n1. **Yama** (Moral disciplines) - Non-violence, truthfulness, non-stealing, celibacy, non-possessiveness\\n2. **Niyama** (Positive duties) - Cleanliness, contentment, austerity, self-study, surrender\\n3. **Asana** (Postures) - Physical poses to prepare body for meditation\\n4. **Pranayama** (Breath control) - Breathing exercises to control life force\\n5. **Pratyahara** (Withdrawal of senses) - Directing attention inward\\n6. **Dharana** (Concentration) - Single-pointed focus\\n7. **Dhyana** (Meditation) - Uninterrupted flow of concentration\\n8. **Samadhi** (Enlightenment) - State of bliss and union\\n\\n## Benefits of Regular Practice\\n\\n- Improved flexibility and strength\\n- Better posture and balance\\n- Reduced stress and anxiety\\n- Enhanced mental clarity\\n- Better sleep quality\\n\\n> _\\\"Yoga is the journey of the self, through the self, to the self.\\\"_ - Bhagavad Gita\",\n    \"title\": \"Understanding Yoga Philosophy\",\n    \"slug\": \"understanding-yoga-philosophy\",\n    \"description\": \"A comprehensive guide to the philosophical foundations of yoga, including the Eight Limbs and core principles\",\n    \"sequence\": 2,\n    \"estimatedReadTime\": 10,\n    \"isFree\": false,\n    \"isMandatory\": true,\n    \"status\": \"published\",\n    \"metadata\": {\n        \"difficulty\": \"beginner\",\n        \"language\": \"English\",\n        \"topics\": [\"philosophy\", \"eight limbs\", \"meditation\", \"principles\"]\n    }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/lessons",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "lessons"]
+                },
+                "description": "Create a text lesson (type auto-detected by presence of textContent). Supports Markdown formatting. estimatedReadTime in minutes."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Lesson",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\": \"Welcome to Yoga - Extended Edition\",\n    \"description\": \"An updated and extended introductory video with additional content on breathing techniques\",\n    \"duration\": 1200,\n    \"isFree\": false,\n    \"status\": \"published\",\n    \"metadata\": {\n        \"difficulty\": \"beginner\",\n        \"language\": \"English\",\n        \"tags\": [\"introduction\", \"philosophy\", \"breathing\", \"pranayama\"],\n        \"lastUpdated\": \"2024-01-15\"\n    }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/lessons/{{lessonId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "lessons", "{{lessonId}}"]
+                },
+                "description": "Update lesson details. Can update title, description, duration, status, metadata. Cannot change lesson type or linked video/text content ID."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Lesson",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/lessons/{{lessonId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "lessons", "{{lessonId}}"]
+                },
+                "description": "Delete lesson permanently. Also deletes associated description and all attachments (cascade delete). Cannot be undone."
+              },
+              "response": []
+            },
+            {
+              "name": "Bulk Update Lesson Sequences",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"updates\": [\n        { \"id\": \"{{lessonId}}\", \"sequence\": 1 },\n        { \"id\": \"lesson-id-2\", \"sequence\": 2 },\n        { \"id\": \"lesson-id-3\", \"sequence\": 3 },\n        { \"id\": \"lesson-id-4\", \"sequence\": 4 }\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/lessons/sequences",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "lessons", "sequences"]
+                },
+                "description": "Update multiple lesson display orders at once. Useful for drag-and-drop reordering in UI. All lesson IDs must be valid."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Lesson Status",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"status\": \"published\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/lessons/{{lessonId}}/status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "lessons", "{{lessonId}}", "status"]
+                },
+                "description": "Update only the lesson status. Valid values: draft (work in progress), published (visible to users), archived (hidden but preserved)."
+              },
+              "response": []
+            },
+            {
+              "name": "Descriptions",
+              "item": [
+                {
+                  "name": "Upsert Lesson Description",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{authToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"textContent\": \"# Welcome to the Yoga Fundamentals Course\\n\\nThis comprehensive lesson will guide you through the essential principles of yoga practice, perfect for beginners and those looking to deepen their understanding.\\n\\n## What You'll Learn\\n\\n- **Foundation Poses**: Master basic asanas including Mountain Pose, Downward Dog, and Child's Pose\\n- **Breathing Techniques**: Learn Ujjayi breath and its calming benefits\\n- **Alignment Principles**: Understand proper body mechanics to prevent injury\\n- **Mindfulness Practice**: Connect breath with movement\\n\\n## Course Materials\\n\\nPlease refer to the attached PDF guide and reference chart in the attachments section below.\\n\\n## Prerequisites\\n\\nNo prior yoga experience required! All you need is:\\n- Comfortable clothing\\n- A yoga mat or soft surface\\n- An open mind and willingness to learn\\n\\n## Useful Resources\\n\\n- [Yoga Alliance - Beginner's Guide](https://www.yogaalliance.org/learn)\\n- [Scientific Benefits of Yoga](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3193654/)\\n- [Recommended Props Guide](https://www.yogajournal.com/yoga-101/props/)\\n\\n## Practice Schedule\\n\\nFor best results, practice this sequence 3-4 times per week, allowing at least one rest day between sessions.\\n\\n---\\n\\n_Remember: Yoga is a personal journey. Listen to your body and move at your own pace._\\n\\n💡 **Pro Tip**: Keep a yoga journal to track your progress and insights!\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/lessons/{{lessonId}}/description",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "lessons", "{{lessonId}}", "description"]
+                    },
+                    "description": "Create or update lesson description (upsert). Supports rich text with Markdown formatting, links, lists, headings, bold/italic text. Perfect for detailed explanations like YouTube descriptions. One-to-one relation - replaces existing description if present."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete Lesson Description",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{authToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/lessons/{{lessonId}}/description",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "lessons", "{{lessonId}}", "description"]
+                    },
+                    "description": "Delete lesson description permanently. The lesson itself remains intact. Use this when you want to remove detailed description but keep the lesson's short description field."
+                  },
+                  "response": []
                 }
               ]
             },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons/attachments/{{attachmentId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons", "attachments", "{{attachmentId}}"]
-            },
-            "description": "Get single attachment details"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Attachment",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
+            {
+              "name": "Attachments",
+              "item": [
                 {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
+                  "name": "Add Lesson Attachment",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "// Auto-save attachment ID to collection variable",
+                          "if (pm.response.code === 201) {",
+                          "    const response = pm.response.json();",
+                          "    pm.collectionVariables.set('attachmentId', response.data.id);",
+                          "    console.log('✅ Attachment ID saved:', response.data.id);",
+                          "}"
+                        ],
+                        "type": "text/javascript"
+                      }
+                    }
+                  ],
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{authToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"title\": \"Yoga Poses Reference Guide\",\n    \"fileUrl\": \"https://storage.example.com/files/yoga-poses-guide.pdf\",\n    \"fileName\": \"yoga-poses-guide.pdf\",\n    \"fileSize\": 2048576,\n    \"mimeType\": \"application/pdf\",\n    \"sequence\": 0\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/lessons/{{lessonId}}/attachments",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "lessons", "{{lessonId}}", "attachments"]
+                    },
+                    "description": "Add attachment to lesson (upload file to storage first, then save metadata here). Type is auto-detected from mimeType:\n- application/pdf → pdf\n- image/* → image\n- application/msword, application/vnd.* → document\n- application/zip, application/x-zip* → zip\n- other → other\n\nSequence auto-increments if not provided. fileSize in bytes."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Add Image Attachment Example",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{authToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"title\": \"Proper Alignment Chart\",\n    \"fileUrl\": \"https://storage.example.com/images/alignment-chart.png\",\n    \"fileName\": \"alignment-chart.png\",\n    \"fileSize\": 524288,\n    \"mimeType\": \"image/png\",\n    \"sequence\": 1\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/lessons/{{lessonId}}/attachments",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "lessons", "{{lessonId}}", "attachments"]
+                    },
+                    "description": "Example: Add image attachment (PNG/JPG/GIF/WebP). Type will be auto-detected as 'image' from mimeType."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Add Document Attachment Example",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{authToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"title\": \"Practice Schedule Template\",\n    \"fileUrl\": \"https://storage.example.com/docs/practice-schedule.docx\",\n    \"fileName\": \"practice-schedule.docx\",\n    \"fileSize\": 30720,\n    \"mimeType\": \"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\n    \"sequence\": 2\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/lessons/{{lessonId}}/attachments",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "lessons", "{{lessonId}}", "attachments"]
+                    },
+                    "description": "Example: Add document attachment (Word/Excel/PowerPoint). Type will be auto-detected as 'document' from mimeType."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Get Attachment by ID",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{authToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/lessons/attachments/{{attachmentId}}",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "lessons", "attachments", "{{attachmentId}}"]
+                    },
+                    "description": "Get single attachment details by ID. Useful for download links or preview functionality."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Update Attachment",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{authToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"title\": \"Yoga Poses Reference Guide (Updated)\",\n    \"fileUrl\": \"https://storage.example.com/files/yoga-poses-guide-v2.pdf\",\n    \"fileName\": \"yoga-poses-guide-v2.pdf\",\n    \"fileSize\": 3145728,\n    \"mimeType\": \"application/pdf\",\n    \"sequence\": 0\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/lessons/attachments/{{attachmentId}}",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "lessons", "attachments", "{{attachmentId}}"]
+                    },
+                    "description": "Update attachment metadata. Can update title, fileUrl, fileName, fileSize, mimeType, or sequence. Type is re-detected from new mimeType if changed."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete Attachment",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{authToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/lessons/attachments/{{attachmentId}}",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "lessons", "attachments", "{{attachmentId}}"]
+                    },
+                    "description": "Delete a specific attachment permanently. Does not delete the actual file from storage - handle that separately in your frontend/storage service."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Bulk Update Attachment Sequences",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{authToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n    \"updates\": [\n        { \"id\": \"{{attachmentId}}\", \"sequence\": 0 },\n        { \"id\": \"attachment-id-2\", \"sequence\": 1 },\n        { \"id\": \"attachment-id-3\", \"sequence\": 2 },\n        { \"id\": \"attachment-id-4\", \"sequence\": 3 }\n    ]\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/lessons/attachments/sequences",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "lessons", "attachments", "sequences"]
+                    },
+                    "description": "Update multiple attachment display orders at once. Useful for drag-and-drop reordering in UI. All attachment IDs must belong to the same lesson."
+                  },
+                  "response": []
+                },
+                {
+                  "name": "Delete All Lesson Attachments",
+                  "request": {
+                    "auth": {
+                      "type": "bearer",
+                      "bearer": [
+                        {
+                          "key": "token",
+                          "value": "{{authToken}}",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{baseUrl}}/api/lessons/{{lessonId}}/attachments/all",
+                      "host": ["{{baseUrl}}"],
+                      "path": ["api", "lessons", "{{lessonId}}", "attachments", "all"]
+                    },
+                    "description": "Delete all attachments for a lesson at once. Useful when resetting lesson materials. Does not delete actual files from storage."
+                  },
+                  "response": []
                 }
               ]
-            },
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"title\": \"Updated Material Title\",\n    \"sequence\": 1\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons/attachments/{{attachmentId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons", "attachments", "{{attachmentId}}"]
-            },
-            "description": "Update attachment metadata (title, sequence, etc)"
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Attachment",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons/attachments/{{attachmentId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons", "attachments", "{{attachmentId}}"]
-            },
-            "description": "Delete a specific attachment"
-          },
-          "response": []
-        },
-        {
-          "name": "Bulk Update Attachment Sequences",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"updates\": [\n        { \"id\": \"attachment-id-1\", \"sequence\": 0 },\n        { \"id\": \"attachment-id-2\", \"sequence\": 1 },\n        { \"id\": \"attachment-id-3\", \"sequence\": 2 }\n    ]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons/attachments/sequences",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons", "attachments", "sequences"]
-            },
-            "description": "Update multiple attachment sequences at once"
-          },
-          "response": []
-        },
-        {
-          "name": "Delete All Lesson Attachments",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons/{{lessonId}}/attachments/all",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons", "{{lessonId}}", "attachments", "all"]
-            },
-            "description": "Delete all attachments for a lesson"
-          },
-          "response": []
+            }
+          ]
         }
       ]
     },
@@ -2293,627 +2408,379 @@
       ]
     },
     {
-      "name": "Modules",
+      "name": "Progress Tracking",
       "item": [
         {
-          "name": "Get Modules by Course",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/modules/course/{{courseId}}?status=published&isPublished=true",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "modules", "course", "{{courseId}}"],
-              "query": [
-                {
-                  "key": "status",
-                  "value": "published",
-                  "description": "draft | published | archived"
-                },
-                {
-                  "key": "isPublished",
-                  "value": "true",
-                  "description": "true | false"
-                }
-              ]
-            },
-            "description": "Get all modules for a course with lessons"
-          },
-          "response": []
-        },
-        {
-          "name": "Get Module by ID",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/modules/{{moduleId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "modules", "{{moduleId}}"]
-            },
-            "description": "Get module by ID with lessons and navigation"
-          },
-          "response": []
-        },
-        {
-          "name": "Get Module by Slug",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/modules/course/{{courseId}}/slug/introduction",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "modules", "course", "{{courseId}}", "slug", "introduction"]
-            },
-            "description": "Get module by slug within a course"
-          },
-          "response": []
-        },
-        {
-          "name": "Create Module",
-          "event": [
+          "name": "User Progress",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "    const response = pm.response.json();",
-                  "    pm.collectionVariables.set('moduleId', response.data.id);",
-                  "    console.log('Module ID saved:', response.data.id);",
-                  "}"
+              "name": "Mark Lesson Complete",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
                 ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"courseId\": \"{{courseId}}\",\n    \"title\": \"Introduction to Yoga\",\n    \"slug\": \"introduction-to-yoga\",\n    \"description\": \"This module covers the basics of yoga philosophy and essential poses\",\n    \"sequence\": 1,\n    \"duration\": 120,\n    \"metadata\": {\n        \"difficulty\": \"beginner\",\n        \"estimatedTime\": \"2 hours\"\n    }\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/modules",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "modules"]
-            },
-            "description": "Create a new module (Admin/Trainer)"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Module",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"title\": \"Introduction to Yoga - Updated\",\n    \"description\": \"Updated description with more details\",\n    \"sequence\": 1\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/modules/{{moduleId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "modules", "{{moduleId}}"]
-            },
-            "description": "Update module (Admin/Trainer)"
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Module",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/modules/{{moduleId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "modules", "{{moduleId}}"]
-            },
-            "description": "Delete module (Admin/Trainer). Cannot delete if module has lessons."
-          },
-          "response": []
-        },
-        {
-          "name": "Bulk Update Module Sequences",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"updates\": [\n        { \"id\": \"module-id-1\", \"sequence\": 1 },\n        { \"id\": \"module-id-2\", \"sequence\": 2 },\n        { \"id\": \"module-id-3\", \"sequence\": 3 }\n    ]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/modules/sequences",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "modules", "sequences"]
-            },
-            "description": "Update multiple module sequences at once"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Module Status",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"status\": \"published\",\n    \"updateLessons\": false\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/modules/{{moduleId}}/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "modules", "{{moduleId}}", "status"]
-            },
-            "description": "Update module status (draft/published/archived). Set updateLessons=true to also update all lessons in the module."
-          },
-          "response": []
-        },
-        {
-          "name": "Update Module Duration",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/modules/{{moduleId}}/duration",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "modules", "{{moduleId}}", "duration"]
-            },
-            "description": "Recalculate and update module duration from its lessons"
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Lessons",
-      "item": [
-        {
-          "name": "Get Lessons by Course",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons/course/{{courseId}}?moduleId=&type=video&status=published&isFree=false",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons", "course", "{{courseId}}"],
-              "query": [
-                {
-                  "key": "moduleId",
-                  "value": "",
-                  "description": "Filter by module (leave empty for direct lessons or null for moduleId = null)"
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"currentTimestamp\": 120\n}"
                 },
-                {
-                  "key": "type",
-                  "value": "video",
-                  "description": "video | text | quiz | assignment"
+                "url": {
+                  "raw": "{{baseUrl}}/api/progress/lessons/{{lessonId}}/complete",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "progress", "lessons", "{{lessonId}}", "complete"]
                 },
-                {
-                  "key": "status",
-                  "value": "published",
-                  "description": "draft | published | archived"
-                },
-                {
-                  "key": "isFree",
-                  "value": "false",
-                  "description": "true | false"
-                }
-              ]
+                "description": "Mark a lesson as completed. Automatically recalculates course progress for the user. Optional currentTimestamp field tracks watch position in seconds."
+              },
+              "response": []
             },
-            "description": "Get all lessons for a course with optional filters"
-          },
-          "response": []
-        },
-        {
-          "name": "Get Free Lessons",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons/course/{{courseId}}/free",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons", "course", "{{courseId}}", "free"]
-            },
-            "description": "Get free/preview lessons for a course (public endpoint)"
-          },
-          "response": []
-        },
-        {
-          "name": "Get Lessons by Module",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons/module/{{moduleId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons", "module", "{{moduleId}}"]
-            },
-            "description": "Get all lessons in a specific module"
-          },
-          "response": []
-        },
-        {
-          "name": "Get Lesson by ID",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons/{{lessonId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons", "{{lessonId}}"]
-            },
-            "description": "Get lesson by ID with navigation (next/previous)"
-          },
-          "response": []
-        },
-        {
-          "name": "Get Lesson by Slug",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons/course/{{courseId}}/slug/welcome-to-yoga",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons", "course", "{{courseId}}", "slug", "welcome-to-yoga"]
-            },
-            "description": "Get lesson by slug within a course"
-          },
-          "response": []
-        },
-        {
-          "name": "Create Lesson (Auto-detect Type)",
-          "event": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "    const response = pm.response.json();",
-                  "    pm.collectionVariables.set('lessonId', response.data.id);",
-                  "    console.log('Lesson ID saved:', response.data.id);",
-                  "}"
+              "name": "Update Lesson Timestamp",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
                 ],
-                "type": "text/javascript"
-              }
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"currentTimestamp\": 300\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/progress/lessons/{{lessonId}}/timestamp",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "progress", "lessons", "{{lessonId}}", "timestamp"]
+                },
+                "description": "Update watch progress for a lesson. currentTimestamp in seconds. Use this to save user's current position in video lessons."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Lesson Progress",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/progress/lessons/{{lessonId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "progress", "lessons", "{{lessonId}}"]
+                },
+                "description": "Get user's progress for a specific lesson. Returns completion status, timestamp, and completion date."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Course Lesson Progress",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/progress/courses/{{courseId}}/lessons",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "progress", "courses", "{{courseId}}", "lessons"]
+                },
+                "description": "Get all lesson progress for a course. Returns list of completed lessons with timestamps."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Course Progress",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/progress/courses/{{courseId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "progress", "courses", "{{courseId}}"]
+                },
+                "description": "Get user's overall progress for a course. Returns percentage, completion status, and last completed lesson."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Course Progress Details",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/progress/courses/{{courseId}}/details",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "progress", "courses", "{{courseId}}", "details"]
+                },
+                "description": "Get detailed course progress with lesson breakdown. Includes courseProgress, totalLessons, completedLessons, and lessonProgress array."
+              },
+              "response": []
+            },
+            {
+              "name": "Get All Course Progress",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/progress/courses",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "progress", "courses"]
+                },
+                "description": "Get all course progress for authenticated user. Returns array of course progress with course details."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Completed Courses",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/progress/completed",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "progress", "completed"]
+                },
+                "description": "Get all completed courses for user (100% progress). Includes certificate availability info."
+              },
+              "response": []
+            },
+            {
+              "name": "Get In-Progress Courses",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/progress/in-progress",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "progress", "in-progress"]
+                },
+                "description": "Get all in-progress courses for user (progress > 0 and < 100). Useful for 'Continue Learning' sections."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Progress Summary",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/progress/summary",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "progress", "summary"]
+                },
+                "description": "Get overall progress summary: totalCourses, completedCourses, inProgressCourses, totalLessonsCompleted."
+              },
+              "response": []
             }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"courseId\": \"{{courseId}}\",\n    \"moduleId\": \"{{moduleId}}\",\n    \"videoId\": \"{{videoId}}\",\n    \"title\": \"Welcome to Yoga\",\n    \"slug\": \"welcome-to-yoga\",\n    \"description\": \"An introductory video about yoga philosophy and benefits\",\n    \"sequence\": 1,\n    \"duration\": 15,\n    \"isFree\": true,\n    \"isMandatory\": true,\n    \"metadata\": {\n        \"difficulty\": \"beginner\"\n    }\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons"]
-            },
-            "description": "Create a video lesson. Lesson type is auto-detected: provide videoId for video lesson, or textContent for text lesson. Leave moduleId null/empty for direct course lessons."
-          },
-          "response": []
+          ]
         },
         {
-          "name": "Create Text Lesson Example",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
+          "name": "Admin Progress Management",
+          "item": [
+            {
+              "name": "Get Course Progress Stats",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/progress/courses/{{courseId}}/stats",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "progress", "courses", "{{courseId}}", "stats"]
+                },
+                "description": "Get progress statistics for a course (Admin only). Returns: totalEnrolled, completed, inProgress, averageProgress."
+              },
+              "response": []
             },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"courseId\": \"{{courseId}}\",\n    \"moduleId\": null,\n    \"textContent\": \"# Yoga Philosophy\\n\\nYoga is an ancient practice that combines physical postures, breathing exercises, and meditation...\\n\\n## The Eight Limbs of Yoga\\n\\n1. Yama (moral disciplines)\\n2. Niyama (positive duties)\\n3. Asana (postures)...\",\n    \"title\": \"Understanding Yoga Philosophy\",\n    \"slug\": \"understanding-yoga-philosophy\",\n    \"description\": \"A comprehensive guide to yoga philosophy\",\n    \"sequence\": 2,\n    \"estimatedReadTime\": 10,\n    \"isFree\": false,\n    \"isMandatory\": true\n}"
+            {
+              "name": "Reset User Course Progress",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/progress/users/{{userId}}/courses/{{courseId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "progress", "users", "{{userId}}", "courses", "{{courseId}}"]
+                },
+                "description": "Reset user's progress for a course (Admin only). Deletes all lesson progress and course progress. Does NOT revoke certificates."
+              },
+              "response": []
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons"]
+            {
+              "name": "Recalculate User Course Progress",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/progress/users/{{userId}}/courses/{{courseId}}/recalculate",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "progress",
+                    "users",
+                    "{{userId}}",
+                    "courses",
+                    "{{courseId}}",
+                    "recalculate"
+                  ]
+                },
+                "description": "Manually recalculate progress for a specific user in a course (Admin only). Useful for fixing inconsistencies."
+              },
+              "response": []
             },
-            "description": "Create a text lesson. Provide textContent instead of videoId. The system auto-detects it as a text lesson."
-          },
-          "response": []
-        },
-        {
-          "name": "Update Lesson",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"title\": \"Welcome to Yoga - Updated\",\n    \"description\": \"Updated description with more details\",\n    \"duration\": 20,\n    \"isFree\": false\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons/{{lessonId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons", "{{lessonId}}"]
-            },
-            "description": "Update lesson (Admin/Trainer)"
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Lesson",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons/{{lessonId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons", "{{lessonId}}"]
-            },
-            "description": "Delete lesson (Admin/Trainer)"
-          },
-          "response": []
-        },
-        {
-          "name": "Bulk Update Lesson Sequences",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"updates\": [\n        { \"id\": \"lesson-id-1\", \"sequence\": 1 },\n        { \"id\": \"lesson-id-2\", \"sequence\": 2 },\n        { \"id\": \"lesson-id-3\", \"sequence\": 3 }\n    ]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons/sequences",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons", "sequences"]
-            },
-            "description": "Update multiple lesson sequences at once"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Lesson Status",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"status\": \"published\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/lessons/{{lessonId}}/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "lessons", "{{lessonId}}", "status"]
-            },
-            "description": "Update lesson status. Valid values: draft, published, archived"
-          },
-          "response": []
+            {
+              "name": "Recalculate All Users Progress",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/progress/courses/{{courseId}}/recalculate",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "progress", "courses", "{{courseId}}", "recalculate"]
+                },
+                "description": "Recalculate progress for ALL users in a course (Admin only). Automatically triggered when lessons are added/deleted. Use manually to fix bulk data issues."
+              },
+              "response": []
+            }
+          ]
         }
       ]
     },
@@ -2921,261 +2788,266 @@
       "name": "Videos",
       "item": [
         {
-          "name": "Create Video",
-          "event": [
+          "name": "Admin",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "    const response = pm.response.json();",
-                  "    pm.collectionVariables.set('videoId', response.data.id);",
-                  "    console.log('Video ID saved:', response.data.id);",
-                  "}"
+              "name": "Create Video",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    const response = pm.response.json();",
+                      "    pm.collectionVariables.set('videoId', response.data.id);",
+                      "    console.log('Video ID saved:', response.data.id);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
                 ],
-                "type": "text/javascript"
-              }
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\": \"Introduction to Yoga\",\n    \"thumbnailUrl\": \"https://example.com/thumbnail.jpg\",\n    \"storageKey\": \"videos/intro-yoga.mp4\",\n    \"playbackUrl\": \"https://example.com/videos/intro-yoga.mp4\",\n    \"status\": \"published\",\n    \"duration\": 600,\n    \"metadata\": {\n        \"resolution\": \"1080p\",\n        \"format\": \"mp4\",\n        \"size\": 52428800\n    }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/videos",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "videos"]
+                },
+                "description": "Create a new video (Admin only)"
+              },
+              "response": []
+            },
+            {
+              "name": "Get All Videos",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/videos?status=published&limit=20&offset=0",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "videos"],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "published",
+                      "description": "published | draft | processing | failed"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ]
+                },
+                "description": "Get all videos with optional filters (Admin only)"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Video by ID",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/videos/{{videoId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "videos", "{{videoId}}"]
+                },
+                "description": "Get video by ID (Admin only)"
+              },
+              "response": []
+            },
+            {
+              "name": "Update Video",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\": \"Introduction to Yoga - Updated\",\n    \"status\": \"published\",\n    \"duration\": 720,\n    \"metadata\": {\n        \"resolution\": \"4K\",\n        \"format\": \"mp4\"\n    }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/videos/{{videoId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "videos", "{{videoId}}"]
+                },
+                "description": "Update video details (Admin only)"
+              },
+              "response": []
+            },
+            {
+              "name": "Update Video Status",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"status\": \"published\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/videos/{{videoId}}/status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "videos", "{{videoId}}", "status"]
+                },
+                "description": "Update only the video status (Admin only)"
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Video",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/videos/{{videoId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "videos", "{{videoId}}"]
+                },
+                "description": "Delete a single video (Admin only)"
+              },
+              "response": []
+            },
+            {
+              "name": "Bulk Delete Videos",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{authToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"ids\": [\"video-id-1\", \"video-id-2\", \"video-id-3\"]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/videos/bulk/delete",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "videos", "bulk", "delete"]
+                },
+                "description": "Delete multiple videos at once (Admin only)"
+              },
+              "response": []
+            },
+            {
+              "name": "Transcode Complete Webhook",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"videoId\": \"{{videoId}}\",\n    \"status\": \"published\",\n    \"playbackUrl\": \"https://example.com/videos/transcoded.m3u8\",\n    \"metadata\": {\n        \"duration\": 600,\n        \"resolution\": \"1080p\",\n        \"format\": \"hls\"\n    }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/videos/transcode-complete",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "videos", "transcode-complete"]
+                },
+                "description": "Webhook endpoint for video transcoding service to notify completion"
+              },
+              "response": []
             }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"title\": \"Introduction to Yoga\",\n    \"thumbnailUrl\": \"https://example.com/thumbnail.jpg\",\n    \"storageKey\": \"videos/intro-yoga.mp4\",\n    \"playbackUrl\": \"https://example.com/videos/intro-yoga.mp4\",\n    \"status\": \"published\",\n    \"duration\": 600,\n    \"metadata\": {\n        \"resolution\": \"1080p\",\n        \"format\": \"mp4\",\n        \"size\": 52428800\n    }\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/videos",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "videos"]
-            },
-            "description": "Create a new video (Admin only)"
-          },
-          "response": []
-        },
-        {
-          "name": "Get All Videos",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/videos?status=published&limit=20&offset=0",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "videos"],
-              "query": [
-                {
-                  "key": "status",
-                  "value": "published",
-                  "description": "published | draft | processing | failed"
-                },
-                {
-                  "key": "limit",
-                  "value": "20"
-                },
-                {
-                  "key": "offset",
-                  "value": "0"
-                }
-              ]
-            },
-            "description": "Get all videos with optional filters (Admin only)"
-          },
-          "response": []
-        },
-        {
-          "name": "Get Video by ID",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/videos/{{videoId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "videos", "{{videoId}}"]
-            },
-            "description": "Get video by ID (Admin only)"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Video",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"title\": \"Introduction to Yoga - Updated\",\n    \"status\": \"published\",\n    \"duration\": 720,\n    \"metadata\": {\n        \"resolution\": \"4K\",\n        \"format\": \"mp4\"\n    }\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/videos/{{videoId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "videos", "{{videoId}}"]
-            },
-            "description": "Update video details (Admin only)"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Video Status",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"status\": \"published\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/videos/{{videoId}}/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "videos", "{{videoId}}", "status"]
-            },
-            "description": "Update only the video status (Admin only)"
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Video",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/videos/{{videoId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "videos", "{{videoId}}"]
-            },
-            "description": "Delete a single video (Admin only)"
-          },
-          "response": []
-        },
-        {
-          "name": "Bulk Delete Videos",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{authToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"ids\": [\"video-id-1\", \"video-id-2\", \"video-id-3\"]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/videos/bulk/delete",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "videos", "bulk", "delete"]
-            },
-            "description": "Delete multiple videos at once (Admin only)"
-          },
-          "response": []
-        },
-        {
-          "name": "Transcode Complete Webhook",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"videoId\": \"{{videoId}}\",\n    \"status\": \"published\",\n    \"playbackUrl\": \"https://example.com/videos/transcoded.m3u8\",\n    \"metadata\": {\n        \"duration\": 600,\n        \"resolution\": \"1080p\",\n        \"format\": \"hls\"\n    }\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/videos/transcode-complete",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "videos", "transcode-complete"]
-            },
-            "description": "Webhook endpoint for video transcoding service to notify completion"
-          },
-          "response": []
+          ]
         }
       ]
     }
@@ -3193,7 +3065,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:3000",
+      "value": "http://localhost:8080",
       "type": "string"
     },
     {

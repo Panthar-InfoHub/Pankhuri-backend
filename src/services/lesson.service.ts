@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { Lesson, LessonType, LessonStatus, Prisma } from "@/prisma/generated/prisma/client";
+import { onLessonAdded, onLessonDeleted, onLessonStatusChanged } from "./progress.service";
 
 // ==================== LESSON CRUD OPERATIONS ====================
 
@@ -178,61 +179,69 @@ export const createLesson = async (data: {
   }
 
   // Use transaction to create lesson + type-specific data
-  return await prisma.$transaction(async (tx) => {
-    // 1. Create main lesson
-    const lesson = await tx.lesson.create({
-      data: {
-        courseId: data.courseId,
-        ...(data.moduleId && { moduleId: data.moduleId }),
-        title: data.title,
-        slug: data.slug,
-        type: data.type,
-        description: data.description,
-        sequence: data.sequence,
-        duration: data.duration,
-        isFree: data.isFree ?? false,
-        isMandatory: data.isMandatory ?? true,
-        status: data.status ?? LessonStatus.published,
-        metadata: data.metadata,
-      },
-    });
-
-    // 2. Create type-specific data
-    if (data.type === LessonType.video) {
-      await tx.videoLesson.create({
+  return await prisma
+    .$transaction(async (tx) => {
+      // 1. Create main lesson
+      const lesson = await tx.lesson.create({
         data: {
-          lessonId: lesson.id,
-          videoId: data.videoId!,
+          courseId: data.courseId,
+          ...(data.moduleId && { moduleId: data.moduleId }),
+          title: data.title,
+          slug: data.slug,
+          type: data.type,
+          description: data.description,
+          sequence: data.sequence,
+          duration: data.duration,
+          isFree: data.isFree ?? false,
+          isMandatory: data.isMandatory ?? true,
+          status: data.status ?? LessonStatus.published,
+          metadata: data.metadata,
         },
       });
-    } else if (data.type === LessonType.text) {
-      await tx.textLesson.create({
-        data: {
-          lessonId: lesson.id,
-          content: data.textContent!,
-          estimatedReadTime: data.estimatedReadTime,
-        },
-      });
-    }
 
-    // 3. Return lesson with type-specific data included
-    return (await tx.lesson.findUnique({
-      where: { id: lesson.id },
-      include: {
-        videoLesson: {
-          include: {
-            video: true,
+      // 2. Create type-specific data
+      if (data.type === LessonType.video) {
+        await tx.videoLesson.create({
+          data: {
+            lessonId: lesson.id,
+            videoId: data.videoId!,
+          },
+        });
+      } else if (data.type === LessonType.text) {
+        await tx.textLesson.create({
+          data: {
+            lessonId: lesson.id,
+            content: data.textContent!,
+            estimatedReadTime: data.estimatedReadTime,
+          },
+        });
+      }
+
+      // 3. Return lesson with type-specific data included
+      const createdLesson = (await tx.lesson.findUnique({
+        where: { id: lesson.id },
+        include: {
+          videoLesson: {
+            include: {
+              video: true,
+            },
+          },
+          textLesson: true,
+          module: true,
+          lessonDescription: true,
+          lessonAttachments: {
+            orderBy: { sequence: "asc" },
           },
         },
-        textLesson: true,
-        module: true,
-        lessonDescription: true,
-        lessonAttachments: {
-          orderBy: { sequence: "asc" },
-        },
-      },
-    })) as Lesson;
-  });
+      })) as Lesson;
+
+      return createdLesson;
+    })
+    .then(async (lesson) => {
+      // Hook: Recalculate progress for all users when a lesson is added
+      await onLessonAdded(lesson.courseId);
+      return lesson;
+    });
 };
 
 /**
@@ -256,84 +265,110 @@ export const updateLesson = async (
     estimatedReadTime?: number;
   }
 ): Promise<Lesson> => {
-  return await prisma.$transaction(async (tx) => {
-    // Get existing lesson to know its type
-    const existingLesson = await tx.lesson.findUnique({
-      where: { id: lessonId },
-      include: {
-        videoLesson: true,
-        textLesson: true,
-      },
-    });
-
-    if (!existingLesson) {
-      throw new Error("Lesson not found");
-    }
-
-    // 1. Update main lesson
-    const updateData: Prisma.LessonUpdateInput = {};
-    if (data.title !== undefined) updateData.title = data.title;
-    if (data.slug !== undefined) updateData.slug = data.slug;
-    if (data.description !== undefined) updateData.description = data.description;
-    if (data.sequence !== undefined) updateData.sequence = data.sequence;
-    if (data.duration !== undefined) updateData.duration = data.duration;
-    if (data.isFree !== undefined) updateData.isFree = data.isFree;
-    if (data.isMandatory !== undefined) updateData.isMandatory = data.isMandatory;
-    if (data.status !== undefined) updateData.status = data.status;
-    if (data.metadata !== undefined) updateData.metadata = data.metadata;
-
-    await tx.lesson.update({
-      where: { id: lessonId },
-      data: updateData,
-    });
-
-    // 2. Update type-specific data
-    if (existingLesson.type === LessonType.video && data.videoId !== undefined) {
-      await tx.videoLesson.update({
-        where: { lessonId },
-        data: { videoId: data.videoId },
+  return await prisma
+    .$transaction(async (tx) => {
+      // Get existing lesson to know its type
+      const existingLesson = await tx.lesson.findUnique({
+        where: { id: lessonId },
+        include: {
+          videoLesson: true,
+          textLesson: true,
+        },
       });
-    } else if (existingLesson.type === LessonType.text) {
-      const textUpdateData: any = {};
-      if (data.textContent !== undefined) textUpdateData.content = data.textContent;
-      if (data.estimatedReadTime !== undefined)
-        textUpdateData.estimatedReadTime = data.estimatedReadTime;
 
-      if (Object.keys(textUpdateData).length > 0) {
-        await tx.textLesson.update({
-          where: { lessonId },
-          data: textUpdateData,
-        });
+      if (!existingLesson) {
+        throw new Error("Lesson not found");
       }
-    }
 
-    // 3. Return updated lesson
-    return (await tx.lesson.findUnique({
-      where: { id: lessonId },
-      include: {
-        videoLesson: {
-          include: {
-            video: true,
+      // 1. Update main lesson
+      const updateData: Prisma.LessonUpdateInput = {};
+      if (data.title !== undefined) updateData.title = data.title;
+      if (data.slug !== undefined) updateData.slug = data.slug;
+      if (data.description !== undefined) updateData.description = data.description;
+      if (data.sequence !== undefined) updateData.sequence = data.sequence;
+      if (data.duration !== undefined) updateData.duration = data.duration;
+      if (data.isFree !== undefined) updateData.isFree = data.isFree;
+      if (data.isMandatory !== undefined) updateData.isMandatory = data.isMandatory;
+      if (data.status !== undefined) updateData.status = data.status;
+      if (data.metadata !== undefined) updateData.metadata = data.metadata;
+
+      await tx.lesson.update({
+        where: { id: lessonId },
+        data: updateData,
+      });
+
+      // 2. Update type-specific data
+      if (existingLesson.type === LessonType.video && data.videoId !== undefined) {
+        await tx.videoLesson.update({
+          where: { lessonId },
+          data: { videoId: data.videoId },
+        });
+      } else if (existingLesson.type === LessonType.text) {
+        const textUpdateData: any = {};
+        if (data.textContent !== undefined) textUpdateData.content = data.textContent;
+        if (data.estimatedReadTime !== undefined)
+          textUpdateData.estimatedReadTime = data.estimatedReadTime;
+
+        if (Object.keys(textUpdateData).length > 0) {
+          await tx.textLesson.update({
+            where: { lessonId },
+            data: textUpdateData,
+          });
+        }
+      }
+
+      // 3. Return updated lesson
+      const updatedLesson = (await tx.lesson.findUnique({
+        where: { id: lessonId },
+        include: {
+          videoLesson: {
+            include: {
+              video: true,
+            },
+          },
+          textLesson: true,
+          module: true,
+          lessonDescription: true,
+          lessonAttachments: {
+            orderBy: { sequence: "asc" },
           },
         },
-        textLesson: true,
-        module: true,
-        lessonDescription: true,
-        lessonAttachments: {
-          orderBy: { sequence: "asc" },
-        },
-      },
-    })) as Lesson;
-  });
+      })) as Lesson;
+
+      return {
+        updatedLesson,
+        statusChanged: data.status !== undefined && data.status !== existingLesson.status,
+      };
+    })
+    .then(async ({ updatedLesson, statusChanged }) => {
+      // Hook: Recalculate progress if status changed (affects which lessons count toward progress)
+      if (statusChanged) {
+        await onLessonStatusChanged(lessonId, updatedLesson.courseId);
+      }
+      return updatedLesson;
+    });
 };
 
 /**
  * Delete lesson
  */
 export const deleteLesson = async (lessonId: string): Promise<void> => {
+  // Get lesson info before deletion
+  const lesson = await prisma.lesson.findUnique({
+    where: { id: lessonId },
+    select: { id: true, courseId: true },
+  });
+
+  if (!lesson) {
+    throw new Error("Lesson not found");
+  }
+
   await prisma.lesson.delete({
     where: { id: lessonId },
   });
+
+  // Hook: Recalculate progress for all users when a lesson is deleted
+  await onLessonDeleted(lessonId, lesson.courseId);
 };
 
 /**

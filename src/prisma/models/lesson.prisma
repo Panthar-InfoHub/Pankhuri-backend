@@ -21,18 +21,19 @@ model Lesson {
   duration    Int? // in minutes (calculated/cached)
   isFree      Boolean      @default(false) // Preview/free lessons
   isMandatory Boolean      @default(true)
-  status      LessonStatus @default(draft)
+  status      LessonStatus @default(published)
   metadata    Json?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
   // Relations
-  course            Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  module            Module?            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  course            Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  module            Module?              @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   textLesson        TextLesson?
   videoLesson       VideoLesson?
   lessonDescription LessonDescription?
   lessonAttachments LessonAttachment[]
+  lessonProgress    UserLessonProgress[]
 
   @@unique([courseId, slug])
   @@index([courseId])

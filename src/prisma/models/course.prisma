@@ -23,7 +23,7 @@ model Course {
   level          CourseLevel  @default(beginner)
   duration       Int? // in minutes
   language       String       @default("en")
-  status         CourseStatus @default(inactive)
+  status         CourseStatus @default(active)
   hasCertificate Boolean      @default(false)
   rating         Float        @default(0)
   tags           String[]     @default([])
@@ -33,10 +33,11 @@ model Course {
   updatedAt      DateTime     @updatedAt
 
   // Relations
-  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  trainer  Trainer  @relation("TrainerCourses", fields: [trainerId], references: [id], onDelete: Cascade)
-  modules  Module[]
-  lessons  Lesson[] // Direct lessons (not inside modules)
+  category       Category             @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  trainer        Trainer              @relation("TrainerCourses", fields: [trainerId], references: [id], onDelete: Cascade)
+  modules        Module[]
+  lessons        Lesson[] // Direct lessons (not inside modules)
+  courseProgress UserCourseProgress[]
 
   @@index([slug])
   @@index([categoryId])
