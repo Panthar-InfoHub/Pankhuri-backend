@@ -10,6 +10,7 @@ import courseRoutes from "@/routes/course.route";
 import moduleRoutes from "@/routes/module.route";
 import lessonRoutes from "@/routes/lesson.route";
 import sessionRoutes from "@/routes/session.route";
+import progressRoutes from "@/routes/progress.route";
 import { errorHandler } from "./middleware/error.middleware";
 
 //Configurations
@@ -33,6 +34,7 @@ app.use("/api/courses", courseRoutes);
 app.use("/api/modules", moduleRoutes);
 app.use("/api/lessons", lessonRoutes);
 app.use("/api/sessions", sessionRoutes);
+app.use("/api/progress", progressRoutes);
 
 //Health check
 app.get("/ping", (_, res) => {

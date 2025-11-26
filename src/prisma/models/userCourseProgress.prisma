@@ -1,0 +1,22 @@
+model UserCourseProgress {
+    id           String    @id @default(cuid())
+    userId       String
+    courseId     String
+    progress     Float     @default(0) // percentage (0-100)
+    isCompleted  Boolean   @default(false)
+    completedAt  DateTime? // set when progress reaches 100%
+    lastLessonId String? // track last lesson completed
+    metadata     Json? // additional tracking data
+    createdAt    DateTime  @default(now())
+    updatedAt    DateTime  @updatedAt
+
+    // Relations
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+    course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+    @@unique([userId, courseId])
+    @@index([userId])
+    @@index([courseId])
+    @@index([isCompleted])
+    @@index([progress])
+}

@@ -37,8 +37,9 @@ model Course {
   trainer   Trainer  @relation("TrainerCourses", fields: [trainerId], references: [id], onDelete: Cascade)
   demoVideo Video?   @relation("DemoVideos", fields: [demoVideoId], references: [id], onDelete: Cascade)
 
-  modules Module[]
-  lessons Lesson[] // Direct lessons (not inside modules)
+  modules        Module[]
+  lessons        Lesson[] // Direct lessons (not inside modules)
+  courseProgress UserCourseProgress[]
 
   @@index([slug])
   @@index([categoryId])

@@ -1,0 +1,19 @@
+model UserLessonProgress {
+    id               String    @id @default(cuid())
+    userId           String
+    lessonId         String
+    isCompleted      Boolean   @default(false)
+    completedAt      DateTime? // only set when user marks complete
+    currentTimestamp Int       @default(0) // last watched position in seconds
+    createdAt        DateTime  @default(now())
+    updatedAt        DateTime  @updatedAt
+
+    // Relations
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+    lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+    @@unique([userId, lessonId])
+    @@index([userId])
+    @@index([lessonId])
+    @@index([isCompleted])
+}
