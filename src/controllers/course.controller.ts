@@ -164,7 +164,9 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
       hasCertificate,
       tags,
       metadata,
-      demoVideoId,
+      demoVideo: demoVideoId
+        ? { connect: { id: demoVideoId } }
+        : undefined,
       category: { connect: { id: categoryId } },
       trainer: { connect: { id: actualTrainerId } },
     });

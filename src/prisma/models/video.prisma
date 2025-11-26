@@ -12,4 +12,5 @@ model Video {
 
   // Relations
   videoLessons VideoLesson[]
+  demoCourses  Course[]      @relation("DemoVideos")
 }

@@ -35,10 +35,10 @@ export const getAllCourses = async (filters?: {
     ...(status && { status }),
     ...(tags &&
       tags.length > 0 && {
-        tags: {
-          hasSome: tags,
-        },
-      }),
+      tags: {
+        hasSome: tags,
+      },
+    }),
     ...(search && {
       OR: [
         { title: { contains: search, mode: "insensitive" } },
@@ -108,6 +108,12 @@ export const getCourseById = async (id: string, userId?: string) => {
     where: { id },
     include: {
       category: true,
+      demoVideo: {
+        select: {
+          id: true,
+          playbackUrl: true,
+        }
+      },
       trainer: {
         select: {
           id: true,

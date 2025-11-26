@@ -33,10 +33,12 @@ model Course {
   updatedAt      DateTime     @updatedAt
 
   // Relations
-  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  trainer  Trainer  @relation("TrainerCourses", fields: [trainerId], references: [id], onDelete: Cascade)
-  modules  Module[]
-  lessons  Lesson[] // Direct lessons (not inside modules)
+  category  Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  trainer   Trainer  @relation("TrainerCourses", fields: [trainerId], references: [id], onDelete: Cascade)
+  demoVideo Video?   @relation("DemoVideos", fields: [demoVideoId], references: [id], onDelete: Cascade)
+
+  modules Module[]
+  lessons Lesson[] // Direct lessons (not inside modules)
 
   @@index([slug])
   @@index([categoryId])
