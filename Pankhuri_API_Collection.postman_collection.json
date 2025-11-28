@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "60c7daea-8e65-4747-9b01-783ad1588e84",
     "name": "Pankhuri Backend API",
-    "description": "## Pankhuri Learning Management System API\n\n**Base URL:** http://localhost:8080\n\n**Last Updated:** November 2025\n\n### Overview:\n\nComplete REST API for a Learning Management System with hierarchical content structure, progress tracking, and comprehensive admin controls.\n\n### Key Features:\n\n- **Authentication:** Google OAuth, Phone OTP, Admin login\n- **User Management:** User profiles, trainer management, role-based access\n- **Content Hierarchy:** Categories → Courses → Modules → Lessons (Video/Text)\n- **Progress Tracking:** Automatic calculation, lesson completion, course analytics\n- **Rich Content:** Lesson descriptions (Markdown), file attachments, video integration\n- **Session Management:** Multi-device sessions, secure logout\n- **Admin Controls:** All CRUD operations organized in dedicated subfolders\n\n### Collection Structure:\n\nEndpoints are organized by resource with clear separation:\n- **Public Endpoints:** At root level (GET operations, user-facing)\n- **Admin Endpoints:** In \"Admin\" subfolders (CRUD, management operations)\n\n### Authentication:\n\n**Bearer Token:** Most endpoints require authentication\n\n**Auto-saved Variables:**\n- Login endpoints automatically save {{authToken}} and {{userId}}\n- All requests use {{authToken}} in Authorization header\n- Create operations save resource IDs (categoryId, courseId, etc.)\n\n**Quick Auth Flow:**\n1. POST /api/auth/google-verify OR /api/auth/phone\n2. Token saved to {{authToken}} automatically\n3. All subsequent requests authenticated\n\n### Enum Reference:\n\n**Gender:** male, female, other, prefer_not_to_say\n\n**UserStatus:** active (normal), inactive (disabled), suspended (banned)\n\n**UserRole:** user (regular), admin (full access)\n\n**CourseLevel:** beginner, intermediate, advanced, expert\n\n**CourseStatus:** active (published), inactive (draft), archived (hidden)\n\n**LessonType:** video (video content), text (article/markdown)\n\n**LessonStatus:** draft (WIP), published (live, counts for progress), archived (hidden)\n\n**ModuleStatus:** draft, published, archived\n\n**VideoStatus:** draft, processing, published, failed\n\n### Progress System:\n\n**How it works:**\n- Tracks individual lesson completion (with video timestamps)\n- Auto-calculates course progress: (completed / total published) × 100\n- Only PUBLISHED lessons count toward progress\n- Triggers recalculation when admins add/delete/change lessons\n\n**Key Behaviors:**\n- Adding lessons → Progress drops for all users\n- Deleting lessons → Progress entries removed, course recalculated\n- Status changes → Progress updates automatically\n- Certificates → NOT revoked when progress drops\n- Module moves → No impact (progress is lesson-based)\n\n**Endpoints:**\n- User: Mark complete, update timestamp, view progress\n- Admin: Analytics, bulk reset, recalculate all users\n\n### Content Hierarchy:\n\n```\nCategory (e.g., \"Yoga\")\n  └─ Course (e.g., \"Beginner Yoga\")\n      ├─ Direct Lesson (moduleId = null)\n      └─ Module (e.g., \"Introduction\")\n          └─ Lesson (video or text)\n              ├─ Description (Markdown, one-to-one)\n              └─ Attachments (PDFs, images, docs)\n```\n\n**Important:** Every lesson has courseId. moduleId is optional (null for direct lessons).\n\n### API Organization:\n\n**13 Main Sections:**\n1. Health Check\n2. Authentication (Google, Phone, Admin)\n3. Users (profile operations)\n4. Trainers (Public) - Browse trainers\n5. Admin - User Management\n6. Admin - Trainer Management\n7. Categories (public + Admin subfolder)\n8. Courses (public + Admin subfolder)\n9. Modules (public + Admin subfolder)\n10. Lessons (public + Admin with Descriptions/Attachments subfolders)\n11. Sessions (user + admin)\n12. Progress Tracking (user + Admin subfolder)\n13. Videos (Admin subfolder - all admin-only)\n\n### Collection Variables:\n\n**Auto-saved on creation:**\n- authToken - JWT authentication token\n- userId - Current user ID\n- trainerId - Trainer profile ID\n- categoryId - Category ID\n- courseId - Course ID\n- moduleId - Module ID\n- lessonId - Lesson ID\n- videoId - Video ID\n- attachmentId - Attachment ID\n\n### Quick Start Guide:\n\n**For Frontend Developers:**\n1. Import collection into Postman\n2. Set {{baseUrl}} = http://localhost:8080\n3. Login with /api/auth/google-verify\n4. Browse public endpoints (GET operations at root)\n5. For admin features, check \"Admin\" subfolders\n\n**For Testing:**\n1. Health Check → Verify server running\n2. Admin Login → Get admin token\n3. Create test data (Category → Course → Module → Lesson)\n4. Test progress tracking\n5. Browse user-facing endpoints\n\n### Important Notes:\n\n- **Port:** Server runs on 8080 (not 3000)\n- **Progress:** Only published lessons count\n- **Cascading:** Deleting parent deletes children (use with caution)\n- **Sequences:** Use bulk update for drag-and-drop reordering\n- **Descriptions:** Support full Markdown formatting\n- **Attachments:** Upload files to storage first, then save metadata\n- **Admin Access:** Clearly separated in subfolders for easy identification",
+    "description": "## Pankhuri Learning Management System API\n\n**Base URL:** http://localhost:8080\n\n**Last Updated:** November 2025\n\n### Overview:\n\nComplete REST API for a Learning Management System with hierarchical content structure, progress tracking, and comprehensive admin controls.\n\n### Key Features:\n\n- **Authentication:** Google OAuth, Phone OTP, Admin login\n- **User Management:** User profiles, trainer management, role-based access\n- **Content Hierarchy:** Categories → Courses → Modules → Lessons (Video/Text)\n- **Progress Tracking:** Automatic calculation, lesson completion, course analytics\n- **Rich Content:** Lesson descriptions (Markdown), file attachments, video integration\n- **Session Management:** Multi-device sessions, secure logout\n- **Admin Controls:** All CRUD operations organized in dedicated subfolders\n\n### Collection Structure:\n\nEndpoints are organized by resource with clear separation:\n- **Public Endpoints:** At root level (GET operations, user-facing)\n- **Admin Endpoints:** In \"Admin\" subfolders (CRUD, management operations)\n\n### Authentication:\n\n**Bearer Token:** Most endpoints require authentication\n\n**Auto-saved Variables:**\n- Login endpoints automatically save {{authToken}} and {{userId}}\n- All requests use {{authToken}} in Authorization header\n- Create operations save resource IDs (categoryId, courseId, etc.)\n\n**Quick Auth Flow:**\n1. POST /api/auth/google-verify OR /api/auth/phone\n2. Token saved to {{authToken}} automatically\n3. All subsequent requests authenticated\n\n### Enum Reference:\n\n**Gender:** male, female, other, prefer_not_to_say\n\n**UserStatus:** active (normal), inactive (disabled), suspended (banned)\n\n**UserRole:** user (regular), admin (full access)\n\n**CourseLevel:** beginner, intermediate, advanced, expert\n\n**CourseStatus:** active (published), inactive (draft), archived (hidden)\n\n**LessonType:** video (video content), text (article/markdown)\n\n**LessonStatus:** draft (WIP), published (live, counts for progress), archived (hidden)\n\n**ModuleStatus:** draft, published, archived\n\n**VideoStatus:** draft, processing, published, failed\n\n### Progress System:\n\n**How it works:**\n- Tracks individual lesson completion (with video timestamps)\n- Auto-calculates course progress: (completed / total published) × 100\n- Only PUBLISHED lessons count toward progress\n- Triggers recalculation when admins add/delete/change lessons\n\n**Key Behaviors:**\n- Adding lessons → Progress drops for all users\n- Deleting lessons → Progress entries removed, course recalculated\n- Status changes → Progress updates automatically\n- Certificates → NOT revoked when progress drops\n- Module moves → No impact (progress is lesson-based)\n\n**Endpoints:**\n- User: Mark complete, update timestamp, view progress\n- Admin: Analytics, bulk reset, recalculate all users\n\n### Review System:\n\n**How it works:**\n- One review per user per course (enforced by unique constraint)\n- Rating: Required, integer 1-5 stars\n- Review Text: Optional, max 1000 characters\n- Cached statistics: averageRating and totalReviews stored in Course table\n- Auto-recalculates: Course stats update on every review create/update/delete\n\n**Key Features:**\n- Upsert pattern: POST creates or updates existing review\n- Optional auth: GET endpoints work without token (enhanced with user data when authenticated)\n- Pagination: Default 10, max 50 per page\n- Sorting: newest, oldest, highest, lowest\n- User separation: Authenticated user's review shown first in list\n- Rating distribution: 1-5 star breakdown with counts and percentages\n\n**Endpoints:**\n- Public: Browse reviews, view stats (no auth required)\n- Authenticated: Create, update, delete own review\n- Admin: Delete any review (moderation)\n\n### Content Hierarchy:\n\n```\nCategory (e.g., \"Yoga\")\n  └─ Course (e.g., \"Beginner Yoga\")\n      ├─ Direct Lesson (moduleId = null)\n      └─ Module (e.g., \"Introduction\")\n          └─ Lesson (video or text)\n              ├─ Description (Markdown, one-to-one)\n              └─ Attachments (PDFs, images, docs)\n```\n\n**Important:** Every lesson has courseId. moduleId is optional (null for direct lessons).\n\n### API Organization:\n\n**14 Main Sections:**\n1. Health Check\n2. Authentication (Google, Phone, Admin)\n3. Users (profile operations)\n4. Trainers (Public) - Browse trainers\n5. Admin - User Management\n6. Admin - Trainer Management\n7. Categories (public + Admin subfolder)\n8. Courses (public + Admin subfolder)\n9. Course Reviews (public GET + authenticated CRUD + admin moderation)\n10. Modules (public + Admin subfolder)\n11. Lessons (public + Admin with Descriptions/Attachments subfolders)\n12. Sessions (user + admin)\n13. Progress Tracking (user + Admin subfolder)\n14. Videos (Admin subfolder - all admin-only)\n\n### Collection Variables:\n\n**Auto-saved on creation:**\n- authToken - JWT authentication token\n- userId - Current user ID\n- trainerId - Trainer profile ID\n- categoryId - Category ID\n- courseId - Course ID\n- moduleId - Module ID\n- lessonId - Lesson ID\n- videoId - Video ID\n- attachmentId - Attachment ID\n- reviewId - Review ID (for admin moderation)\n\n### Quick Start Guide:\n\n**For Frontend Developers:**\n1. Import collection into Postman\n2. Set {{baseUrl}} = http://localhost:8080\n3. Login with /api/auth/google-verify\n4. Browse public endpoints (GET operations at root)\n5. For admin features, check \"Admin\" subfolders\n\n**For Testing:**\n1. Health Check → Verify server running\n2. Admin Login → Get admin token\n3. Create test data (Category → Course → Module → Lesson)\n4. Test progress tracking\n5. Browse user-facing endpoints\n\n### Important Notes:\n\n- **Port:** Server runs on 8080 (not 3000)\n- **Progress:** Only published lessons count\n- **Cascading:** Deleting parent deletes children (use with caution)\n- **Sequences:** Use bulk update for drag-and-drop reordering\n- **Descriptions:** Support full Markdown formatting\n- **Attachments:** Upload files to storage first, then save metadata\n- **Admin Access:** Clearly separated in subfolders for easy identification",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "27592795",
     "_collection_link": "https://devs-09069ab9-6199077.postman.co/workspace/devlopers's-Team's-Workspace~4b317406-0f97-4c6e-89ff-a3482b26c70c/collection/27592795-60c7daea-8e65-4747-9b01-783ad1588e84?action=share&source=collection_link&creator=27592795"
@@ -1251,6 +1251,180 @@
               "response": []
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "Course Reviews",
+      "item": [
+        {
+          "name": "Get Course Reviews",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{courseId}}/reviews?page=1&limit=10&sort=newest",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses", "{{courseId}}", "reviews"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Items per page (default: 10, max: 50)"
+                },
+                {
+                  "key": "sort",
+                  "value": "newest",
+                  "description": "newest | oldest | highest | lowest"
+                }
+              ]
+            },
+            "description": "Get paginated reviews for a course. Optional authentication - if authenticated, user's own review is separated and returned first. Returns reviews with user details, rating, review text, and timestamps."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Course Review Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{courseId}}/reviews/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses", "{{courseId}}", "reviews", "stats"]
+            },
+            "description": "Get review statistics for a course (public endpoint). Returns: averageRating, totalReviews, and ratingDistribution (1-5 star breakdown with counts and percentages)."
+          },
+          "response": []
+        },
+        {
+          "name": "Create or Update Review",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"rating\": 5,\n    \"review\": \"Excellent course! The instructor explains concepts clearly and the practice sessions are very helpful. I've learned so much and feel much more confident in my yoga practice now. Highly recommended for beginners!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{courseId}}/reviews",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses", "{{courseId}}", "reviews"]
+            },
+            "description": "Create a new review or update existing review (upsert). One review per user per course. Rating is required (1-5 integer). Review text is optional (max 1000 characters). Automatically recalculates course averageRating and totalReviews."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Review",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"rating\": 4,\n    \"review\": \"Updated my review after completing more modules. Great course overall, though some videos could be shorter. Still highly recommend!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{courseId}}/reviews",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses", "{{courseId}}", "reviews"]
+            },
+            "description": "Update your existing review. Must have already created a review. Rating is optional (keeps existing if not provided). Review text is optional. Automatically recalculates course rating cache."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Review",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{courseId}}/reviews",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "courses", "{{courseId}}", "reviews"]
+            },
+            "description": "Delete your own review for a course. Automatically recalculates course averageRating and totalReviews. Cannot delete other users' reviews (use admin endpoint)."
+          },
+          "response": []
+        },
+        {
+          "name": "Admin - Delete Any Review",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reviews/{{reviewId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "reviews", "{{reviewId}}"]
+            },
+            "description": "Admin-only endpoint to delete any review by reviewId. Use this for moderation purposes (spam, inappropriate content, etc.). Automatically recalculates course rating cache."
+          },
+          "response": []
         }
       ]
     },
@@ -3115,6 +3289,11 @@
     },
     {
       "key": "attachmentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reviewId",
       "value": "",
       "type": "string"
     }

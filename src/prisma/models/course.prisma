@@ -26,6 +26,8 @@ model Course {
   status         CourseStatus @default(active)
   hasCertificate Boolean      @default(false)
   rating         Float        @default(0)
+  averageRating  Float        @default(0) // Cached rating from reviews
+  totalReviews   Int          @default(0) // Cached review count
   tags           String[]     @default([])
   metadata       Json?
   demoVideoId    String?
@@ -38,6 +40,7 @@ model Course {
   modules        Module[]
   lessons        Lesson[] // Direct lessons (not inside modules)
   courseProgress UserCourseProgress[]
+  reviews        CourseReview[]
 
   @@index([slug])
   @@index([categoryId])

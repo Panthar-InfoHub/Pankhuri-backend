@@ -40,6 +40,7 @@ model User {
   sessions       Session[]
   lessonProgress UserLessonProgress[]
   courseProgress UserCourseProgress[]
+  reviews        CourseReview[]
 
   @@index([email])
   @@index([phone])

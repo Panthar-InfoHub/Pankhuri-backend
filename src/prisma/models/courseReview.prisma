@@ -1,0 +1,19 @@
+model CourseReview {
+    id        String   @id @default(cuid())
+    courseId  String
+    userId    String
+    rating    Int // 1-5 stars
+    review    String?  @db.Text // Optional review message
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([courseId, userId]) // One review per user per course
+    @@index([courseId])
+    @@index([userId])
+    @@index([rating])
+    @@index([createdAt])
+    @@map("course_reviews")
+}
