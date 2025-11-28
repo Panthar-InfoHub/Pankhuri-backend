@@ -157,6 +157,7 @@ export const googleVerifyAdmin = async (req: Request, res: Response) => {
 
     // Find user by email (don't create if not exists)
     const user = await findAdminByEmail(admin_mail);
+    console.log("Admin User:", user);
 
     if (!user) {
       return res.status(404).json({
