@@ -4,11 +4,16 @@ import { prisma } from "../lib/db";
 /**
  * Create a new session for a user
  */
-export const createSession = async (userId: string, expiresAt?: Date): Promise<Session> => {
+export const createSession = async (
+  userId: string,
+  expiresAt?: Date,
+  fcmToken?: string
+): Promise<Session> => {
   const session = await prisma.session.create({
     data: {
       userId,
       ...(expiresAt && { expiresAt }),
+      ...(fcmToken && { fcmToken }),
     },
   });
 
@@ -57,7 +62,7 @@ export const getAllUserSessions = async (userId: string): Promise<Session[]> => 
 };
 
 /**
- * Delete a specific session
+ * Delete a specific session (FCM token cleanup automatic via session deletion)
  */
 export const deleteSession = async (sessionId: string): Promise<void> => {
   await prisma.session.delete({
@@ -79,7 +84,7 @@ export const deleteSessions = async (sessionIds: string[]): Promise<void> => {
 };
 
 /**
- * Delete all sessions for a user
+ * Delete all sessions for a user (FCM tokens deleted automatically with sessions)
  */
 export const deleteAllUserSessions = async (userId: string): Promise<void> => {
   await prisma.session.deleteMany({
@@ -132,35 +137,61 @@ export const updateSessionExpiry = async (sessionId: string, expiresAt: Date): P
 };
 
 /**
- * Manage user sessions - ensure max 2 active sessions
- * If user has 2 or more active sessions, remove the oldest one(s)
- * Returns the newly created session
+ * Update session FCM token
  */
-export const manageUserSessions = async (userId: string): Promise<Session> => {
-  const MAX_SESSIONS = 2;
-
-  // Get all active sessions BEFORE creating new one
-  const activeSessions = await getActiveSessions(userId);
-
-  // If user already has 2 or more active sessions, delete the oldest ones to make room
-  if (activeSessions.length >= MAX_SESSIONS) {
-    // Sort by createdAt ascending (oldest first)
-    const sessionsToDelete = activeSessions
-      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
-      .slice(0, activeSessions.length - MAX_SESSIONS + 1); // Keep only 1 slot free for new session
-
-    const sessionIdsToDelete = sessionsToDelete.map((s) => s.id);
-    await deleteSessions(sessionIdsToDelete);
-  }
-
-  // Create new session after cleanup
-  const newSession = await createSession(userId);
-
-  return newSession;
+export const updateSessionFcmToken = async (
+  sessionId: string,
+  fcmToken: string
+): Promise<Session> => {
+  return await prisma.session.update({
+    where: { id: sessionId },
+    data: { fcmToken },
+  });
 };
 
 /**
- * Clean up all expired sessions (can be run as a cron job or mannual admin work)
+ * Manage user sessions - ensure max 2 active sessions
+ * If user has 2 or more active sessions, remove the oldest one(s)
+ * Uses transaction to ensure atomicity
+ * Returns the newly created session
+ */
+export const manageUserSessions = async (userId: string, fcmToken?: string): Promise<Session> => {
+  return await prisma.$transaction(async (tx) => {
+    const MAX_SESSIONS = 2;
+
+    // Get all active sessions BEFORE creating new one
+    const activeSessions = await tx.session.findMany({
+      where: {
+        userId,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: "asc" }, // Oldest first
+    });
+
+    // If user already has 2 or more active sessions, delete the oldest ones to make room
+    if (activeSessions.length >= MAX_SESSIONS) {
+      const sessionsToDelete = activeSessions.slice(0, activeSessions.length - MAX_SESSIONS + 1);
+      const sessionIdsToDelete = sessionsToDelete.map((s) => s.id);
+
+      // Delete old sessions (FCM tokens deleted automatically)
+      await tx.session.deleteMany({
+        where: { id: { in: sessionIdsToDelete } },
+      });
+    }
+
+    // Create new session with FCM token
+    return await tx.session.create({
+      data: {
+        userId,
+        ...(fcmToken && { fcmToken }),
+      },
+    });
+  });
+};
+
+/**
+ * Clean up all expired sessions (FCM tokens deleted automatically)
+ * Can be run as a cron job or manual admin work
  */
 export const cleanupExpiredSessions = async (): Promise<number> => {
   const result = await prisma.session.deleteMany({

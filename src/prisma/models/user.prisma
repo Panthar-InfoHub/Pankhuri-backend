@@ -28,7 +28,6 @@ model User {
   languagePreference String?    @default("en")
   isEmailVerified    Boolean    @default(false)
   isPhoneVerified    Boolean    @default(false)
-  fcmTokens          String[]   @default([])
   status             UserStatus @default(active)
   role               UserRole   @default(user)
   hasUsedTrial       Boolean    @default(false)

@@ -99,7 +99,6 @@ export const createUser = async (userData: Prisma.UserCreateInput) => {
       languagePreference: userData.languagePreference,
       isEmailVerified: userData.isEmailVerified ?? false,
       isPhoneVerified: userData.isPhoneVerified ?? false,
-      fcmTokens: userData.fcmTokens ?? [],
       status: userData.status ?? UserStatus.active,
       role: userData.role ?? UserRole.user,
       hasUsedTrial: userData.hasUsedTrial ?? false,
@@ -433,4 +432,21 @@ export const findOrCreateUserByEmail = async (
   });
 
   return user;
+};
+
+/**
+ * Get all active FCM tokens for a user from their active sessions
+ * Use this for sending push notifications
+ */
+export const getUserFcmTokens = async (userId: string): Promise<string[]> => {
+  const sessions = await prisma.session.findMany({
+    where: {
+      userId,
+      fcmToken: { not: null },
+      expiresAt: { gt: new Date() }, // Only active sessions
+    },
+    select: { fcmToken: true },
+  });
+
+  return sessions.map((s) => s.fcmToken!).filter(Boolean);
 };

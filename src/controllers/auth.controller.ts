@@ -7,7 +7,7 @@ import {
   findOrCreateUserByEmail,
   findOrCreateUserByPhone,
 } from "../services/user.service";
-import { manageUserSessions } from "../services/session.service";
+import { manageUserSessions, updateSessionFcmToken } from "../services/session.service";
 
 /**
  * Google OAuth login via Firebase
@@ -15,7 +15,7 @@ import { manageUserSessions } from "../services/session.service";
  */
 export const googleLogin = async (req: Request, res: Response) => {
   try {
-    const { idToken } = req.body;
+    const { idToken, fcmToken } = req.body;
 
     // Validation
     if (!idToken) {
@@ -43,8 +43,8 @@ export const googleLogin = async (req: Request, res: Response) => {
       firebaseUser.picture
     );
 
-    // Create session and manage max 2 sessions per user
-    const session = await manageUserSessions(user.id);
+    // Create session with FCM token (manages max 2 sessions automatically)
+    const session = await manageUserSessions(user.id, fcmToken);
 
     // Generate JWT with session ID
     const jwtToken = generateJWT(user, session.id);
@@ -82,7 +82,7 @@ export const googleLogin = async (req: Request, res: Response) => {
  */
 export const phoneLogin = async (req: Request, res: Response) => {
   try {
-    const { idToken } = req.body;
+    const { idToken, fcmToken } = req.body;
 
     // Validation
     if (!idToken) {
@@ -106,8 +106,8 @@ export const phoneLogin = async (req: Request, res: Response) => {
     // Find or create user by phone (country code auto-extracted)
     const user = await findOrCreateUserByPhone(firebaseUser.phone_number);
 
-    // Create session and manage max 2 sessions per user
-    const session = await manageUserSessions(user.id);
+    // Create session with FCM token (manages max 2 sessions automatically)
+    const session = await manageUserSessions(user.id, fcmToken);
 
     // Generate JWT with session ID
     const token = generateJWT(user, session.id);
@@ -195,6 +195,45 @@ export const googleVerifyAdmin = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       error: error.message || "Authentication failed",
+    });
+  }
+};
+
+/**
+ * Update FCM Token for current session
+ * POST /api/auth/fcm-token
+ */
+export const updateFcmToken = async (req: Request, res: Response) => {
+  try {
+    const { fcmToken } = req.body;
+    const sessionId = req.sessionId;
+
+    if (!sessionId) {
+      return res.status(401).json({
+        success: false,
+        error: "Authentication required",
+      });
+    }
+
+    if (!fcmToken) {
+      return res.status(400).json({
+        success: false,
+        error: "FCM token is required",
+      });
+    }
+
+    // Update session with new token (old token automatically replaced)
+    await updateSessionFcmToken(sessionId, fcmToken);
+
+    return res.status(200).json({
+      success: true,
+      message: "FCM token updated successfully",
+    });
+  } catch (error: any) {
+    console.error("Update FCM token error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Failed to update FCM token",
     });
   }
 };
