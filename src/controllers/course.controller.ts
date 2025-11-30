@@ -5,8 +5,19 @@ import { CourseLevel, CourseStatus } from "@/prisma/generated/prisma/client";
 // GET /api/courses - Get all courses with filters
 export const getAllCourses = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { categoryId, trainerId, level, language, status, search, tags, sort, page, limit } =
-      req.query;
+    const {
+      categoryId,
+      trainerId,
+      level,
+      language,
+      status,
+      search,
+      tags,
+      duration,
+      sort,
+      page,
+      limit,
+    } = req.query;
 
     const result = await courseService.getAllCourses({
       categoryId: categoryId as string | undefined,
@@ -16,6 +27,7 @@ export const getAllCourses = async (req: Request, res: Response, next: NextFunct
       status: status as CourseStatus | undefined,
       search: search as string | undefined,
       tags: tags ? (tags as string).split(",") : undefined,
+      duration: duration as "short" | "long" | undefined,
       sort: sort as any,
       page: page ? parseInt(page as string) : undefined,
       limit: limit ? parseInt(limit as string) : undefined,
@@ -164,9 +176,7 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
       hasCertificate,
       tags,
       metadata,
-      demoVideo: demoVideoId
-        ? { connect: { id: demoVideoId } }
-        : undefined,
+      demoVideo: demoVideoId ? { connect: { id: demoVideoId } } : undefined,
       category: { connect: { id: categoryId } },
       trainer: { connect: { id: actualTrainerId } },
     });

@@ -1,0 +1,6 @@
+- payment and subscription
+- delete user profile
+- certificates 
+- multistep form on signup
+- for security only send data to user that needed not whole object and relation objects
+- how can i support the related products for this

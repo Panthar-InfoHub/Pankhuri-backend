@@ -10,6 +10,7 @@ export const getAllCourses = async (filters?: {
   status?: CourseStatus;
   search?: string;
   tags?: string[];
+  duration?: "short" | "long";
   sort?: "newest" | "popular" | "rating" | "title";
   page?: number;
   limit?: number;
@@ -22,6 +23,7 @@ export const getAllCourses = async (filters?: {
     status,
     search,
     tags,
+    duration,
     sort = "newest",
     page = 1,
     limit = 20,
@@ -35,9 +37,12 @@ export const getAllCourses = async (filters?: {
     ...(status && { status }),
     ...(tags &&
       tags.length > 0 && {
-      tags: {
-        hasSome: tags,
-      },
+        tags: {
+          hasSome: tags,
+        },
+      }),
+    ...(duration && {
+      duration: duration === "short" ? { lte: 180 } : { gt: 180 },
     }),
     ...(search && {
       OR: [
@@ -112,7 +117,7 @@ export const getCourseById = async (id: string, userId?: string) => {
         select: {
           id: true,
           playbackUrl: true,
-        }
+        },
       },
       trainer: {
         select: {
