@@ -1,0 +1,142 @@
+// ------------------------------------------------------
+// SUBSCRIPTION PLANS (Admin-defined)
+// ------------------------------------------------------
+model SubscriptionPlan {
+  id               String           @id @default(cuid())
+  name             String
+  slug             String           @unique
+  description      String?
+  subscriptionType SubscriptionType
+  duration         Int? // optional, your choice
+  price            Int
+  discountedPrice  Int?
+  currency         String           @default("INR")
+
+  // Razorpay mapping
+  planId          String?         @unique
+  billingInterval BillingInterval
+  trialDays       Int? // free trial
+  isPaidTrial     Boolean         @default(false)
+  trialFee        Int? // paid trial ₹ amount in paise
+
+  features Json?
+  isActive Boolean @default(true)
+  order    Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userSubscriptions UserSubscription[]
+  payments          Payment[]
+}
+
+// ------------------------------------------------------
+// USER SUBSCRIPTIONS (One record per user → active plan)
+// ------------------------------------------------------
+model UserSubscription {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  planId String
+  plan   SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  // Razorpay mapping
+  subscriptionId String? @unique
+
+  status SubscriptionStatus @default(pending)
+
+  // Trial info
+  isTrial     Boolean   @default(false)
+  trialEndsAt DateTime?
+
+  // Billing cycle
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  nextBillingAt      DateTime?
+  graceUntil         DateTime?
+
+  cancelAtPeriodEnd Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payments Payment[]
+}
+
+// ------------------------------------------------------
+// PAYMENTS (Invoices from Razorpay)
+// ------------------------------------------------------
+model Payment {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  planId String
+  plan   SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  userSubscriptionId String?
+  userSubscription   UserSubscription? @relation(fields: [userSubscriptionId], references: [id])
+
+  // Razorpay mapping
+  invoiceId             String? // Razorpay invoice
+  gatewaySubscriptionId String? // Razorpay subscription ID
+  orderId               String? // Razorpay one-time order (trial fee)
+  paymentId             String? // Razorpay payment ID
+  transactionId         String? // alias if needed
+
+  amount   Int
+  currency String @default("INR")
+
+  paymentGateway String      @default("razorpay")
+  paymentMethod  String? // card, upi, wallet…
+  paymentType    PaymentType // trial | recurring | one_time
+
+  status PaymentStatus @default(pending)
+
+  metadata           Json?
+  eventType          String? // invoice.paid, subscription.activated etc.
+  isWebhookProcessed Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ------------------------------------------------------
+// ENUMS
+// ------------------------------------------------------
+
+enum SubscriptionType {
+  monthly
+  yearly
+}
+
+enum BillingInterval {
+  monthly
+  yearly
+}
+
+enum SubscriptionStatus {
+  pending
+  trial
+  active
+  past_due
+  cancelled
+  halted
+  expired
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+  refunded
+}
+
+enum PaymentType {
+  trial
+  recurring
+  one_time
+}

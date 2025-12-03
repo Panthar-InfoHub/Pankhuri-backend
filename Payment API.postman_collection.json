@@ -1,0 +1,843 @@
+{
+  "info": {
+    "_postman_id": "payment-api-collection-2024",
+    "name": "Pankhuri Payment API",
+    "description": "## Pankhuri Payment & Subscription API\n\n**Base URL:** http://localhost:8080\n\n**Last Updated:** December 2024\n\n### Overview:\n\nComplete payment and subscription management API for the Pankhuri Learning Management System. This collection includes endpoints for subscription plans, user subscriptions, payment processing, and webhook handling.\n\n### Key Features:\n\n- **Subscription Plans:** Create, manage, and sync plans with Razorpay\n- **User Subscriptions:** Initiate, verify, and manage user subscriptions\n- **Payment Processing:** Handle trial payments, recurring payments, and payment verification\n- **Webhook Integration:** Process Razorpay webhooks for automatic subscription updates\n- **Admin Controls:** Full plan and subscription management\n\n### Payment Flow:\n\n1. **Browse Plans:** User views available subscription plans (public endpoint)\n2. **Initiate Subscription:** User selects a plan and initiates subscription\n3. **Payment:** User completes payment via Razorpay\n4. **Verification:** System verifies payment (for paid trials)\n5. **Activation:** Subscription becomes active\n6. **Webhooks:** Razorpay sends webhooks for all subscription events\n\n### Collection Variables:\n\n**Required:**\n- `baseUrl` - API base URL (default: http://localhost:8080)\n- `authToken` - JWT authentication token (auto-saved on login)\n- `userId` - Current user ID (auto-saved)\n- `planId` - Subscription plan ID (auto-saved)\n- `subscriptionId` - User subscription ID (auto-saved)\n- `razorpaySubscriptionId` - Razorpay subscription ID (auto-saved)\n\n### Quick Start Guide:\n\n**For Frontend Developers:**\n1. Import collection into Postman\n2. Set `{{baseUrl}}` = http://localhost:8080\n3. Login via main API collection to get authToken\n4. Browse plans via GET /api/plans\n5. Initiate subscription via POST /api/subscriptions\n6. Test webhook handling (admin only)\n\n**For Testing:**\n1. Login as user/admin\n2. Create/view plans (admin can create, users can view active plans)\n3. Initiate subscription\n4. Simulate Razorpay payment\n5. Test webhook processing\n6. Verify subscription status\n\n### Important Notes:\n\n- **Authentication:** Most endpoints require JWT token in Authorization header\n- **Admin Endpoints:** Plan creation, deletion, and sync require admin role\n- **Webhooks:** POST /api/webhooks/payment is public but verified via Razorpay signature\n- **Trial Payments:** Paid trials require verification after payment\n- **Currency:** Default currency is INR, amounts in paise (₹1 = 100 paise)\n- **Payment Gateway:** Currently integrated with Razorpay",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "planId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "subscriptionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "razorpaySubscriptionId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/ping",
+          "host": ["{{baseUrl}}"],
+          "path": ["ping"]
+        },
+        "description": "Verify server is running"
+      }
+    },
+    {
+      "name": "Subscription Plans",
+      "item": [
+        {
+          "name": "Get All Active Plans",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/plans",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "plans"]
+            },
+            "description": "Get all active subscription plans (public endpoint). Returns plans with `isActive: true` only."
+          },
+          "response": [
+            {
+              "name": "Success Example",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/plans",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "plans"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": \"plan123\",\n      \"name\": \"Monthly Premium\",\n      \"slug\": \"monthly-premium\",\n      \"description\": \"Access to all courses for 1 month\",\n      \"subscriptionType\": \"monthly\",\n      \"price\": 99900,\n      \"discountedPrice\": 79900,\n      \"currency\": \"INR\",\n      \"billingInterval\": \"monthly\",\n      \"trialDays\": 7,\n      \"isPaidTrial\": false,\n      \"features\": [\"All courses\", \"HD videos\", \"Support\"],\n      \"isActive\": true,\n      \"order\": 1\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Plan by Slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/plans/slug/:slug",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "plans", "slug", ":slug"],
+              "variable": [
+                {
+                  "key": "slug",
+                  "value": "monthly-premium",
+                  "description": "Plan slug"
+                }
+              ]
+            },
+            "description": "Get a specific plan by its slug (public endpoint)"
+          }
+        },
+        {
+          "name": "Admin - Get All Plans",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/plans/all",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "plans", "all"]
+            },
+            "description": "Get all plans including inactive ones (admin only)"
+          }
+        },
+        {
+          "name": "Admin - Get Plan by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/plans/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "plans", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{planId}}",
+                  "description": "Plan ID"
+                }
+              ]
+            },
+            "description": "Get a specific plan by ID (admin only)"
+          }
+        },
+        {
+          "name": "Admin - Create Plan",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const response = pm.response.json();",
+                  "  if (response.data && response.data.id) {",
+                  "    pm.collectionVariables.set('planId', response.data.id);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Monthly Premium\",\n  \"slug\": \"monthly-premium\",\n  \"description\": \"Full access to all courses for 1 month\",\n  \"subscriptionType\": \"monthly\",\n  \"price\": 99900,\n  \"discountedPrice\": 79900,\n  \"currency\": \"INR\",\n  \"billingInterval\": \"monthly\",\n  \"trialDays\": 7,\n  \"isPaidTrial\": false,\n  \"trialFee\": null,\n  \"features\": [\"All courses\", \"HD videos\", \"24/7 Support\", \"Certificates\"],\n  \"isActive\": true,\n  \"order\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/plans",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "plans"]
+            },
+            "description": "Create a new subscription plan (admin only). Plan ID is auto-saved to `planId` variable."
+          },
+          "response": [
+            {
+              "name": "Success Example",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Monthly Premium\",\n  \"slug\": \"monthly-premium\",\n  \"description\": \"Full access to all courses for 1 month\",\n  \"subscriptionType\": \"monthly\",\n  \"price\": 99900,\n  \"discountedPrice\": 79900,\n  \"currency\": \"INR\",\n  \"billingInterval\": \"monthly\",\n  \"trialDays\": 7,\n  \"isPaidTrial\": false,\n  \"features\": [\"All courses\", \"HD videos\", \"Support\"],\n  \"isActive\": true,\n  \"order\": 1\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/plans",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "plans"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"plan123\",\n    \"name\": \"Monthly Premium\",\n    \"slug\": \"monthly-premium\",\n    \"subscriptionType\": \"monthly\",\n    \"price\": 99900,\n    \"currency\": \"INR\",\n    \"isActive\": true\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Admin - Update Plan",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Monthly Premium Plus\",\n  \"price\": 119900,\n  \"discountedPrice\": 99900,\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/plans/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "plans", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{planId}}",
+                  "description": "Plan ID"
+                }
+              ]
+            },
+            "description": "Update an existing plan (admin only). Partial updates are supported."
+          }
+        },
+        {
+          "name": "Admin - Delete Plan",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/plans/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "plans", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{planId}}",
+                  "description": "Plan ID"
+                }
+              ]
+            },
+            "description": "Delete a plan (admin only). Cannot delete plans with active subscriptions."
+          }
+        },
+        {
+          "name": "Admin - Sync Plan to Razorpay",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/plans/:id/sync",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "plans", ":id", "sync"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{planId}}",
+                  "description": "Plan ID"
+                }
+              ]
+            },
+            "description": "Sync plan to Razorpay payment gateway (admin only). Creates or updates the plan in Razorpay and saves the Razorpay plan ID."
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Subscriptions",
+      "item": [
+        {
+          "name": "Initiate Subscription",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "  const response = pm.response.json();",
+                  "  if (response.data) {",
+                  "    if (response.data.userSubscriptionId) {",
+                  "      pm.collectionVariables.set('subscriptionId', response.data.userSubscriptionId);",
+                  "    }",
+                  "    if (response.data.subscriptionId) {",
+                  "      pm.collectionVariables.set('razorpaySubscriptionId', response.data.subscriptionId);",
+                  "    }",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planId\": \"{{planId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions"]
+            },
+            "description": "Initiate a new subscription. Creates subscription record and Razorpay subscription/order. Returns subscription details and payment information.\n\n**Flow:**\n1. User selects a plan\n2. System creates subscription in database\n3. System creates Razorpay subscription (for free/recurring) or order (for paid trial)\n4. Returns subscription ID and Razorpay credentials\n5. Frontend integrates Razorpay checkout\n6. User completes payment\n7. Webhook activates subscription"
+          },
+          "response": [
+            {
+              "name": "Free Trial Example",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"planId\": \"plan123\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/subscriptions",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "subscriptions"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"userSubscriptionId\": \"sub123\",\n    \"subscriptionId\": \"sub_razorpay123\",\n    \"planDetails\": {\n      \"name\": \"Monthly Premium\",\n      \"price\": 99900,\n      \"trialDays\": 7\n    },\n    \"status\": \"pending\",\n    \"isTrial\": true\n  }\n}"
+            },
+            {
+              "name": "Paid Trial Example",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"planId\": \"plan456\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/subscriptions",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "subscriptions"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"userSubscriptionId\": \"sub456\",\n    \"orderId\": \"order_razorpay456\",\n    \"amount\": 9900,\n    \"currency\": \"INR\",\n    \"requiresPayment\": true,\n    \"razorpayKey\": \"rzp_test_xxxxx\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Verify Paid Trial Payment",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userSubscriptionId\": \"{{subscriptionId}}\",\n  \"razorpayOrderId\": \"order_razorpay456\",\n  \"razorpayPaymentId\": \"pay_razorpay789\",\n  \"razorpaySignature\": \"signature_hash_here\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/verify-trial-payment",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions", "verify-trial-payment"]
+            },
+            "description": "Verify paid trial payment after user completes payment. Validates Razorpay signature and activates trial subscription.\n\n**Required for:** Paid trials only\n**Called:** After user completes payment via Razorpay checkout"
+          },
+          "response": [
+            {
+              "name": "Success Example",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userSubscriptionId\": \"sub456\",\n  \"razorpayOrderId\": \"order_razorpay456\",\n  \"razorpayPaymentId\": \"pay_razorpay789\",\n  \"razorpaySignature\": \"signature_hash_here\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/subscriptions/verify-trial-payment",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "subscriptions", "verify-trial-payment"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Trial payment verified successfully\",\n  \"data\": {\n    \"subscription\": {\n      \"id\": \"sub456\",\n      \"status\": \"trial\",\n      \"trialEndsAt\": \"2024-12-10T00:00:00Z\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Active Subscription",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/active",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions", "active"]
+            },
+            "description": "Get current user's active subscription. Returns null if no active subscription exists."
+          },
+          "response": [
+            {
+              "name": "Active Subscription",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/subscriptions/active",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "subscriptions", "active"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"sub123\",\n    \"status\": \"active\",\n    \"plan\": {\n      \"name\": \"Monthly Premium\",\n      \"price\": 99900\n    },\n    \"currentPeriodStart\": \"2024-12-01T00:00:00Z\",\n    \"currentPeriodEnd\": \"2025-01-01T00:00:00Z\",\n    \"nextBillingAt\": \"2025-01-01T00:00:00Z\",\n    \"cancelAtPeriodEnd\": false\n  }\n}"
+            },
+            {
+              "name": "No Active Subscription",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/subscriptions/active",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "subscriptions", "active"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "body": "{\n  \"success\": true,\n  \"data\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get All User Subscriptions",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions"]
+            },
+            "description": "Get all subscriptions for current user (subscription history)"
+          }
+        },
+        {
+          "name": "Get Subscription by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{subscriptionId}}",
+                  "description": "Subscription ID"
+                }
+              ]
+            },
+            "description": "Get details of a specific subscription. User can only access their own subscriptions."
+          }
+        },
+        {
+          "name": "Cancel at Period End",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/:id/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions", ":id", "cancel"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{subscriptionId}}",
+                  "description": "Subscription ID"
+                }
+              ]
+            },
+            "description": "Cancel subscription at the end of current billing period. User retains access until period end."
+          },
+          "response": [
+            {
+              "name": "Success Example",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/subscriptions/:id/cancel",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "subscriptions", ":id", "cancel"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "sub123"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Subscription will be cancelled at period end\",\n  \"data\": {\n    \"id\": \"sub123\",\n    \"cancelAtPeriodEnd\": true,\n    \"currentPeriodEnd\": \"2025-01-01T00:00:00Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Cancel Immediately",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/:id/cancel-immediately",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions", ":id", "cancel-immediately"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{subscriptionId}}",
+                  "description": "Subscription ID"
+                }
+              ]
+            },
+            "description": "Cancel subscription immediately. User loses access right away. No refund is issued."
+          },
+          "response": [
+            {
+              "name": "Success Example",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/subscriptions/:id/cancel-immediately",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "subscriptions", ":id", "cancel-immediately"],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "sub123"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Subscription cancelled immediately\",\n  \"data\": {\n    \"id\": \"sub123\",\n    \"status\": \"cancelled\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Admin - Sync Subscription",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/:id/sync",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions", ":id", "sync"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{subscriptionId}}",
+                  "description": "Subscription ID"
+                }
+              ]
+            },
+            "description": "Sync subscription from Razorpay (admin only). Fetches latest subscription details from Razorpay and updates local database."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "Payment Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Razorpay-Signature",
+                "value": "signature_hash_here",
+                "description": "Razorpay webhook signature for verification"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"subscription.activated\",\n  \"payload\": {\n    \"subscription\": {\n      \"entity\": {\n        \"id\": \"sub_razorpay123\",\n        \"plan_id\": \"plan_razorpay456\",\n        \"status\": \"active\",\n        \"customer_id\": \"cust_razorpay789\",\n        \"current_start\": 1701388800,\n        \"current_end\": 1704067200,\n        \"charge_at\": 1704067200\n      }\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/webhooks/payment",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "webhooks", "payment"]
+            },
+            "description": "Razorpay webhook endpoint. This is a PUBLIC endpoint but is verified using Razorpay signature.\n\n**Handled Events:**\n- `subscription.activated` - Subscription becomes active\n- `subscription.charged` - Recurring payment successful\n- `subscription.completed` - Subscription completed\n- `subscription.cancelled` - Subscription cancelled\n- `subscription.paused` - Subscription paused\n- `subscription.resumed` - Subscription resumed\n- `invoice.paid` - Invoice/payment successful\n- `payment.failed` - Payment failed\n\n**Security:**\n- Signature verification using Razorpay webhook secret\n- Idempotency handling to prevent duplicate processing\n\n**Note:** This endpoint is called by Razorpay, not by your frontend. For testing, you can use Razorpay webhook tester or manually trigger with proper signature."
+          },
+          "response": [
+            {
+              "name": "Subscription Activated",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Razorpay-Signature",
+                    "value": "valid_signature"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"event\": \"subscription.activated\",\n  \"payload\": {\n    \"subscription\": {\n      \"entity\": {\n        \"id\": \"sub_razorpay123\",\n        \"status\": \"active\"\n      }\n    }\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/webhooks/payment",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "webhooks", "payment"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Webhook processed successfully\"\n}"
+            },
+            {
+              "name": "Invoice Paid",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "X-Razorpay-Signature",
+                    "value": "valid_signature"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"event\": \"invoice.paid\",\n  \"payload\": {\n    \"invoice\": {\n      \"entity\": {\n        \"id\": \"inv_razorpay123\",\n        \"subscription_id\": \"sub_razorpay456\",\n        \"amount_paid\": 99900,\n        \"status\": \"paid\"\n      }\n    },\n    \"payment\": {\n      \"entity\": {\n        \"id\": \"pay_razorpay789\",\n        \"method\": \"card\"\n      }\n    }\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/webhooks/payment",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "webhooks", "payment"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Webhook processed successfully\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
