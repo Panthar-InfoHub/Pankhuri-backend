@@ -242,7 +242,7 @@ export const updateCourse = async (req: Request, res: Response, next: NextFuncti
     }
 
     // If trainerId is being updated, validate the new trainer
-    if (updateData.trainer) {
+    if (trainerId) {
       const actualTrainerId = await courseService.validateTrainer(trainerId);
       updateData.trainer = { connect: { id: actualTrainerId } };
     }

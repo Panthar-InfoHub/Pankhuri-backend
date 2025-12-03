@@ -5,10 +5,12 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { NextFunction, Request, Response } from "express";
 import { s3Client } from "@/lib/s3Client";
 import { registerUser, sendMessage } from "@/lib/helper";
+import { createCertificateInDb } from "@/services/certificate.service";
 
 export const createCertificate = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { Name: name, course, date: studentDate, phone } = req.body;
+        const userId = req.user!.id;
 
         console.debug("\n\nStudent data ===> ", req.body)
         const date = studentDate ? studentDate : new Date().toISOString().split("T")[0]
@@ -165,6 +167,12 @@ export const createCertificate = async (req: Request, res: Response, next: NextF
         console.debug("\n Public URL ==> ", publicUrl)
 
         // Register Student
+        const certificateRecord = await createCertificateInDb({
+            userId: userId,
+            certificateNumber: destination,
+            certificateUrl: publicUrl,
+            metaData: {}
+        });
         const registerRes = await registerUser(name, phone)
         console.debug("\n Register res ==> ", registerRes)
 
@@ -194,3 +202,4 @@ export const createCertificate = async (req: Request, res: Response, next: NextF
         next(error);
     }
 }
+
