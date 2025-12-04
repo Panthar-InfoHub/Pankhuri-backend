@@ -144,13 +144,6 @@ export const adminDeleteReview = async (req: Request, res: Response, next: NextF
   try {
     const { reviewId } = req.params;
 
-    if (req.user?.role !== "admin") {
-      return res.status(403).json({
-        success: false,
-        error: "Admin access required",
-      });
-    }
-
     const result = await reviewService.adminDeleteReview(reviewId);
 
     return res.status(200).json({

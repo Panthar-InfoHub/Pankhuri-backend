@@ -4,17 +4,37 @@
     "module": "commonjs",
     "rootDir": "src",
     "outDir": "dist",
+    "jsx": "react-jsx", // Tells TS how to compile JSX
+    "moduleResolution": "node", // Standard for Node.js
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@controllers/*": ["src/controllers/*"],
-      "@models/*": ["src/models/*"],
-      "@routes/*": ["src/routes/*"],
-      "@lib/*": ["src/lib/*"],
-      "@middlewares/*": ["src/middlewares/*"],
-      "@utils/*": ["src/utils/*"],
-      "@config/*": ["src/config/*"],
-      "@services/*": ["src/services/*"]
+      "@/*": [
+        "src/*"
+      ],
+      "@controllers/*": [
+        "src/controllers/*"
+      ],
+      "@models/*": [
+        "src/models/*"
+      ],
+      "@routes/*": [
+        "src/routes/*"
+      ],
+      "@lib/*": [
+        "src/lib/*"
+      ],
+      "@middlewares/*": [
+        "src/middlewares/*"
+      ],
+      "@utils/*": [
+        "src/utils/*"
+      ],
+      "@config/*": [
+        "src/config/*"
+      ],
+      "@services/*": [
+        "src/services/*"
+      ]
     },
     "resolveJsonModule": true,
     "strict": true,
@@ -22,5 +42,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*"
+  ]
 }
