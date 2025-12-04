@@ -157,8 +157,8 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
       });
     }
 
-    // Validate that the user has an active trainer profile and get trainer ID
-    const actualTrainerId = await courseService.validateTrainer(trainerId);
+    // Validate trainer exists and is active
+    await courseService.validateTrainer(trainerId);
 
     // Validate category exists
     await courseService.validateCategory(categoryId);
@@ -178,7 +178,7 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
       metadata,
       demoVideo: demoVideoId ? { connect: { id: demoVideoId } } : undefined,
       category: { connect: { id: categoryId } },
-      trainer: { connect: { id: actualTrainerId } },
+      trainer: { connect: { id: trainerId } },
     });
 
     res.status(201).json({
@@ -197,7 +197,6 @@ export const updateCourse = async (req: Request, res: Response, next: NextFuncti
     const { id } = req.params;
     const {
       trainerId,
-      isAdmin,
       title,
       slug,
       description,
@@ -213,13 +212,6 @@ export const updateCourse = async (req: Request, res: Response, next: NextFuncti
       metadata,
       demoVideoId,
     } = req.body;
-
-    if (!trainerId) {
-      return res.status(400).json({
-        success: false,
-        message: "trainerId is required in request body",
-      });
-    }
 
     const updateData: any = {};
 
@@ -241,13 +233,14 @@ export const updateCourse = async (req: Request, res: Response, next: NextFuncti
       updateData.category = { connect: { id: categoryId } };
     }
 
-    // If trainerId is being updated, validate the new trainer
-    if (trainerId) {
-      const actualTrainerId = await courseService.validateTrainer(trainerId);
-      updateData.trainer = { connect: { id: actualTrainerId } };
+    // If changing course trainer (admin only)
+    if (trainerId !== undefined) {
+      // Validate new trainer exists and is active
+      await courseService.validateTrainer(trainerId);
+      updateData.trainer = { connect: { id: trainerId } };
     }
 
-    const course = await courseService.updateCourse(id, trainerId, updateData, isAdmin || false);
+    const course = await courseService.updateCourse(id,updateData);
 
     res.json({
       success: true,
@@ -259,20 +252,11 @@ export const updateCourse = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
-// DELETE /api/admin/courses/:id - Delete course
+// DELETE /api/admin/courses/:id - Delete course (Admin only)
 export const deleteCourse = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const { trainerId, isAdmin } = req.body;
-
-    if (!trainerId) {
-      return res.status(400).json({
-        success: false,
-        message: "trainerId is required in request body",
-      });
-    }
-
-    const result = await courseService.deleteCourse(id, trainerId, isAdmin || false);
+    const result = await courseService.deleteCourse(id);
 
     res.json({
       success: true,
@@ -287,14 +271,7 @@ export const deleteCourse = async (req: Request, res: Response, next: NextFuncti
 export const togglePublish = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const { status, trainerId, isAdmin } = req.body;
-
-    if (!trainerId) {
-      return res.status(400).json({
-        success: false,
-        message: "trainerId is required in request body",
-      });
-    }
+    const { status } = req.body;
 
     if (!status || (status !== "active" && status !== "inactive" && status !== "archived")) {
       return res.status(400).json({
@@ -302,13 +279,7 @@ export const togglePublish = async (req: Request, res: Response, next: NextFunct
         message: "status must be 'active', 'inactive', or 'archived'",
       });
     }
-
-    const course = await courseService.togglePublish(
-      id,
-      trainerId,
-      status as CourseStatus,
-      isAdmin || false
-    );
+    const course = await courseService.togglePublish(id, status as CourseStatus);
 
     res.json({
       success: true,

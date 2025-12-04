@@ -388,14 +388,6 @@ export const getCourseProgressStatsHandler = async (
   try {
     const { courseId } = req.params;
 
-    // Assuming admin check middleware
-    if (req.user?.role !== "admin") {
-      return res.status(403).json({
-        success: false,
-        message: "Admin access required",
-      });
-    }
-
     const stats = await getCourseProgressStats(courseId);
 
     return res.status(200).json({
@@ -421,14 +413,6 @@ export const resetUserCourseProgressHandler = async (
   try {
     const { userId, courseId } = req.params;
 
-    // Assuming admin check middleware
-    if (req.user?.role !== "admin") {
-      return res.status(403).json({
-        success: false,
-        message: "Admin access required",
-      });
-    }
-
     await resetUserCourseProgress(userId, courseId);
 
     return res.status(200).json({
@@ -453,15 +437,6 @@ export const recalculateUserCourseProgressHandler = async (
 ) => {
   try {
     const { userId, courseId } = req.params;
-
-    // Assuming admin check middleware
-    if (req.user?.role !== "admin") {
-      return res.status(403).json({
-        success: false,
-        message: "Admin access required",
-      });
-    }
-
     const progress = await recalculateCourseProgress(userId, courseId);
 
     return res.status(200).json({
@@ -487,14 +462,6 @@ export const recalculateAllUsersProgressHandler = async (
 ) => {
   try {
     const { courseId } = req.params;
-
-    // Assuming admin check middleware
-    if (req.user?.role !== "admin") {
-      return res.status(403).json({
-        success: false,
-        message: "Admin access required",
-      });
-    }
 
     await recalculateAllUsersProgress(courseId);
 
