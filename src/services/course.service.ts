@@ -419,50 +419,50 @@ export const getTrendingCourses = async (limit = 10) => {
 
 // Create course (Admin/Trainer)
 export const createCourse = async (data: Prisma.CourseCreateInput) => {
-  // Check if slug already exists
-  const existing = await prisma.course.findUnique({
-    where: { slug: data.slug },
-  });
-
-  if (existing) {
-    throw new Error("Course with this slug already exists");
-  }
-
-  // Validate category exists
-  if (
-    data.category &&
-    "connect" in data.category &&
-    data.category.connect &&
-    "id" in data.category.connect
-  ) {
-    const categoryExists = await prisma.category.findUnique({
-      where: { id: data.category.connect.id as string },
-    });
-
-    if (!categoryExists) {
-      throw new Error("Category not found. Please select a valid category.");
-    }
-  }
-
-  const course = await prisma.course.create({
-    data,
-    include: {
-      category: true,
-      trainer: {
-        select: {
-          id: true,
-          user: {
-            select: {
-              displayName: true,
-              email: true,
+  try {
+    const course = await prisma.course.create({
+      data,
+      include: {
+        category: true,
+        trainer: {
+          select: {
+            id: true,
+            user: {
+              select: {
+                displayName: true,
+                email: true,
+              },
             },
           },
         },
       },
-    },
-  });
+    });
 
-  return course;
+    return course;
+  } catch (error: any) {
+    console.error("Error creating course:", error);
+    // Handle Prisma errors
+    if (error.code === "P2002") {
+      // Unique constraint violation
+      throw new Error("Course with this slug already exists");
+    }
+    if (error.code === "P2025") {
+      // Record not found (foreign key constraint)
+      throw new Error("Invalid trainerId or categoryId");
+    }
+    if (error.code === "P2003") {
+      // Foreign key constraint failed
+      const field = error.meta?.field_name;
+      if (field?.includes("trainerId")) {
+        throw new Error("Trainer not found or inactive");
+      }
+      if (field?.includes("categoryId")) {
+        throw new Error("Category not found");
+      }
+      throw new Error("Invalid reference in course data");
+    }
+    throw error;
+  }
 };
 
 // Validate trainer exists and return trainer ID
@@ -497,46 +497,51 @@ export const validateCategory = async (categoryId: string): Promise<boolean> => 
   return true;
 };
 
-// Update course (Admin/Trainer)
-export const updateCourse = async (
-  id: string,
-  data: Prisma.CourseUpdateInput,
-
-) => {
-
-  // If slug is being updated, check uniqueness
-  if (data.slug && typeof data.slug === "string") {
-    const existing = await prisma.course.findFirst({
-      where: {
-        slug: data.slug,
-        NOT: { id },
-      },
-    });
-
-    if (existing) {
-      throw new Error("Course with this slug already exists");
-    }
-  }
-
-  const course = await prisma.course.update({
-    where: { id },
-    data,
-    include: {
-      category: true,
-      trainer: {
-        select: {
-          id: true,
-          user: {
-            select: {
-              displayName: true,
+// Update course (Admin only)
+export const updateCourse = async (id: string, data: Prisma.CourseUpdateInput) => {
+  try {
+    const course = await prisma.course.update({
+      where: { id },
+      data,
+      include: {
+        category: true,
+        trainer: {
+          select: {
+            id: true,
+            user: {
+              select: {
+                displayName: true,
+              },
             },
           },
         },
       },
-    },
-  });
+    });
 
-  return course;
+    return course;
+  } catch (error: any) {
+    // Handle Prisma errors
+    if (error.code === "P2002") {
+      // Unique constraint violation
+      throw new Error("Course with this slug already exists");
+    }
+    if (error.code === "P2025") {
+      // Record not found
+      throw new Error("Course not found");
+    }
+    if (error.code === "P2003") {
+      // Foreign key constraint failed
+      const field = error.meta?.field_name;
+      if (field?.includes("trainerId")) {
+        throw new Error("Trainer not found or inactive");
+      }
+      if (field?.includes("categoryId")) {
+        throw new Error("Category not found");
+      }
+      throw new Error("Invalid reference in course data");
+    }
+    throw error;
+  }
 };
 
 // Delete course (Admin only)

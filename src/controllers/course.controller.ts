@@ -157,12 +157,6 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
       });
     }
 
-    // Validate trainer exists and is active
-    await courseService.validateTrainer(trainerId);
-
-    // Validate category exists
-    await courseService.validateCategory(categoryId);
-
     const course = await courseService.createCourse({
       title,
       slug,
@@ -235,12 +229,10 @@ export const updateCourse = async (req: Request, res: Response, next: NextFuncti
 
     // If changing course trainer (admin only)
     if (trainerId !== undefined) {
-      // Validate new trainer exists and is active
-      await courseService.validateTrainer(trainerId);
       updateData.trainer = { connect: { id: trainerId } };
     }
 
-    const course = await courseService.updateCourse(id,updateData);
+    const course = await courseService.updateCourse(id, updateData);
 
     res.json({
       success: true,
