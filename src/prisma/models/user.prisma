@@ -42,6 +42,7 @@ model User {
   reviews        CourseReview[]
   subscriptions  UserSubscription[]
   payments       Payment[]
+  certificates   Certificate[]
 
   @@index([email])
   @@index([phone])
