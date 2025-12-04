@@ -225,6 +225,7 @@ export const updateCourse = async (req: Request, res: Response, next: NextFuncti
 
     if (title !== undefined) updateData.title = title;
     if (slug !== undefined) updateData.slug = slug;
+    if (trainerId !== undefined) updateData.trainer = trainerId;
     if (description !== undefined) updateData.description = description;
     if (thumbnailImage !== undefined) updateData.thumbnailImage = thumbnailImage;
     if (coverImage !== undefined) updateData.coverImage = coverImage;

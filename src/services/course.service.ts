@@ -82,6 +82,7 @@ export const getAllCourses = async (filters?: {
             id: true,
             user: {
               select: {
+                id: true,
                 displayName: true,
                 profileImage: true,
               },
@@ -124,6 +125,7 @@ export const getCourseById = async (id: string, userId?: string) => {
           id: true,
           user: {
             select: {
+              id: true,
               displayName: true,
               profileImage: true,
               email: true,
