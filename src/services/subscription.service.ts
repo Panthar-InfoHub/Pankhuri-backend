@@ -1,312 +1,156 @@
 /**
  * Subscription Service
- * Handles user subscription lifecycle
+ * Flexible subscription with optional trial (free or paid)
  */
 
 import { prisma } from "@/lib/db";
-import { UserSubscription, SubscriptionStatus, Prisma } from "@/prisma/generated/prisma/client";
-import { getPlanBySlug, getPlanById } from "@/services/plan.service";
-import {
-  createGatewaySubscription,
-  getGatewaySubscription,
-  cancelGatewaySubscription,
-} from "@/lib/payment-gateway";
+import { UserSubscription, SubscriptionStatus } from "@/prisma/generated/prisma/client";
+import { createGatewaySubscription, cancelGatewaySubscription } from "@/lib/payment-gateway";
 
 // ==================== INITIATE SUBSCRIPTION ====================
 
 /**
- * Initiate subscription for a user
- * Handles both free trial and paid trial flows
+ * Initiate subscription with flexible trial options:
+ * - No trial: trialDays = 0
+ * - Free trial: trialDays > 0, trialFee = 0
+ * - Paid trial: trialDays > 0, trialFee > 0
  */
-export const initiateSubscription = async (
-  userId: string,
-  planId: string
-): Promise<{
-  subscription?: UserSubscription;
-  requiresPayment: boolean;
-  orderId?: string;
-  amount?: number;
-  currency?: string;
-  keyId?: string;
-}> => {
-  console.log(`[SUBSCRIPTION] Initiating subscription for user: ${userId}, plan: ${planId}`);
-
-  // Get plan details
-  const plan = await prisma.subscriptionPlan.findUnique({ where: { id: planId } });
-
-  if (!plan) {
-    console.error(`[SUBSCRIPTION] ❌ Plan not found: ${planId}`);
-    throw new Error(`Plan not found with ID: ${planId}`);
-  }
-
-  console.log(`[SUBSCRIPTION] Plan found:`, {
-    id: plan.id,
-    name: plan.name,
-    isPaidTrial: plan.isPaidTrial,
-    trialFee: plan.trialFee,
-    trialDays: plan.trialDays,
+export const initiateSubscription = async (userId: string, planId: string) => {
+  const plan = await prisma.subscriptionPlan.findUnique({
+    where: { id: planId, isActive: true },
   });
 
-  // Check if user already has an active subscription
-  const existingSubscription = await getUserActiveSubscription(userId);
-  if (existingSubscription) {
-    console.log(
-      `[SUBSCRIPTION] User ${userId} already has active subscription:`,
-      existingSubscription.id
-    );
-    throw new Error("User already has an active subscription");
+  if (!plan) {
+    throw new Error("Plan not found or inactive");
   }
-  console.log(`[SUBSCRIPTION] No existing active subscription found for user`);
 
-  // Check if this is a paid trial
-  if (plan.isPaidTrial && plan.trialFee) {
-    console.log(
-      `[SUBSCRIPTION] Paid trial detected. Creating subscription with trial fee addon...`
-    );
+  if (!plan.planId) {
+    throw new Error("Plan not synced with payment gateway");
+  }
 
-    if (!plan.planId) {
-      throw new Error("Plan not synced with payment gateway. Please sync first.");
+  // Check for existing subscriptions (including pending)
+  const existingSubscription = await prisma.userSubscription.findFirst({
+    where: {
+      userId,
+      status: { in: ["pending", "trial", "active", "past_due"] },
+    },
+  });
+
+  if (existingSubscription) {
+    // Block if active, trial, or past_due
+    if (["trial", "active", "past_due"].includes(existingSubscription.status)) {
+      throw new Error("You already have an active subscription");
     }
 
-    // Create subscription with addon for trial fee
-    // This ensures payment method is captured and linked to subscription
-    const gatewaySubscription = await createGatewaySubscription({
-      planId: plan.planId,
-      totalCount: 120, // ~10 years
-      customerNotify: true,
-      addons: [
-        {
-          item: {
-            name: `${plan.name} - Trial Fee`,
-            amount: plan.trialFee,
-            currency: plan.currency,
-          },
+    // Handle pending subscriptions
+    if (existingSubscription.status === "pending") {
+      const pendingAge = Date.now() - existingSubscription.createdAt.getTime();
+      const STALE_TIMEOUT = 48 * 60 * 60 * 1000; // 48 hours
+
+      if (pendingAge > STALE_TIMEOUT) {
+        // Auto-cancel stale pending subscription
+        await prisma.userSubscription.update({
+          where: { id: existingSubscription.id },
+          data: { status: "cancelled" },
+        });
+      } else {
+        // Recent pending subscription - ask user to cancel first
+        throw new Error(
+          "You have a pending subscription. Please cancel it first using DELETE /api/subscriptions/pending"
+        );
+      }
+    }
+  }
+
+  const hasTrial = plan.trialDays > 0;
+  const hasTrialFee = plan.trialFee > 0;
+  const isFreeTrialOrNoTrial = !hasTrialFee;
+
+  // Calculate billing start (immediate if no trial, delayed if trial)
+  const startAt = hasTrial
+    ? Math.floor(Date.now() / 1000) + plan.trialDays * 24 * 60 * 60
+    : undefined;
+
+  // Build subscription request
+  const subscriptionData: any = {
+    planId: plan.planId,
+    totalCount: plan.subscriptionType === "monthly" ? 120 : 12,
+    customerNotify: true,
+    startAt,
+    notes: {
+      userId,
+      planId: plan.id,
+      trialDays: plan.trialDays.toString(),
+      trialFee: plan.trialFee.toString(),
+      subscriptionType: hasTrial ? (hasTrialFee ? "paid_trial" : "free_trial") : "direct",
+    },
+  };
+
+  // Add addon only if trial fee exists (this charges immediately)
+  if (hasTrialFee) {
+    subscriptionData.addons = [
+      {
+        item: {
+          name: `${plan.name} - Trial Fee`,
+          amount: plan.trialFee,
+          currency: plan.currency,
         },
-      ],
-      notes: {
-        userId,
-        planId: plan.id,
-        type: "paid_trial",
       },
-    });
+    ];
+  }
 
-    console.log(`[SUBSCRIPTION] Razorpay subscription created with trial addon:`, {
+  const gatewaySubscription = await createGatewaySubscription(subscriptionData);
+
+  // Determine initial status based on subscription type
+  let initialStatus: SubscriptionStatus = "pending";
+  if (isFreeTrialOrNoTrial) {
+    // Free trial or no trial - Razorpay activates immediately (no payment required)
+    // Will be updated to "trial" or "active" by webhook
+    initialStatus = "pending";
+  } else {
+    // Paid trial - waiting for user to pay addon
+    initialStatus = "pending";
+  }
+
+  const subscription = await prisma.userSubscription.create({
+    data: {
+      userId,
+      planId: plan.id,
       subscriptionId: gatewaySubscription.id,
-      status: gatewaySubscription.status,
-      shortUrl: gatewaySubscription.shortUrl,
-    });
+      status: initialStatus,
+      isTrial: hasTrial,
+    },
+  });
 
-    // Create subscription record
-    const subscription = await prisma.userSubscription.create({
+  // Create payment record only if there's a trial fee (addon)
+  if (hasTrialFee) {
+    await prisma.payment.create({
       data: {
         userId,
         planId: plan.id,
-        subscriptionId: gatewaySubscription.id,
-        status: "created", // Will be "authenticated" after payment
-        isTrial: true,
-      },
-    });
-
-    console.log(`[SUBSCRIPTION] Subscription record created:`, subscription.id);
-
-    // Create payment record for trial fee
-    const payment = await prisma.payment.create({
-      data: {
-        userId,
-        planId: plan.id,
-        subscriptionId: subscription.id,
+        userSubscriptionId: subscription.id,
+        gatewaySubscriptionId: gatewaySubscription.id,
         amount: plan.trialFee,
         currency: plan.currency,
         paymentType: "trial",
         status: "pending",
+        metadata: {
+          isAddon: true,
+          addonName: `${plan.name} - Trial Fee`,
+        },
       },
     });
-    console.log(`[SUBSCRIPTION] Payment record created in DB:`, payment.id);
-
-    // Return subscription details for frontend checkout
-    console.log(`[SUBSCRIPTION] Returning subscription details to frontend`);
-    return {
-      requiresPayment: true,
-      userSubscriptionId: subscription.id,
-      subscriptionId: gatewaySubscription.id,
-      shortUrl: gatewaySubscription.shortUrl,
-      amount: plan.trialFee,
-      currency: plan.currency,
-      keyId: process.env.RAZORPAY_KEY_ID,
-      planDetails: {
-        name: plan.name,
-        price: plan.price,
-        trialDays: plan.trialDays,
-        trialFee: plan.trialFee,
-      },
-    };
   }
-
-  // Free trial or no trial - create subscription directly
-  console.log(`[SUBSCRIPTION] Free trial or no trial. Creating subscription in Razorpay...`);
-
-  if (!plan.planId) {
-    console.error(`[SUBSCRIPTION] Plan not synced with payment gateway. Plan ID: ${plan.id}`);
-    throw new Error("Plan not synced with payment gateway");
-  }
-
-  const gatewaySubscription = await createGatewaySubscription({
-    planId: plan.planId,
-    totalCount: 120, // 10 years for monthly, 120 years for yearly (effectively unlimited)
-    customerNotify: true,
-    notes: {
-      userId,
-      planId: plan.id,
-    },
-  });
-  console.log(`[SUBSCRIPTION] Razorpay subscription created:`, {
-    subscriptionId: gatewaySubscription.id,
-    status: gatewaySubscription.status,
-  });
-
-  // Create subscription record
-  const subscription = await prisma.userSubscription.create({
-    data: {
-      userId,
-      planId: plan.id,
-      subscriptionId: gatewaySubscription.id,
-      status: "pending",
-      isTrial: (plan.trialDays && plan.trialDays > 0) || false,
-    },
-    include: {
-      plan: true,
-    },
-  });
-  console.log(`[SUBSCRIPTION] Subscription record created in DB:`, {
-    id: subscription.id,
-    status: subscription.status,
-    isTrial: subscription.isTrial,
-  });
-  console.log(
-    `[SUBSCRIPTION] ✅ Subscription initiated successfully. Waiting for Razorpay webhook to activate...`
-  );
 
   return {
-    subscription,
-    requiresPayment: false,
-  };
-};
-
-// ==================== VERIFY PAID TRIAL PAYMENT ====================
-
-/**
- * Verify paid trial payment and create subscription
- */
-export const verifyPaidTrialPayment = async (
-  userId: string,
-  orderId: string,
-  paymentId: string
-): Promise<UserSubscription> => {
-  console.log(`[PAYMENT] Verifying paid trial payment:`, { userId, orderId, paymentId });
-
-  // Find payment record (can be pending or already paid by webhook)
-  const payment = await prisma.payment.findFirst({
-    where: {
-      userId,
-      orderId,
-    },
-    include: {
-      plan: true,
-    },
-  });
-
-  if (!payment) {
-    console.error(`[PAYMENT] Payment not found:`, { userId, orderId });
-    throw new Error("Payment not found");
-  }
-  console.log(`[PAYMENT] Payment record found:`, {
-    id: payment.id,
-    status: payment.status,
-    amount: payment.amount,
-    planName: payment.plan.name,
-  });
-
-  // Check if subscription already exists (webhook might have created it)
-  const existingSubscription = await prisma.userSubscription.findFirst({
-    where: {
-      userId,
-      planId: payment.planId,
-      status: {
-        in: ["pending", "trial", "active"],
-      },
-    },
-    include: {
-      plan: true,
-    },
-  });
-
-  if (existingSubscription) {
-    console.log(
-      `[PAYMENT] Subscription already exists (created by webhook):`,
-      existingSubscription.id
-    );
-    return existingSubscription;
-  }
-  console.log(`[PAYMENT] Payment record found:`, {
-    id: payment.id,
-    amount: payment.amount,
-    planName: payment.plan.name,
-  });
-
-  // Update payment to paid
-  await prisma.payment.update({
-    where: { id: payment.id },
-    data: {
-      paymentId,
-      status: "paid",
-    },
-  });
-  console.log(`[PAYMENT] Payment status updated to 'paid' in DB`);
-
-  // Now create subscription in gateway
-  if (!payment.plan.planId) {
-    console.error(`[PAYMENT] Plan not synced with payment gateway. Plan ID: ${payment.planId}`);
-    throw new Error("Plan not synced with payment gateway");
-  }
-  console.log(`[PAYMENT] Creating subscription in Razorpay after successful payment...`);
-
-  const gatewaySubscription = await createGatewaySubscription({
-    planId: payment.plan.planId,
-    totalCount: 120, // 10 years for monthly, 120 years for yearly (effectively unlimited)
-    customerNotify: true,
-    notes: {
-      userId,
-      planId: payment.planId,
-      paidTrialOrderId: orderId,
-    },
-  });
-  console.log(`[PAYMENT] Razorpay subscription created:`, {
     subscriptionId: gatewaySubscription.id,
-    status: gatewaySubscription.status,
-  });
-
-  // Create subscription record
-  const subscription = await prisma.userSubscription.create({
-    data: {
-      userId,
-      planId: payment.planId,
-      subscriptionId: gatewaySubscription.id,
-      status: "pending",
-      isTrial: true,
-    },
-    include: {
-      plan: true,
-    },
-  });
-  console.log(`[PAYMENT] Subscription record created in DB:`, {
-    id: subscription.id,
-    status: subscription.status,
-  });
-  console.log(
-    `[PAYMENT] ✅ Paid trial verified successfully. Waiting for Razorpay webhook to activate...`
-  );
-
-  return subscription;
+    shortUrl: gatewaySubscription.shortUrl!,
+    amount: hasTrialFee ? plan.trialFee : plan.price,
+    currency: plan.currency,
+    keyId: process.env.RAZORPAY_KEY_ID!,
+    trialDays: plan.trialDays,
+    planName: plan.name,
+  };
 };
 
 // ==================== GET SUBSCRIPTIONS ====================
@@ -454,130 +298,104 @@ export const cancelImmediately = async (
   });
 };
 
-// ==================== SYNC SUBSCRIPTION ====================
-
-/**
- * Sync subscription status from payment gateway
- */
-export const syncSubscriptionFromGateway = async (
-  subscriptionId: string
-): Promise<UserSubscription> => {
-  const subscription = await prisma.userSubscription.findUnique({
-    where: { id: subscriptionId },
-  });
-
-  if (!subscription || !subscription.subscriptionId) {
-    throw new Error("Subscription not found or not linked to gateway");
-  }
-
-  // Get subscription from gateway
-  const gatewaySubscription = await getGatewaySubscription(subscription.subscriptionId);
-
-  // Map gateway status to our status
-  let status: SubscriptionStatus = subscription.status;
-  switch (gatewaySubscription.status) {
-    case "created":
-      status = "pending";
-      break;
-    case "authenticated":
-    case "active":
-      status = subscription.isTrial ? "trial" : "active";
-      break;
-    case "paused":
-      status = "past_due";
-      break;
-    case "halted":
-      status = "halted";
-      break;
-    case "cancelled":
-    case "completed":
-      status = "cancelled";
-      break;
-    case "expired":
-      status = "expired";
-      break;
-  }
-
-  // Update subscription
-  return await prisma.userSubscription.update({
-    where: { id: subscriptionId },
-    data: {
-      status,
-      currentPeriodStart: gatewaySubscription.current_start
-        ? new Date(gatewaySubscription.current_start * 1000)
-        : undefined,
-      currentPeriodEnd: gatewaySubscription.current_end
-        ? new Date(gatewaySubscription.current_end * 1000)
-        : undefined,
-      nextBillingAt: gatewaySubscription.charge_at
-        ? new Date(gatewaySubscription.charge_at * 1000)
-        : undefined,
-    },
-    include: {
-      plan: true,
-    },
-  });
-};
-
 // ==================== BACKGROUND JOBS ====================
 
 /**
  * Expire trial subscriptions (background job)
- * Run daily to check for expired trials
  */
 export const expireTrialSubscriptions = async (): Promise<number> => {
-  const now = new Date();
-
-  const expiredTrials = await prisma.userSubscription.findMany({
+  const result = await prisma.userSubscription.updateMany({
     where: {
       status: "trial",
       isTrial: true,
-      trialEndsAt: {
-        lte: now,
-      },
+      trialEndsAt: { lte: new Date() },
+    },
+    data: {
+      status: "active",
+      isTrial: false,
     },
   });
 
-  for (const subscription of expiredTrials) {
-    // Trial ended - gateway should automatically charge
-    // Update status to active (will be confirmed by webhook)
-    await prisma.userSubscription.update({
-      where: { id: subscription.id },
-      data: {
-        status: "active",
-        isTrial: false,
-      },
-    });
-  }
-
-  return expiredTrials.length;
+  return result.count;
 };
 
 /**
  * Expire grace periods (background job)
- * Run daily to check for expired grace periods
  */
 export const expireGracePeriods = async (): Promise<number> => {
-  const now = new Date();
-
-  const expiredGracePeriods = await prisma.userSubscription.findMany({
+  const result = await prisma.userSubscription.updateMany({
     where: {
       status: "past_due",
-      graceUntil: {
-        lte: now,
+      graceUntil: { lte: new Date() },
+    },
+    data: { status: "halted" },
+  });
+
+  return result.count;
+};
+
+// ==================== PENDING SUBSCRIPTION MANAGEMENT ====================
+
+/**
+ * Get user's subscription status (optimized single query)
+ */
+export const getUserSubscriptionStatus = async (userId: string) => {
+  const subscription = await prisma.userSubscription.findFirst({
+    where: {
+      userId,
+      status: { in: ["pending", "trial", "active", "past_due"] },
+    },
+    include: {
+      plan: {
+        select: {
+          name: true,
+          slug: true,
+          subscriptionType: true,
+        },
       },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!subscription) {
+    return { hasSubscription: false, canSubscribe: true };
+  }
+
+  const isPending = subscription.status === "pending";
+  const pendingAge = Date.now() - subscription.createdAt.getTime();
+  const isStale = isPending && pendingAge > 48 * 60 * 60 * 1000;
+
+  return {
+    hasSubscription: true,
+    canSubscribe: isPending && isStale,
+    subscription: {
+      id: subscription.id,
+      status: subscription.status,
+      planName: subscription.plan.name,
+      planType: subscription.plan.subscriptionType,
+      createdAt: subscription.createdAt,
+      isPending,
+      isStale,
+    },
+  };
+};
+
+/**
+ * Cancel pending subscription (optimized with direct update)
+ */
+export const cancelPendingSubscription = async (userId: string): Promise<void> => {
+  const result = await prisma.userSubscription.updateMany({
+    where: {
+      userId,
+      status: "pending",
+    },
+    data: {
+      status: "cancelled",
+      updatedAt: new Date(),
     },
   });
 
-  for (const subscription of expiredGracePeriods) {
-    // Grace period expired - halt subscription
-    await prisma.userSubscription.update({
-      where: { id: subscription.id },
-      data: {
-        status: "halted",
-      },
-    });
+  if (result.count === 0) {
+    throw new Error("No pending subscription found");
   }
-
-  return expiredGracePeriods.length;
 };

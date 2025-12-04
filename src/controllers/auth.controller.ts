@@ -49,6 +49,9 @@ export const googleLogin = async (req: Request, res: Response) => {
     // Generate JWT with session ID
     const jwtToken = generateJWT(user, session.id);
 
+    // Check if onboarding is completed
+    const isOnboardingCompleted = !!(user.displayName && user.dateOfBirth && user.gender);
+
     // Send response
     return res.status(200).json({
       success: true,
@@ -57,6 +60,7 @@ export const googleLogin = async (req: Request, res: Response) => {
         token: jwtToken,
         sessionId: session.id,
         user: user,
+        isOnboardingCompleted,
       },
     });
   } catch (error: any) {
@@ -112,6 +116,9 @@ export const phoneLogin = async (req: Request, res: Response) => {
     // Generate JWT with session ID
     const token = generateJWT(user, session.id);
 
+    // Check if onboarding is completed
+    const isOnboardingCompleted = !!(user.displayName && user.dateOfBirth && user.gender);
+
     // Send response
     return res.status(200).json({
       success: true,
@@ -120,6 +127,7 @@ export const phoneLogin = async (req: Request, res: Response) => {
         token,
         sessionId: session.id,
         user: user,
+        isOnboardingCompleted,
       },
     });
   } catch (error: any) {

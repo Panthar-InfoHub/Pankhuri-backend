@@ -7,12 +7,10 @@ import express from "express";
 import {
     createPlanHandler,
     getActivePlansHandler,
-    getAllPlansHandler,
     getPlanBySlugHandler,
     getPlanByIdHandler,
     updatePlanHandler,
     deletePlanHandler,
-    syncPlanHandler,
 } from "@/controllers/plan.controller";
 import { authenticateWithSession, requireAdmin } from "@/middleware/session.middleware";
 
@@ -26,13 +24,10 @@ router.get("/", getActivePlansHandler);
 // Get plan by slug
 router.get("/slug/:slug", getPlanBySlugHandler);
 
+// Get plan by ID
+router.get("/:id", authenticateWithSession, getPlanByIdHandler);
 // ==================== ADMIN ROUTES ====================
 
-// Get all plans (including inactive)
-router.get("/all", authenticateWithSession , requireAdmin, getAllPlansHandler);
-
-// Get plan by ID
-router.get("/:id", authenticateWithSession, requireAdmin, getPlanByIdHandler);
 
 // Create plan
 router.post("/", authenticateWithSession, requireAdmin, createPlanHandler);
@@ -42,8 +37,5 @@ router.put("/:id", authenticateWithSession, requireAdmin, updatePlanHandler);
 
 // Delete plan
 router.delete("/:id", authenticateWithSession, requireAdmin, deletePlanHandler);
-
-// Sync plan to payment gateway
-router.post("/:id/sync", authenticateWithSession, requireAdmin, syncPlanHandler);
 
 export default router;

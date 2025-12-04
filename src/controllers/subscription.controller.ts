@@ -1,25 +1,24 @@
 /**
  * Subscription Controller
- * Handles user subscription HTTP requests
+ * Handles paid trial subscription HTTP requests
  */
 
 import { Request, Response, NextFunction } from "express";
 import {
   initiateSubscription,
-  verifyPaidTrialPayment,
   getUserActiveSubscription,
   getSubscriptionById,
   getUserSubscriptions,
   cancelAtPeriodEnd,
   cancelImmediately,
-  syncSubscriptionFromGateway,
+  getUserSubscriptionStatus,
+  cancelPendingSubscription,
 } from "@/services/subscription.service";
-import { verifyPaymentSignature } from "@/lib/payment-gateway";
 
 // ==================== INITIATE SUBSCRIPTION ====================
 
 /**
- * Initiate subscription for a user
+ * Initiate paid trial subscription
  * POST /api/subscriptions
  * Authenticated
  */
@@ -32,98 +31,19 @@ export const initiateSubscriptionHandler = async (
     const { planId } = req.body;
     const userId = req.user!.id;
 
-    console.log(`[CONTROLLER] POST /api/subscriptions - User: ${userId}, Plan: ${planId}`);
-
-    // Validation
     if (!planId) {
-      console.log(`[CONTROLLER] ❌ Validation failed: Plan ID missing`);
       return res.status(400).json({
         success: false,
         message: "Plan ID is required",
       });
     }
 
-    const result = await initiateSubscription(userId, planId);
-
-    if (result.requiresPayment) {
-      // Paid trial - return order details for frontend checkout
-      console.log(`[CONTROLLER] ✅ Returning payment details for frontend checkout`);
-      return res.status(200).json({
-        success: true,
-        message: "Payment required for trial",
-        data: {
-          requiresPayment: true,
-          orderId: result.orderId,
-          amount: result.amount,
-          currency: result.currency,
-          keyId: result.keyId,
-        },
-      });
-    }
-
-    // Free trial or no trial - subscription created
-    console.log(
-      `[CONTROLLER] ✅ Subscription created successfully. ID: ${result.subscription?.id}`
-    );
-    return res.status(201).json({
-      success: true,
-      message: "Subscription initiated successfully",
-      data: {
-        requiresPayment: false,
-        subscription: result.subscription,
-      },
-    });
-  } catch (error: any) {
-    next(error);
-  }
-};
-
-// ==================== VERIFY PAID TRIAL PAYMENT ====================
-
-/**
- * Verify paid trial payment
- * POST /api/subscriptions/verify-trial-payment
- * Authenticated
- */
-export const verifyPaidTrialPaymentHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { orderId, paymentId, signature } = req.body;
-    const userId = req.user!.id;
-
-    console.log(`[CONTROLLER] POST /api/subscriptions/verify-trial-payment - User: ${userId}`);
-    console.log(`[CONTROLLER] Payment details:`, { orderId, paymentId });
-
-    // Validation
-    if (!orderId || !paymentId || !signature) {
-      console.log(`[CONTROLLER] ❌ Validation failed: Missing required fields`);
-      return res.status(400).json({
-        success: false,
-        message: "Order ID, payment ID, and signature are required",
-      });
-    }
-
-    // Verify signature
-    console.log(`[CONTROLLER] Verifying Razorpay signature...`);
-    const isValid = verifyPaymentSignature(orderId, paymentId, signature);
-
-    if (!isValid) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid payment signature",
-      });
-    }
-
-    // Create subscription
-    const subscription = await verifyPaidTrialPayment(userId, orderId, paymentId);
+    const paymentInfo = await initiateSubscription(userId, planId);
 
     return res.status(200).json({
       success: true,
-      message: "Payment verified and subscription created successfully",
-      data: subscription,
+      message: "Subscription initiated. Complete payment to activate.",
+      data: paymentInfo,
     });
   } catch (error: any) {
     next(error);
@@ -266,23 +186,46 @@ export const cancelImmediatelyHandler = async (req: Request, res: Response, next
   }
 };
 
-// ==================== SYNC SUBSCRIPTION ====================
+// ==================== PENDING SUBSCRIPTION MANAGEMENT ====================
 
 /**
- * Sync subscription from payment gateway
- * POST /api/subscriptions/:id/sync
- * Admin only
+ * Get subscription status (including pending)
+ * GET /api/subscriptions/status
  */
-export const syncSubscriptionHandler = async (req: Request, res: Response, next: NextFunction) => {
+export const getSubscriptionStatusHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const { id } = req.params;
-
-    const subscription = await syncSubscriptionFromGateway(id);
+    const userId = req.user!.id;
+    const status = await getUserSubscriptionStatus(userId);
 
     return res.status(200).json({
       success: true,
-      message: "Subscription synced from payment gateway successfully",
-      data: subscription,
+      data: status,
+    });
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+/**
+ * Cancel pending subscription
+ * DELETE /api/subscriptions/pending
+ */
+export const cancelPendingSubscriptionHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user!.id;
+    await cancelPendingSubscription(userId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Pending subscription cancelled successfully",
     });
   } catch (error: any) {
     next(error);

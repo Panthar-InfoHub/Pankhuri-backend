@@ -5,7 +5,6 @@
 
 import { prisma } from "@/lib/db";
 import { Payment, PaymentStatus, Prisma } from "@/prisma/generated/prisma/client";
-import { verifyPaymentSignature } from "@/lib/payment-gateway";
 
 // ==================== CREATE PAYMENT ====================
 
@@ -115,40 +114,6 @@ export const updatePaymentStatus = async (
     });
 };
 
-// ==================== VERIFY PAYMENT ====================
-
-/**
- * Verify payment signature for order
- */
-export const verifyOrderPayment = async (
-    orderId: string,
-    paymentId: string,
-    signature: string
-): Promise<{ valid: boolean; payment?: Payment }> => {
-    // Verify signature
-    const isValid = verifyPaymentSignature(orderId, paymentId, signature);
-
-    if (!isValid) {
-        return { valid: false };
-    }
-
-    // Find payment record
-    const payment = await getPaymentByOrderId(orderId);
-
-    if (!payment) {
-        throw new Error("Payment record not found");
-    }
-
-    // Update payment to paid
-    const updatedPayment = await updatePaymentStatus(payment.id, "paid", {
-        paymentId,
-    });
-
-    return {
-        valid: true,
-        payment: updatedPayment,
-    };
-};
 
 // ==================== RECONCILIATION ====================
 

@@ -5,7 +5,7 @@
 
 import { prisma } from "@/lib/db";
 import { SubscriptionPlan, Prisma } from "@/prisma/generated/prisma/client";
-import { createGatewayPlan, getGatewayPlan } from "@/lib/payment-gateway";
+import { createGatewayPlan } from "@/lib/payment-gateway";
 
 // ==================== CREATE PLAN ====================
 
@@ -29,7 +29,7 @@ export const createPlan = async (
             name: plan.name,
             amount: plan.price,
             currency: plan.currency,
-            period: plan.billingInterval,
+            period: plan.subscriptionType,
             interval: 1,
             description: plan.description || undefined,
         });
@@ -96,17 +96,6 @@ export const getActivePlans = async (): Promise<SubscriptionPlan[]> => {
     });
 };
 
-/**
- * Get all plans (admin only)
- */
-export const getAllPlans = async (): Promise<SubscriptionPlan[]> => {
-    return await prisma.subscriptionPlan.findMany({
-        orderBy: {
-            createdAt: "desc",
-        },
-    });
-};
-
 // ==================== UPDATE PLAN ====================
 
 /**
@@ -158,41 +147,3 @@ export const deletePlan = async (id: string): Promise<SubscriptionPlan> => {
     });
 };
 
-// ==================== SYNC PLAN ====================
-
-/**
- * Sync plan to payment gateway (manual sync if needed)
- */
-export const syncPlanToGateway = async (
-    planId: string
-): Promise<{ id: string }> => {
-    const plan = await getPlanById(planId);
-
-    // If plan already has gateway ID, fetch from gateway
-    if (plan.planId) {
-        try {
-            return await getGatewayPlan(plan.planId);
-        } catch (error) {
-            // Plan doesn't exist in gateway, recreate it
-            console.log("Plan not found in gateway, recreating...");
-        }
-    }
-
-    // Create plan in gateway
-    const gatewayPlan = await createGatewayPlan({
-        name: plan.name,
-        amount: plan.price,
-        currency: plan.currency,
-        period: plan.billingInterval,
-        interval: 1,
-        description: plan.description || undefined,
-    });
-
-    // Update plan with gateway ID
-    await prisma.subscriptionPlan.update({
-        where: { id: planId },
-        data: { planId: gatewayPlan.id },
-    });
-
-    return gatewayPlan;
-};

@@ -43,7 +43,7 @@ export const updateCurrentUser = async (req: Request, res: Response, next: NextF
       });
     }
 
-    const { displayName, profileImage, dateOfBirth, gender, countryCode, languagePreference } =
+    const { displayName, profileImage, dateOfBirth, gender, countryCode, languagePreference,profession,metadata } =
       req.body;
 
     // Users can only update their own profile fields
@@ -54,6 +54,8 @@ export const updateCurrentUser = async (req: Request, res: Response, next: NextF
     if (gender !== undefined) updateData.gender = gender;
     if (countryCode !== undefined) updateData.countryCode = countryCode;
     if (languagePreference !== undefined) updateData.languagePreference = languagePreference;
+    if (profession !== undefined) updateData.profession = profession;
+    if (metadata !== undefined) updateData.metadata = metadata;
 
     const user = await userService.updateUser(req.user.id, updateData);
 

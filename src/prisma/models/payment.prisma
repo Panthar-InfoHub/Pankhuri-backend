@@ -6,7 +6,7 @@ model SubscriptionPlan {
   name             String
   slug             String           @unique
   description      String?
-  subscriptionType SubscriptionType
+  subscriptionType SubscriptionType @default(yearly)
   duration         Int? // optional, your choice
   price            Int
   discountedPrice  Int?
@@ -14,10 +14,8 @@ model SubscriptionPlan {
 
   // Razorpay mapping
   planId          String?         @unique
-  billingInterval BillingInterval
-  trialDays       Int? // free trial
-  isPaidTrial     Boolean         @default(false)
-  trialFee        Int? // paid trial ₹ amount in paise
+  trialDays       Int             @default(0) // 0 = no trial, >0 = trial days
+  trialFee        Int             @default(0) // 0 = free trial, >0 = paid trial in paise
 
   features Json?
   isActive Boolean @default(true)
@@ -113,10 +111,6 @@ enum SubscriptionType {
   yearly
 }
 
-enum BillingInterval {
-  monthly
-  yearly
-}
 
 enum SubscriptionStatus {
   pending
