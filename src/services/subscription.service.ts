@@ -28,6 +28,16 @@ export const initiateSubscription = async (userId: string, planId: string) => {
     throw new Error("Plan not synced with payment gateway");
   }
 
+  // Get user to check if they've used trial
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { hasUsedTrial: true },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
   // Check for existing subscriptions (including pending)
   const existingSubscription = await prisma.userSubscription.findFirst({
     where: {
@@ -62,8 +72,10 @@ export const initiateSubscription = async (userId: string, planId: string) => {
     }
   }
 
-  const hasTrial = plan.trialDays > 0;
-  const hasTrialFee = plan.trialFee > 0;
+  // Determine if user can get trial - only if plan has trial AND user hasn't used it
+  const canUseTrial = plan.trialDays > 0 && !user.hasUsedTrial;
+  const hasTrial = canUseTrial;
+  const hasTrialFee = canUseTrial && plan.trialFee > 0;
   const isFreeTrialOrNoTrial = !hasTrialFee;
 
   // Calculate billing start (immediate if no trial, delayed if trial)
@@ -148,8 +160,15 @@ export const initiateSubscription = async (userId: string, planId: string) => {
     amount: hasTrialFee ? plan.trialFee : plan.price,
     currency: plan.currency,
     keyId: process.env.RAZORPAY_KEY_ID!,
-    trialDays: plan.trialDays,
+    trialDays: hasTrial ? plan.trialDays : 0,
     planName: plan.name,
+    hasTrial,
+    hasTrialFee,
+    message: hasTrial
+      ? hasTrialFee
+        ? `Pay ₹${plan.trialFee} trial fee for ${plan.trialDays} days trial`
+        : `Free ${plan.trialDays} days trial, then ₹${plan.price}/${plan.subscriptionType}`
+      : `Direct subscription: ₹${plan.price}/${plan.subscriptionType}`,
   };
 };
 
