@@ -3,8 +3,8 @@ import { getSignedUrl as getS3SignedUrl } from "@aws-sdk/s3-request-presigner";
 
 // Initialize S3 client for Digital Ocean Spaces
 const s3Client = new S3Client({
-  endpoint: process.env.DO_SPACES_ENDPOINT || "https://sgp1.digitaloceanspaces.com", // e.g., https://sgp1.digitaloceanspaces.com
-  region: process.env.DO_SPACES_REGION || "sgp1", // e.g., sgp1
+  endpoint: process.env.DO_SPACES_ENDPOINT! ,// e.g., https://sgp1.digitaloceanspaces.com
+  region: process.env.DO_SPACES_REGION ! ,// e.g., sgp1
   credentials: {
     accessKeyId: process.env.DO_SPACES_KEY!,
     secretAccessKey: process.env.DO_SPACES_SECRET!,
