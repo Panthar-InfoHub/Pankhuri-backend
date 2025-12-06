@@ -399,3 +399,60 @@ export const cancelPendingSubscription = async (userId: string): Promise<void> =
     throw new Error("No pending subscription found");
   }
 };
+
+// ==================== CONTENT ACCESS CONTROL ====================
+
+/**
+ * Check if user has active subscription
+ * Active means: trial, active, or past_due (grace period)
+ */
+export const hasActiveSubscription = async (userId: string): Promise<boolean> => {
+  if (!userId) return false;
+
+  const subscription = await prisma.userSubscription.findFirst({
+    where: {
+      userId,
+      status: { in: ["trial", "active", "past_due"] },
+    },
+    select: { id: true },
+  });
+
+  return !!subscription;
+};
+
+/**
+ * Get user's subscription details for access control
+ * Returns subscription info along with access permissions
+ */
+export const getUserAccessInfo = async (userId: string) => {
+  const subscription = await prisma.userSubscription.findFirst({
+    where: {
+      userId,
+      status: { in: ["trial", "active", "past_due"] },
+    },
+    include: {
+      plan: {
+        select: {
+          name: true,
+          slug: true,
+          subscriptionType: true,
+        },
+      },
+    },
+  });
+
+  return {
+    hasActiveSubscription: !!subscription,
+    subscription: subscription
+      ? {
+          id: subscription.id,
+          status: subscription.status,
+          isTrial: subscription.isTrial,
+          trialEndsAt: subscription.trialEndsAt,
+          currentPeriodEnd: subscription.currentPeriodEnd,
+          planName: subscription.plan.name,
+          planType: subscription.plan.subscriptionType,
+        }
+      : null,
+  };
+};
