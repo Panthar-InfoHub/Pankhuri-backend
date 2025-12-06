@@ -5,50 +5,7 @@
  */
 
 import crypto from "crypto";
-
-// ==================== CONFIGURATION ====================
-
-const GATEWAY_CONFIG = {
-  keyId: process.env.RAZORPAY_KEY_ID!,
-  keySecret: process.env.RAZORPAY_KEY_SECRET!,
-  webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET!,
-  baseUrl: "https://api.razorpay.com/v1",
-};
-
-// ==================== HELPER FUNCTIONS ====================
-
-/**
- * Make authenticated API request to payment gateway
- */
-const makeGatewayRequest = async (method: string, endpoint: string, data?: any): Promise<any> => {
-  console.log(`[RAZORPAY] ${method} ${endpoint}`);
-  if (data) {
-    console.log(`[RAZORPAY] Request data:`, JSON.stringify(data).substring(0, 200));
-  }
-
-  const auth = Buffer.from(`${GATEWAY_CONFIG.keyId}:${GATEWAY_CONFIG.keySecret}`).toString(
-    "base64"
-  );
-
-  const response = await fetch(`${GATEWAY_CONFIG.baseUrl}${endpoint}`, {
-    method,
-    headers: {
-      Authorization: `Basic ${auth}`,
-      "Content-Type": "application/json",
-    },
-    body: data ? JSON.stringify(data) : undefined,
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    console.error(`[RAZORPAY] ❌ API Error:`, error.error?.description || error);
-    throw new Error(`Payment gateway error: ${error.error?.description || "Unknown error"}`);
-  }
-
-  const result = await response.json();
-  console.log(`[RAZORPAY] ✅ Response:`, result.id || "success");
-  return result;
-};
+import razorpay from "@/config/razorpay";
 
 // ==================== PLAN OPERATIONS ====================
 
@@ -63,7 +20,7 @@ export const createGatewayPlan = async (planData: {
   interval: number;
   description?: string;
 }): Promise<{ id: string }> => {
-  const response = await makeGatewayRequest("POST", "/plans", {
+  const response = await razorpay.plans.create({
     period: planData.period,
     interval: planData.interval,
     item: {
@@ -74,6 +31,7 @@ export const createGatewayPlan = async (planData: {
     },
   });
 
+  console.log(`[RAZORPAY] ✅ Plan created:`, response.id);
   return { id: response.id };
 };
 
@@ -81,7 +39,8 @@ export const createGatewayPlan = async (planData: {
  * Get plan from payment gateway
  */
 export const getGatewayPlan = async (planId: string): Promise<any> => {
-  return await makeGatewayRequest("GET", `/plans/${planId}`);
+  const response = await razorpay.plans.fetch(planId);
+  return response;
 };
 
 // ==================== SUBSCRIPTION OPERATIONS ====================
@@ -97,8 +56,6 @@ export const createGatewaySubscription = async (subscriptionData: {
   notes?: Record<string, string>;
   addons?: Array<{ item: { name: string; amount: number; currency: string } }>;
 }): Promise<{ id: string; status: string; createdAt: number; shortUrl?: string }> => {
-  console.log(`[RAZORPAY] Creating subscription with plan: ${subscriptionData.planId}`);
-
   const requestData: any = {
     plan_id: subscriptionData.planId,
     total_count: subscriptionData.totalCount,
@@ -113,13 +70,9 @@ export const createGatewaySubscription = async (subscriptionData: {
     console.log(`[RAZORPAY] Adding trial fee addon:`, subscriptionData.addons[0]);
   }
 
-  const response = await makeGatewayRequest("POST", "/subscriptions", requestData);
+  const response = await razorpay.subscriptions.create(requestData);
 
-  console.log(`[RAZORPAY] Subscription created:`, {
-    id: response.id,
-    status: response.status,
-    short_url: response.short_url,
-  });
+  console.log(`[RAZORPAY] Subscription created:`,response);
 
   return {
     id: response.id,
@@ -133,7 +86,8 @@ export const createGatewaySubscription = async (subscriptionData: {
  * Get subscription from payment gateway
  */
 export const getGatewaySubscription = async (subscriptionId: string): Promise<any> => {
-  return await makeGatewayRequest("GET", `/subscriptions/${subscriptionId}`);
+  const response = await razorpay.subscriptions.fetch(subscriptionId);
+  return response;
 };
 
 /**
@@ -143,9 +97,8 @@ export const cancelGatewaySubscription = async (
   subscriptionId: string,
   cancelAtCycleEnd: boolean = false
 ): Promise<{ id: string; status: string }> => {
-  const response = await makeGatewayRequest("POST", `/subscriptions/${subscriptionId}/cancel`, {
-    cancel_at_cycle_end: cancelAtCycleEnd ? 1 : 0,
-  });
+
+  const response = await razorpay.subscriptions.cancel(subscriptionId, cancelAtCycleEnd);
 
   return {
     id: response.id,
@@ -155,25 +108,11 @@ export const cancelGatewaySubscription = async (
 
 // ==================== WEBHOOK VERIFICATION ====================
 
-/**
- * Verify webhook signature
- */
 export const verifyWebhookSignature = (payload: string, signature: string): boolean => {
   const generatedSignature = crypto
-    .createHmac("sha256", GATEWAY_CONFIG.webhookSecret)
+    .createHmac("sha256", process.env.RAZORPAY_WEBHOOK_SECRET!)
     .update(payload)
     .digest("hex");
 
   return generatedSignature === signature;
-};
-
-// ==================== GATEWAY CONFIGURATION ====================
-
-/**
- * Get gateway configuration for frontend
- */
-export const getGatewayConfig = () => {
-  return {
-    keyId: GATEWAY_CONFIG.keyId,
-  };
 };

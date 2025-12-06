@@ -13,28 +13,41 @@ export const handleSubscriptionAuthenticated = async (payload: any): Promise<voi
   const subscriptionId = subscriptionEntity.id;
   const notes = subscriptionEntity.notes || {};
 
+  console.log(`[WEBHOOK] 🔵 AUTHENTICATED webhook received for: ${subscriptionId}`);
+  console.log(`[WEBHOOK] Notes:`, notes);
+
   const subscription = await prisma.userSubscription.findUnique({
     where: { subscriptionId },
     include: { plan: true },
   });
 
   if (!subscription) {
-    console.error(`[WEBHOOK] Subscription not found: ${subscriptionId}`);
+    console.error(`[WEBHOOK] ❌ Subscription not found: ${subscriptionId}`);
     return;
   }
+
+  console.log(
+    `[WEBHOOK] Found subscription - Plan trialFee: ${subscription.plan.trialFee}, trialDays: ${subscription.plan.trialDays}`
+  );
 
   // This webhook only fires for paid trials (addon payment)
   // Check if this was a paid trial
   const isPaidTrial = notes.subscriptionType === "paid_trial" || subscription.plan.trialFee > 0;
 
+  console.log(
+    `[WEBHOOK] isPaidTrial check: ${isPaidTrial} (notes.subscriptionType: ${notes.subscriptionType}, plan.trialFee: ${subscription.plan.trialFee})`
+  );
+
   if (!isPaidTrial) {
-    console.log(`[WEBHOOK] Not a paid trial, skipping authenticated handler`);
+    console.log(`[WEBHOOK] ⚠️ Not a paid trial, skipping authenticated handler`);
     return;
   }
 
   // Calculate trial end date
   const trialEndsAt = new Date();
   trialEndsAt.setDate(trialEndsAt.getDate() + subscription.plan.trialDays);
+
+  console.log(`[WEBHOOK] Setting trialEndsAt to: ${trialEndsAt.toISOString()}`);
 
   // Update subscription status to trial and mark addon payment as paid
   await Promise.all([
@@ -59,7 +72,9 @@ export const handleSubscriptionAuthenticated = async (payload: any): Promise<voi
     }),
   ]);
 
-  console.log(`[WEBHOOK] Paid trial addon completed, status set to trial: ${subscriptionId}`);
+  console.log(
+    `[WEBHOOK] ✅ Paid trial addon completed, status set to trial with trialEndsAt: ${trialEndsAt.toISOString()}`
+  );
 };
 
 /**
@@ -74,22 +89,31 @@ export const handleSubscriptionActivated = async (payload: any): Promise<void> =
   const subscriptionId = subscriptionEntity.id;
   const notes = subscriptionEntity.notes || {};
 
+  console.log(`[WEBHOOK] 🟢 ACTIVATED webhook received for: ${subscriptionId}`);
+  console.log(`[WEBHOOK] Notes:`, notes);
+
   const subscription = await prisma.userSubscription.findUnique({
     where: { subscriptionId },
     include: { plan: true },
   });
 
   if (!subscription) {
-    console.error(`[WEBHOOK] Subscription not found: ${subscriptionId}`);
+    console.error(`[WEBHOOK] ❌ Subscription not found: ${subscriptionId}`);
     return;
   }
+
+  console.log(
+    `[WEBHOOK] Current subscription status: ${subscription.status}, trialEndsAt: ${subscription.trialEndsAt}`
+  );
 
   const subscriptionType = notes.subscriptionType || "direct";
   const hasTrial = subscription.plan.trialDays > 0;
 
+  console.log(`[WEBHOOK] subscriptionType: ${subscriptionType}, hasTrial: ${hasTrial}`);
+
   // Skip if already in trial/active (already processed by subscription.authenticated)
   if (subscriptionType === "paid_trial" && subscription.status === "trial") {
-    console.log(`[WEBHOOK] Paid trial already in trial status, skipping activation`);
+    console.log(`[WEBHOOK] ⚠️ Paid trial already in trial status, skipping activation`);
     return;
   }
 
@@ -126,6 +150,12 @@ export const handleSubscriptionActivated = async (payload: any): Promise<void> =
     finalStatus = "active"; // Direct subscription, no trial
   }
 
+  console.log(
+    `[WEBHOOK] Setting status to: ${finalStatus}, trialEndsAt: ${
+      trialEndsAt?.toISOString() || "null"
+    }`
+  );
+
   await prisma.userSubscription.update({
     where: { id: subscription.id },
     data: {
@@ -144,7 +174,9 @@ export const handleSubscriptionActivated = async (payload: any): Promise<void> =
   });
 
   console.log(
-    `[WEBHOOK] Subscription activated: ${subscriptionId}, type: ${subscriptionType}, status: ${finalStatus}`
+    `[WEBHOOK] ✅ Subscription activated: ${subscriptionId}, type: ${subscriptionType}, status: ${finalStatus}, trialEndsAt: ${
+      trialEndsAt?.toISOString() || "null"
+    }`
   );
 };
 
