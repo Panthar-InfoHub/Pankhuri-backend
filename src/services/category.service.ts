@@ -88,12 +88,51 @@ export const getFlatCategories = async (filters?: {
 };
 
 // Get category by ID
-export const getCategoryById = async (id: string) => {
+export const getCategoryById = async (id: string, showNestedCourses: boolean = false) => {
+  // Build dynamic include for children based on flag
+  const childrenInclude: any = {
+    select: {
+      id: true,
+      parentId: true,
+      name: true,
+      slug: true,
+      description: true,
+      icon: true,
+      status: true,
+      sequence: true,
+      createdAt: true,
+      updatedAt: true,
+      _count: {
+        select: {
+          courses: true,
+        },
+      },
+    },
+  };
+
+  // Only fetch child courses if flag is enabled
+  if (showNestedCourses) {
+    childrenInclude.select.courses = {
+      where: {
+        status: "active",
+      },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        thumbnailImage: true,
+        level: true,
+        duration: true,
+        rating: true,
+      },
+    };
+  }
+
   const category = await prisma.category.findUnique({
     where: { id },
     include: {
       parent: true,
-      children: true,
+      children: childrenInclude,
       courses: {
         where: {
           status: "active",
@@ -116,19 +155,86 @@ export const getCategoryById = async (id: string) => {
     },
   });
 
+  if (!category) {
+    return null;
+  }
+
+  // If showNestedCourses is true, flatten child courses into parent
+  if (showNestedCourses && category.children.length > 0) {
+    const childCourses = category.children.flatMap((child: any) => child.courses || []);
+    category.courses = [...category.courses, ...childCourses];
+
+    // Update count to reflect total courses (parent + children)
+    category._count.courses = category.courses.length;
+
+    // Remove courses from children to avoid duplication in frontend
+    category.children = category.children.map((child: any) => {
+      const { courses, ...childWithoutCourses } = child;
+      return childWithoutCourses;
+    });
+  }
+
   return category;
 };
 
 // Get category by slug
-export const getCategoryBySlug = async (slug: string) => {
+export const getCategoryBySlug = async (slug: string, showNestedCourses: boolean = false) => {
+  // Build dynamic include for children based on flag
+  const childrenInclude: any = {
+    select: {
+      id: true,
+      parentId: true,
+      name: true,
+      slug: true,
+      description: true,
+      icon: true,
+      status: true,
+      sequence: true,
+      createdAt: true,
+      updatedAt: true,
+      _count: {
+        select: {
+          courses: true,
+        },
+      },
+    },
+  };
+
+  // Only fetch child courses if flag is enabled
+  if (showNestedCourses) {
+    childrenInclude.select.courses = {
+      where: {
+        status: "active",
+      },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        thumbnailImage: true,
+        level: true,
+        duration: true,
+        rating: true,
+      },
+    };
+  }
+
   const category = await prisma.category.findUnique({
     where: { slug },
     include: {
       parent: true,
-      children: true,
+      children: childrenInclude,
       courses: {
         where: {
           status: "active",
+        },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          thumbnailImage: true,
+          level: true,
+          duration: true,
+          rating: true,
         },
       },
       _count: {
@@ -138,6 +244,25 @@ export const getCategoryBySlug = async (slug: string) => {
       },
     },
   });
+
+  if (!category) {
+    return null;
+  }
+
+  // If showNestedCourses is true, flatten child courses into parent
+  if (showNestedCourses && category.children.length > 0) {
+    const childCourses = category.children.flatMap((child: any) => child.courses || []);
+    category.courses = [...category.courses, ...childCourses];
+
+    // Update count to reflect total courses (parent + children)
+    category._count.courses = category.courses.length;
+
+    // Remove courses from children to avoid duplication in frontend
+    category.children = category.children.map((child: any) => {
+      const { courses, ...childWithoutCourses } = child;
+      return childWithoutCourses;
+    });
+  }
 
   return category;
 };

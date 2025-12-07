@@ -43,8 +43,9 @@ export const getFlatCategories = async (req: Request, res: Response, next: NextF
 export const getCategoryById = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
+    const { showNestedCourses } = req.query;
 
-    const category = await categoryService.getCategoryById(id);
+    const category = await categoryService.getCategoryById(id, showNestedCourses === "true");
 
     if (!category) {
       return res.status(404).json({
@@ -66,8 +67,9 @@ export const getCategoryById = async (req: Request, res: Response, next: NextFun
 export const getCategoryBySlug = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { slug } = req.params;
+    const { showNestedCourses } = req.query;
 
-    const category = await categoryService.getCategoryBySlug(slug);
+    const category = await categoryService.getCategoryBySlug(slug, showNestedCourses === "true");
 
     if (!category) {
       return res.status(404).json({
@@ -100,7 +102,6 @@ export const getChildCategories = async (req: Request, res: Response, next: Next
     next(error);
   }
 };
-
 
 // ---------------------- admin ----------------------
 
