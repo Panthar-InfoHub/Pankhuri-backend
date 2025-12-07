@@ -28,6 +28,16 @@ export const initiateSubscription = async (userId: string, planId: string) => {
     throw new Error("Plan not synced with payment gateway");
   }
 
+  // Get user to check if they've used trial
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { hasUsedTrial: true },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
   // Check for existing subscriptions (including pending)
   const existingSubscription = await prisma.userSubscription.findFirst({
     where: {
@@ -62,8 +72,10 @@ export const initiateSubscription = async (userId: string, planId: string) => {
     }
   }
 
-  const hasTrial = plan.trialDays > 0;
-  const hasTrialFee = plan.trialFee > 0;
+  // Determine if user can get trial - only if plan has trial AND user hasn't used it
+  const canUseTrial = plan.trialDays > 0 && !user.hasUsedTrial;
+  const hasTrial = canUseTrial;
+  const hasTrialFee = canUseTrial && plan.trialFee > 0;
   const isFreeTrialOrNoTrial = !hasTrialFee;
 
   // Calculate billing start (immediate if no trial, delayed if trial)
@@ -148,8 +160,15 @@ export const initiateSubscription = async (userId: string, planId: string) => {
     amount: hasTrialFee ? plan.trialFee : plan.price,
     currency: plan.currency,
     keyId: process.env.RAZORPAY_KEY_ID!,
-    trialDays: plan.trialDays,
+    trialDays: hasTrial ? plan.trialDays : 0,
     planName: plan.name,
+    hasTrial,
+    hasTrialFee,
+    message: hasTrial
+      ? hasTrialFee
+        ? `Pay ₹${plan.trialFee} trial fee for ${plan.trialDays} days trial`
+        : `Free ${plan.trialDays} days trial, then ₹${plan.price}/${plan.subscriptionType}`
+      : `Direct subscription: ₹${plan.price}/${plan.subscriptionType}`,
   };
 };
 
@@ -398,4 +417,61 @@ export const cancelPendingSubscription = async (userId: string): Promise<void> =
   if (result.count === 0) {
     throw new Error("No pending subscription found");
   }
+};
+
+// ==================== CONTENT ACCESS CONTROL ====================
+
+/**
+ * Check if user has active subscription
+ * Active means: trial, active, or past_due (grace period)
+ */
+export const hasActiveSubscription = async (userId: string): Promise<boolean> => {
+  if (!userId) return false;
+
+  const subscription = await prisma.userSubscription.findFirst({
+    where: {
+      userId,
+      status: { in: ["trial", "active", "past_due"] },
+    },
+    select: { id: true },
+  });
+
+  return !!subscription;
+};
+
+/**
+ * Get user's subscription details for access control
+ * Returns subscription info along with access permissions
+ */
+export const getUserAccessInfo = async (userId: string) => {
+  const subscription = await prisma.userSubscription.findFirst({
+    where: {
+      userId,
+      status: { in: ["trial", "active", "past_due"] },
+    },
+    include: {
+      plan: {
+        select: {
+          name: true,
+          slug: true,
+          subscriptionType: true,
+        },
+      },
+    },
+  });
+
+  return {
+    hasActiveSubscription: !!subscription,
+    subscription: subscription
+      ? {
+          id: subscription.id,
+          status: subscription.status,
+          isTrial: subscription.isTrial,
+          trialEndsAt: subscription.trialEndsAt,
+          currentPeriodEnd: subscription.currentPeriodEnd,
+          planName: subscription.plan.name,
+          planType: subscription.plan.subscriptionType,
+        }
+      : null,
+  };
 };

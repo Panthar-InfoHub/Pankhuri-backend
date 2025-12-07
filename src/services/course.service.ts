@@ -1,6 +1,8 @@
 import { Prisma, CourseStatus, CourseLevel } from "@/prisma/generated/prisma/client";
 import { prisma } from "../lib/db";
 
+// ==================== COURSE QUERIES ====================
+
 // Get all courses with filters
 export const getAllCourses = async (filters?: {
   categoryId?: string;
@@ -219,6 +221,7 @@ export const getCourseById = async (id: string, userId?: string) => {
     totalDuration += lesson.duration || 0;
   });
 
+  // Data is already sanitized at query level - no sensitive URLs or content fetched
   return {
     ...course,
     stats: {
@@ -332,6 +335,7 @@ export const getCourseBySlug = async (slug: string, userId?: string) => {
     totalDuration += lesson.duration || 0;
   });
 
+  // Data is already sanitized at query level - no sensitive URLs or content fetched
   return {
     ...course,
     stats: {
