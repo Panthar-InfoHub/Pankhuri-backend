@@ -155,8 +155,7 @@ export const handleSubscriptionActivated = async (payload: any): Promise<void> =
   }
 
   console.log(
-    `[WEBHOOK] Setting status to: ${finalStatus}, trialEndsAt: ${
-      trialEndsAt?.toISOString() || "null"
+    `[WEBHOOK] Setting status to: ${finalStatus}, trialEndsAt: ${trialEndsAt?.toISOString() || "null"
     }`
   );
 
@@ -181,17 +180,16 @@ export const handleSubscriptionActivated = async (payload: any): Promise<void> =
     // Set hasUsedTrial if this is a trial subscription
     ...(finalStatus === "trial"
       ? [
-          prisma.user.update({
-            where: { id: subscription.userId },
-            data: { hasUsedTrial: true },
-          }),
-        ]
+        prisma.user.update({
+          where: { id: subscription.userId },
+          data: { hasUsedTrial: true },
+        }),
+      ]
       : []),
   ]);
 
   console.log(
-    `[WEBHOOK] ✅ Subscription activated: ${subscriptionId}, type: ${subscriptionType}, status: ${finalStatus}, trialEndsAt: ${
-      trialEndsAt?.toISOString() || "null"
+    `[WEBHOOK] ✅ Subscription activated: ${subscriptionId}, type: ${subscriptionType}, status: ${finalStatus}, trialEndsAt: ${trialEndsAt?.toISOString() || "null"
     }${finalStatus === "trial" ? ", hasUsedTrial set to true" : ""}`
   );
 };
@@ -266,19 +264,19 @@ export const handleInvoicePaid = async (payload: any): Promise<void> => {
     }),
     subscription
       ? prisma.userSubscription.update({
-          where: { id: subscription.id },
-          data: {
-            status: "active",
-            isTrial: false,
-            currentPeriodStart: invoiceEntity.period_start
-              ? new Date(invoiceEntity.period_start * 1000)
-              : undefined,
-            currentPeriodEnd: invoiceEntity.period_end
-              ? new Date(invoiceEntity.period_end * 1000)
-              : undefined,
-            graceUntil: null,
-          },
-        })
+        where: { id: subscription.id },
+        data: {
+          status: "active",
+          isTrial: false,
+          currentPeriodStart: invoiceEntity.period_start
+            ? new Date(invoiceEntity.period_start * 1000)
+            : undefined,
+          currentPeriodEnd: invoiceEntity.period_end
+            ? new Date(invoiceEntity.period_end * 1000)
+            : undefined,
+          graceUntil: null,
+        },
+      })
       : Promise.resolve(),
   ]);
 
@@ -314,9 +312,9 @@ export const handleInvoicePaymentFailed = async (payload: any): Promise<void> =>
     }),
     subscription
       ? prisma.userSubscription.update({
-          where: { id: subscription.id },
-          data: { status: "past_due", graceUntil },
-        })
+        where: { id: subscription.id },
+        data: { status: "past_due", graceUntil },
+      })
       : Promise.resolve(),
   ]);
 
@@ -490,5 +488,32 @@ export const processWebhook = async (event: string, payload: any): Promise<void>
     await handler(payload);
   } else {
     console.log(`[WEBHOOK] Unhandled event: ${event}`);
+  }
+};
+
+export const processRTDN = async (notification: any): Promise<void> => {
+
+  const { subscriptionNotification } = notification;
+  if (!subscriptionNotification) {
+    console.log(`[RTDN] Unhandled notification type`);
+    return;
+  }
+
+  const handlers: Record<number, (payload: any) => Promise<void>> = {
+
+    2: handleSubscriptionActivated, //Subscription renewed
+    3: handleSubscriptionCancelled, //Subscription cancelled
+    4: handleSubscriptionAuthenticated, //Subscription purchased : in case it is faster than mannual webhook
+    6: handleSubscriptionCharged, // Susbscription is in grace period : do nothing
+    5: handleSubscriptionHalted, //Subscription on hold  ; after grace period unable to pay
+    // 1 : Subscription recovered after grace period : not handled
+    //13 : subscription expiry 
+  };
+
+  const handler = handlers[subscriptionNotification.notificationType];
+  if (handler) {
+    await handler(notification);
+  } else {
+    console.log(`[WEBHOOK] Unhandled event: ${subscriptionNotification.notificationType}`);
   }
 };

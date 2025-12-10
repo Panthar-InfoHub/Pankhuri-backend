@@ -22,10 +22,12 @@
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "firebase-admin": "^13.5.0",
+    "google-auth-library": "^10.5.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.1",
     "puppeteer": "^24.31.0",
     "puppeteer-core": "^24.31.0",
+    "razorpay": "^2.9.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
@@ -45,4 +47,3 @@
     "typescript": "^5.9.3"
   }
 }
-

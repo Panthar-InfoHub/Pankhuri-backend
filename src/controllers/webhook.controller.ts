@@ -5,7 +5,7 @@
 
 import { Request, Response, NextFunction } from "express";
 import { verifyWebhookSignature } from "@/lib/payment-gateway";
-import { processWebhook } from "@/services/webhook.service";
+import { processRTDN, processWebhook } from "@/services/webhook.service";
 
 // ==================== WEBHOOK HANDLER ====================
 
@@ -84,6 +84,50 @@ export const handlePaymentWebhook = async (req: Request, res: Response, next: Ne
     return res.status(200).json({
       success: false,
       message: "Webhook processing error",
+    });
+  }
+};
+
+export const handlePaymentRtdnWebhook = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    console.log(`\n ==================== INCOMING RTDN ====================`);
+
+
+    const message = req.body.message;
+    if (!message?.data) {
+      console.log(`[RTDN] ❌ Missing message in request body`);
+      return res.status(400).json({
+        success: false,
+        message: "Missing message in request body",
+      });
+    }
+    console.log(`[RTDN] Message : ${message}`);
+
+    const notification = JSON.parse(
+      Buffer.from(message.data, 'base64').toString()
+    );
+
+    console.log(`[RTDN] Payload preview:`, JSON.stringify(notification).substring(0, 200) + "...");
+
+    // Process webhook asynchronously (don't block response)
+    processRTDN(notification)
+      .then(() => {
+        console.log(`\n Webhook processed successfully: ${event}`);
+      })
+      .catch((error) => {
+        console.error(`Error processing webhook ${event}:`, error);
+      });
+
+    // Return 200 immediately (critical for webhook retry logic)
+    return res.status(200).json({
+      success: true,
+      message: "RTDN received",
+    });
+  } catch (error: any) {
+    console.error(`\n Google play rtdn processing error ==> `, error);
+    return res.status(200).json({
+      success: false,
+      message: "RTDN processing error",
     });
   }
 };

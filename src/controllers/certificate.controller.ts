@@ -5,29 +5,50 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { NextFunction, Request, Response } from "express";
 import { s3Client } from "@/lib/s3Client";
 import { registerUser, sendMessage } from "@/lib/helper";
-import { createCertificateInDb } from "@/services/certificate.service";
+import { createCertificateInDb, getAllCertificateByUserId } from "@/services/certificate.service";
+import { getCourseById } from "@/services/course.service";
+import { getUserById } from "@/services/user.service";
 
 export const createCertificate = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { Name: name, course, date: studentDate, phone } = req.body;
+        const { course_id, date: studentDate, phone } = req.body;
         const userId = req.user!.id;
+
+        if (!userId || !course_id || !phone) {
+            return res.status(401).json({
+                success: false,
+                message: "Missing required fields for certificate generation.",
+            });
+        }
+        const user = await getUserById(userId);
+
+        if (!user || !user.displayName) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
 
         console.debug("\n\nStudent data ===> ", req.body)
         const date = studentDate ? studentDate : new Date().toISOString().split("T")[0]
 
-        if (!name || !course) {
-            return res.status(400).json({
-                success: false, message: "Missing required student data (name, course)."
+
+        console.debug(`\n\n Creating certificate of student with data :  `, { name: user.displayName, course_id, date, phone })
+        const course = await getCourseById(course_id);
+
+
+        if (!course) {
+            console.warn("\n Course not found for certificate generation:", course_id)
+            return res.status(404).json({
+                success: false, message: "Course not found."
             });
         }
-
-        console.debug(`\n\n Creating certificate of student with data :  `, { name, course, date, phone })
 
         const { renderToStaticMarkup } = await import("react-dom/server")
         const Certificate = (await import("@/lib/certificate")).default
 
         const certHtml = renderToStaticMarkup(
-            Certificate({ name, course, date, mode: "server" })
+            Certificate({ name: user.displayName, course: course.title, date, mode: "server" })
         )
 
         const fullHtml = `
@@ -115,7 +136,7 @@ export const createCertificate = async (req: Request, res: Response, next: NextF
         await new Promise(resolve => setTimeout(resolve, 1500));
 
         const tempDir = os.tmpdir();
-        const tempPath = path.join(tempDir, `${name.replace(/ /g, "_")}_${Date.now()}.pdf`);
+        const tempPath = path.join(tempDir, `${user.displayName.replace(/ /g, "_")}_${Date.now()}.pdf`);
 
         await page.evaluateHandle('document.fonts.ready');
         const certificateElement = await page.$('#certificate-design');
@@ -148,7 +169,7 @@ export const createCertificate = async (req: Request, res: Response, next: NextF
         const fileBuffer = await fs.readFile(tempPath);
         const bucketName = 'pankhuri-v3';
         const timestamp = Date.now();
-        const destination = `certificates/${name.replace(/ /g, '_')}_${timestamp}.pdf`;
+        const destination = `certificates/${user.displayName.replace(/ /g, '_')}_${timestamp}.pdf`;
 
         const command = new PutObjectCommand({
             Bucket: bucketName,
@@ -167,13 +188,14 @@ export const createCertificate = async (req: Request, res: Response, next: NextF
         console.debug("\n Public URL ==> ", publicUrl)
 
         // Register Student
-        const certificateRecord = await createCertificateInDb({
+        await createCertificateInDb({
             userId: userId,
-            certificateNumber: destination,
+            courseId: course_id,
+            certificateNumber: `CERT-${timestamp}`,
             certificateUrl: publicUrl,
             metaData: {}
         });
-        const registerRes = await registerUser(name, phone)
+        const registerRes = await registerUser(user.displayName, phone)
         console.debug("\n Register res ==> ", registerRes)
 
         if (!registerRes.success) {
@@ -181,7 +203,7 @@ export const createCertificate = async (req: Request, res: Response, next: NextF
         }
 
         // Send WhatsApp Message
-        const msgRes = await sendMessage({ phoneNo: phone, course, date, name, publicUrl })
+        const msgRes = await sendMessage({ phoneNo: phone, course: course.title, date, name: user.displayName, publicUrl });
 
         if (!msgRes.success) {
             return res.status(500).json({
@@ -194,7 +216,7 @@ export const createCertificate = async (req: Request, res: Response, next: NextF
         return res.status(200).json({
             success: true,
             message: msgRes.message,
-            name: name,
+            name: user.displayName,
             publicUrl,
         });
 
@@ -203,3 +225,20 @@ export const createCertificate = async (req: Request, res: Response, next: NextF
     }
 }
 
+export const getCertificatesByUser = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+
+        const userId = req.user!.id;
+        const page = req.query.page ? parseInt(req.query.page as string) : 1;
+        const limit = req.query.limit ? parseInt(req.query.limit as string) : 30;
+
+        const result = await getAllCertificateByUserId({ userId, page, limit });
+
+        res.json({
+            success: true,
+            ...result,
+        });
+    } catch (error) {
+        next(error);
+    }
+}

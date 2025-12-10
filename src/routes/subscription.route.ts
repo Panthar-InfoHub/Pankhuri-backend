@@ -28,4 +28,7 @@ router.get("/:id", authenticateWithSession, getSubscriptionByIdHandler);
 router.post("/:id/cancel", authenticateWithSession, cancelAtPeriodEndHandler);
 router.post("/:id/cancel-immediately", authenticateWithSession, cancelImmediatelyHandler);
 
+// Google Play payment handling routes
+router.post("/google-play", authenticateWithSession )
+
 export default router;

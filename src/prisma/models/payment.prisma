@@ -1,3 +1,8 @@
+enum PaymentGateway {
+  razorpay
+  google_play
+}
+
 // ------------------------------------------------------
 // SUBSCRIPTION PLANS (Admin-defined)
 // ------------------------------------------------------
@@ -12,10 +17,11 @@ model SubscriptionPlan {
   discountedPrice  Int?
   currency         String           @default("INR")
 
-  // Razorpay mapping
-  planId          String?         @unique
-  trialDays       Int             @default(0) // 0 = no trial, >0 = trial days
-  trialFee        Int             @default(0) // 0 = free trial, >0 = paid trial in paise
+  // Payment gateway mapping
+  provider  PaymentGateway @default(razorpay)
+  planId    String?        @unique
+  trialDays Int            @default(0) // 0 = no trial, >0 = trial days : Only for Razorpay
+  trialFee  Int            @default(0) // 0 = free trial, >0 = paid trial in paise : Only for Razorpay
 
   features Json?
   isActive Boolean @default(true)
@@ -40,8 +46,11 @@ model UserSubscription {
   planId String
   plan   SubscriptionPlan @relation(fields: [planId], references: [id])
 
-  // Razorpay mapping
-  subscriptionId String? @unique
+  // Paymetn gateway mapping
+  provider             PaymentGateway @default(razorpay)
+  subscriptionId       String?        @unique // Only for razorpay 
+  currentPurchaseToken String? // for Google Play
+  linkedPurchaseTokens Json? // for Google Play Renewals - skip for developer payload
 
   status SubscriptionStatus @default(pending)
 
@@ -61,6 +70,8 @@ model UserSubscription {
   updatedAt DateTime @updatedAt
 
   payments Payment[]
+
+  @@unique([userId, planId])
 }
 
 // ------------------------------------------------------
@@ -81,7 +92,7 @@ model Payment {
   // Razorpay mapping
   invoiceId             String? // Razorpay invoice
   gatewaySubscriptionId String? // Razorpay subscription ID
-  orderId               String? // Razorpay one-time order (trial fee)
+  orderId               String? // Razorpay one-time order (trial fee) | Google play order ID
   paymentId             String? // Razorpay payment ID
   transactionId         String? // alias if needed
 
@@ -110,7 +121,6 @@ enum SubscriptionType {
   monthly
   yearly
 }
-
 
 enum SubscriptionStatus {
   pending

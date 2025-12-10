@@ -6,6 +6,8 @@
 import { prisma } from "@/lib/db";
 import { UserSubscription, SubscriptionStatus } from "@/prisma/generated/prisma/client";
 import { createGatewaySubscription, cancelGatewaySubscription } from "@/lib/payment-gateway";
+import { GooglePlayReceipt } from "@/lib/types";
+import { google_auth } from "@/lib/pub_sub";
 
 // ==================== INITIATE SUBSCRIPTION ====================
 
@@ -15,7 +17,7 @@ import { createGatewaySubscription, cancelGatewaySubscription } from "@/lib/paym
  * - Free trial: trialDays > 0, trialFee = 0
  * - Paid trial: trialDays > 0, trialFee > 0
  */
-export const initiateSubscription = async (userId: string, planId: string) => {
+export const initiateSubscription = async (userId: string, planId: string, data?: any) => {
   const plan = await prisma.subscriptionPlan.findUnique({
     where: { id: planId, isActive: true },
   });
@@ -37,6 +39,61 @@ export const initiateSubscription = async (userId: string, planId: string) => {
   if (!user) {
     throw new Error("User not found");
   }
+
+  if (plan.provider === 'google_play') {
+
+    const receipt = data.receipt;
+    const lineItem = receipt.lineItems[0]; // main plan info
+    const expiryTime = new Date(lineItem.expiryTime);
+
+    const isTrial = receipt.subscriptionState === 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD'
+      || (lineItem.offerDetails?.offerTags?.includes('trial'));
+
+    const status = isTrial ? 'trial' : 'active';
+    const sub: any = await prisma.userSubscription.upsert({
+      where: {
+        userId_planId: {
+          userId,
+          planId
+        }
+      },
+      update: {
+        currentPurchaseToken: data.purchaseToken,
+        currentPeriodStart: new Date(data.startTime),
+        currentPeriodEnd: new Date(data.lineItems[0].expiryTime),
+        status: status,
+      },
+      create: {
+        userId: data.userId,
+        planId: plan.id,
+        provider: 'google_play',
+        currentPurchaseToken: data.purchaseToken,
+        status,
+        currentPeriodStart: new Date(receipt.startTime),
+        currentPeriodEnd: expiryTime,
+        isTrial: !!isTrial,
+      }
+    });
+
+    await prisma.payment.create({
+      data: {
+        userId,
+        planId: plan.id,
+        userSubscriptionId: sub.id,
+        orderId : receipt.orderId,
+        amount: plan.price, // Use plan price or derive from lineItems priceAmountMicros
+        currency: plan.currency,
+        paymentGateway: 'google_play',
+        status: 'paid',
+        paymentType: isTrial ? 'trial' : 'recurring',
+        eventType: receipt.subscriptionState,
+      }
+    });
+
+    return sub;
+  }
+
+
 
   // Check for existing subscriptions (including pending)
   const existingSubscription = await prisma.userSubscription.findFirst({
@@ -464,14 +521,70 @@ export const getUserAccessInfo = async (userId: string) => {
     hasActiveSubscription: !!subscription,
     subscription: subscription
       ? {
-          id: subscription.id,
-          status: subscription.status,
-          isTrial: subscription.isTrial,
-          trialEndsAt: subscription.trialEndsAt,
-          currentPeriodEnd: subscription.currentPeriodEnd,
-          planName: subscription.plan.name,
-          planType: subscription.plan.subscriptionType,
-        }
+        id: subscription.id,
+        status: subscription.status,
+        isTrial: subscription.isTrial,
+        trialEndsAt: subscription.trialEndsAt,
+        currentPeriodEnd: subscription.currentPeriodEnd,
+        planName: subscription.plan.name,
+        planType: subscription.plan.subscriptionType,
+      }
       : null,
   };
+};
+
+
+export const verifyGooglePlayReceipt = async (purchaseToken: string, productId?: string): Promise<GooglePlayReceipt> => {
+  try {
+
+    const client = await google_auth.getClient();
+    const accessToken = await client.getAccessToken();
+
+    const url = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${process.env.PACKAGE_NAME}/purchases/subscriptionsv2/tokens/${purchaseToken}`;
+
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken.token}`,
+        'Content-Type': 'application/json',
+      }
+    });
+
+    if (!res.ok) {
+      throw new Error("Invalid purchase token");
+    }
+    const data = await res.json();
+    return {
+      startTime: data.startTime,
+      subscriptionState: data.subscriptionState,
+      orderId: data.latestOrderId,
+      acknowledgementState: data.acknowledgementState,
+      subscribeWithGoogleInfo: data.subscribeWithGoogleInfo,
+      lineItems: data.lineItems,
+    };
+
+  } catch (error) {
+    console.error("Error verifying Google Play receipt:", error);
+    throw new Error("Failed to verify Google Play receipt");
+  }
+}
+
+export const acknowledgeGooglePlayPurchase = async (token: string, productId: string) => {
+  const client = await google_auth.getClient();
+  const accessToken = await client.getAccessToken();
+
+  const url = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${process.env.PACKAGE_NAME}/purchases/subscriptions/${productId}/tokens/${token}:acknowledge`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ developerPayload: 'api_ack' })
+  });
+
+  if (!response.ok) {
+    console.error(`Ack failed: ${await response.text()}`);
+  }
 };

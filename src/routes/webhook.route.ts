@@ -4,7 +4,7 @@
  */
 
 import express from "express";
-import { handlePaymentWebhook } from "@/controllers/webhook.controller";
+import { handlePaymentRtdnWebhook, handlePaymentWebhook } from "@/controllers/webhook.controller";
 
 const router = express.Router();
 
@@ -13,5 +13,6 @@ const router = express.Router();
 // Payment gateway webhook
 // Public endpoint (verified via signature)
 router.post("/payment", handlePaymentWebhook);
+router.post("/payment-rtdn", handlePaymentRtdnWebhook);
 
 export default router;

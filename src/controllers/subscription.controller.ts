@@ -13,7 +13,10 @@ import {
   cancelImmediately,
   getUserSubscriptionStatus,
   cancelPendingSubscription,
+  verifyGooglePlayReceipt,
+  acknowledgeGooglePlayPurchase,
 } from "@/services/subscription.service";
+import { GooglePlayReceipt } from "@/lib/types";
 
 // ==================== INITIATE SUBSCRIPTION ====================
 
@@ -226,6 +229,45 @@ export const cancelPendingSubscriptionHandler = async (
     return res.status(200).json({
       success: true,
       message: "Pending subscription cancelled successfully",
+    });
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+
+
+/**
+ * Initiate Google Play subscription
+ * Authenticated
+ */
+export const handleGooglePlaySubscriptionCreate = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = req.body;
+    const userId = req.user!.id;
+
+
+    if (!data.planId || !data.purchaseToken || !data.productId) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: planId, productId, or purchaseToken",
+      });
+    }
+
+    // Verify token with google play
+    const receipt: GooglePlayReceipt = await verifyGooglePlayReceipt(data.purchaseToken, data.planId);
+
+    const paymentInfo = await initiateSubscription(userId, data.planId, {
+      ...data,
+      receipt,
+    });
+
+    await acknowledgeGooglePlayPurchase(data.purchaseToken, data.productId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Subscription initiated. Complete payment to activate.",
+      data: paymentInfo,
     });
   } catch (error: any) {
     next(error);
