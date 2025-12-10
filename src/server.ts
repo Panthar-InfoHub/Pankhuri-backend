@@ -17,6 +17,7 @@ import planRoutes from "@/routes/plan.route";
 import subscriptionRoutes from "@/routes/subscription.route";
 import webhookRoutes from "@/routes/webhook.route";
 import { errorHandler } from "./middleware/error.middleware";
+import streamRouter from "./routes/stream.route";
 
 //Configurations
 dotenv.config({
@@ -34,6 +35,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/videos", videoRoutes);
+app.use("/api/stream", streamRouter);
 app.use("/api/certificate", certificateRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/courses", courseRoutes);

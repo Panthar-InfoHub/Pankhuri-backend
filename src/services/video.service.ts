@@ -36,8 +36,11 @@ export const getVideoById = async (id: string) => {
     const video = await prisma.video.findUnique({
       where: { id },
     });
+    let streamUrl = ""
+    if (video?.playbackUrl) streamUrl = `${process.env.BACKEND_URL}/api/stream${video.playbackUrl}`;
 
-    return video;
+
+    return { video, streamUrl };
   } catch (error: any) {
     console.error("Get video error:", error);
     throw new Error("Failed to fetch video. Please try again.");

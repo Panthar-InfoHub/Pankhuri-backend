@@ -16,7 +16,7 @@ const router = express.Router();
 // Admin routes - all video operations require admin access
 router.post("/", authenticateWithSession, requireAdmin, createVideoHandler);
 router.get("/", authenticateWithSession, requireAdmin, getAllVideosHandler);
-router.get("/:id", authenticateWithSession, requireAdmin, getVideoHandler);
+router.get("/:id", authenticateWithSession, getVideoHandler);
 router.put("/:id", authenticateWithSession, requireAdmin, updateVideoHandler);
 router.patch("/:id/status", authenticateWithSession, requireAdmin, updateVideoStatusHandler);
 router.delete("/:id", authenticateWithSession, requireAdmin, deleteVideoHandler);
