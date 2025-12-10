@@ -11,6 +11,7 @@ import {
   getFreeLessons,
   getNextLesson,
   getPreviousLesson,
+  checkLessonAccess,
 } from "@services/lesson.service";
 import { LessonType, LessonStatus } from "@/prisma/generated/prisma/client";
 
@@ -19,6 +20,7 @@ import { LessonType, LessonStatus } from "@/prisma/generated/prisma/client";
 /**
  * Get all lessons for a course
  * GET /api/lessons/course/:courseId
+ * Shows all lessons (title, duration, etc.) - access control applied when opening individual lesson
  */
 export const getLessonsByCourseHandler = async (
   req: Request,
@@ -52,6 +54,7 @@ export const getLessonsByCourseHandler = async (
 /**
  * Get lessons by module
  * GET /api/lessons/module/:moduleId
+ * Shows all lessons (title, duration, etc.) - access control applied when opening individual lesson
  */
 export const getLessonsByModuleHandler = async (
   req: Request,
@@ -75,19 +78,36 @@ export const getLessonsByModuleHandler = async (
 };
 
 /**
- * Get lesson by ID
+ * Get lesson by ID with access control
  * GET /api/lessons/:id
  */
 export const getLessonByIdHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.id; // May be undefined for guest users
 
-    const lesson = await getLessonById(id);
+    // Check lesson access
+    const { lesson, hasAccess, reason } = await checkLessonAccess(id, userId);
 
     if (!lesson) {
       return res.status(404).json({
         success: false,
         error: "Lesson not found",
+      });
+    }
+
+    // If no access, return limited info
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false,
+        error: reason || "Access denied",
+        code: "SUBSCRIPTION_REQUIRED",
+        data: {
+          id: lesson.id,
+          title: lesson.title,
+          isFree: lesson.isFree,
+          requiresSubscription: !lesson.isFree,
+        },
       });
     }
 
@@ -118,12 +138,13 @@ export const getLessonByIdHandler = async (req: Request, res: Response, next: Ne
 };
 
 /**
- * Get lesson by slug
+ * Get lesson by slug with access control
  * GET /api/lessons/course/:courseId/slug/:slug
  */
 export const getLessonBySlugHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { courseId, slug } = req.params;
+    const userId = req.user?.id;
 
     const lesson = await getLessonBySlug(courseId, slug);
 
@@ -131,6 +152,24 @@ export const getLessonBySlugHandler = async (req: Request, res: Response, next: 
       return res.status(404).json({
         success: false,
         error: "Lesson not found",
+      });
+    }
+
+    // Check lesson access
+    const { hasAccess, reason } = await checkLessonAccess(lesson.id, userId);
+
+    // If no access, return limited info
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false,
+        error: reason || "Access denied",
+        code: "SUBSCRIPTION_REQUIRED",
+        data: {
+          id: lesson.id,
+          title: lesson.title,
+          isFree: lesson.isFree,
+          requiresSubscription: !lesson.isFree,
+        },
       });
     }
 

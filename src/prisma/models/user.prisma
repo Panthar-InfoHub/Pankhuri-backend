@@ -31,6 +31,8 @@ model User {
   status             UserStatus @default(active)
   role               UserRole   @default(user)
   hasUsedTrial       Boolean    @default(false)
+  profession         String?
+  metadata           Json? // Store additional info like referral source, hobbies, etc.
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
 
@@ -40,7 +42,10 @@ model User {
   lessonProgress UserLessonProgress[]
   courseProgress UserCourseProgress[]
   reviews        CourseReview[]
+  subscriptions  UserSubscription[]
+  payments       Payment[]
   certificates   Certificate[]
+  UserStreak     UserStreak?
 
   @@index([email])
   @@index([phone])

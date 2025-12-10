@@ -25,21 +25,25 @@ import {
 
 const router = express.Router();
 
-// ==================== PUBLIC/AUTHENTICATED ROUTES ====================
+// ==================== PUBLIC ROUTES ====================
+// Lesson lists are public - show all lessons with title, duration, etc.
 
 // Get lessons by course
-router.get("/course/:courseId", authenticateWithSession, getLessonsByCourseHandler);
+router.get("/course/:courseId", getLessonsByCourseHandler);
 
 // Get free lessons (preview)
 router.get("/course/:courseId/free", getFreeLessonsHandler);
 
 // Get lessons by module
-router.get("/module/:moduleId", authenticateWithSession, getLessonsByModuleHandler);
+router.get("/module/:moduleId", getLessonsByModuleHandler);
 
-// Get lesson by ID
+// ==================== AUTHENTICATED ROUTES ====================
+// Individual lesson access requires authentication + subscription check
+
+// Get lesson by ID (requires auth, checks subscription in controller)
 router.get("/:id", authenticateWithSession, getLessonByIdHandler);
 
-// Get lesson by slug
+// Get lesson by slug (requires auth, checks subscription in controller)
 router.get("/course/:courseId/slug/:slug", authenticateWithSession, getLessonBySlugHandler);
 
 // ==================== ADMIN/TRAINER ROUTES ====================

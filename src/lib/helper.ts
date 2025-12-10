@@ -32,7 +32,6 @@ export const registerUser = async (name: string, phone: string) => {
 
 export const sendMessage = async ({ phoneNo = "", name, course, date, publicUrl }: any) => {
 
-    console.debug(`Name ==> ${name}, `)
     try {
 
         const messagePayload = {
@@ -88,3 +87,5 @@ export const sendMessage = async ({ phoneNo = "", name, course, date, publicUrl 
         return { success: false, error, message: "Error while sending message..." }
     }
 }
+
+// export const generateCertificateNumber = (userId: string, courseId: string): string => {}

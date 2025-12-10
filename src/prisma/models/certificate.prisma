@@ -1,6 +1,7 @@
 model Certificate {
     id                String   @id @default(cuid())
     userId            String
+    courseId          String
     certificateNumber String   @unique
     certificateUrl    String
     metaData          Json?
@@ -8,7 +9,8 @@ model Certificate {
     updatedAt         DateTime @updatedAt
 
     // Relations
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+    course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
     @@unique([userId, certificateNumber])
 }

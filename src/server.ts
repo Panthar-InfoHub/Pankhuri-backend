@@ -13,7 +13,11 @@ import lessonRoutes from "@/routes/lesson.route";
 import sessionRoutes from "@/routes/session.route";
 import progressRoutes from "@/routes/progress.route";
 import reviewRoutes from "@/routes/review.route";
+import planRoutes from "@/routes/plan.route";
+import subscriptionRoutes from "@/routes/subscription.route";
+import webhookRoutes from "@/routes/webhook.route";
 import { errorHandler } from "./middleware/error.middleware";
+import streamRouter from "./routes/stream.route";
 
 //Configurations
 dotenv.config({
@@ -31,6 +35,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/videos", videoRoutes);
+app.use("/api/stream", streamRouter);
 app.use("/api/certificate", certificateRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/courses", courseRoutes);
@@ -39,6 +44,9 @@ app.use("/api/lessons", lessonRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/progress", progressRoutes);
 app.use("/api", reviewRoutes);
+app.use("/api/plans", planRoutes);
+app.use("/api/subscriptions", subscriptionRoutes);
+app.use("/api/webhooks", webhookRoutes);
 
 //Health check
 app.get("/ping", (_, res) => {
