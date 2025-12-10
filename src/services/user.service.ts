@@ -108,7 +108,7 @@ export const createUser = async (userData: Prisma.UserCreateInput) => {
 
 export const updateUser = async (
   userId: string,
-  updates: Prisma.UserUpdateInput
+  updates: Prisma.UserUpdateInput | any
 ): Promise<User | null> => {
   // Check for duplicate email (if updating email)
   if (updates.email && typeof updates.email === "string") {
