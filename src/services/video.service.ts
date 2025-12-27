@@ -13,6 +13,7 @@ export const createVideo = async (data: Prisma.VideoCreateInput, quality: number
         status: data.status || "uploading",
         duration: data.duration,
         metadata: data.metadata,
+        videoDescription: data.videoDescription
       },
     });
 

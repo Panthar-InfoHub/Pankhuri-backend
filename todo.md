@@ -4,6 +4,17 @@
 - multistep form on signup
 - for security only send data to user that needed not whole object and relation objects
 - how can i support the related products for this
+
+
+
+- Video description :
+disclaimer
+timestamps : [
+  { time_interval : time_content }
+]
+decscripion (markdown string),
+
+
 ===================================================================
 
 POST /play/purchase/confirm
