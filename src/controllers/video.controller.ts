@@ -39,6 +39,14 @@ import { z } from "zod";
 const VideoDescriptionSchema = z.object({
   disclaimer: z.string().optional(),
 
+  products: z.array(
+    z.object({
+      name: z.string().min(1),
+      url: z.string(),
+      image: z.string(),
+    })
+  ).optional(),
+
   timestamps: z
     .array(
       z.object({
