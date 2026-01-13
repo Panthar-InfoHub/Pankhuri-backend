@@ -13,6 +13,7 @@ import {
   cancelImmediatelyHandler,
   getSubscriptionStatusHandler,
   cancelPendingSubscriptionHandler,
+  handleGooglePlaySubscriptionCreate,
 } from "@/controllers/subscription.controller";
 import { authenticateWithSession, requireAdmin } from "@/middleware/session.middleware";
 
@@ -29,6 +30,6 @@ router.post("/:id/cancel", authenticateWithSession, cancelAtPeriodEndHandler);
 router.post("/:id/cancel-immediately", authenticateWithSession, cancelImmediatelyHandler);
 
 // Google Play payment handling routes
-router.post("/google-play", authenticateWithSession )
+router.post("/google-play", authenticateWithSession, handleGooglePlaySubscriptionCreate);
 
 export default router;

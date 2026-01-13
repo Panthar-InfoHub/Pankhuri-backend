@@ -27,6 +27,10 @@ model SubscriptionPlan {
   isActive Boolean @default(true)
   order    Int?
 
+  // New: Entitlement mapping
+  planType PlanType @default(WHOLE_APP)
+  targetId String? // Category ID or Course ID
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -43,8 +47,8 @@ model UserSubscription {
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
-  planId String
-  plan   SubscriptionPlan @relation(fields: [planId], references: [id])
+  planId String?
+  plan   SubscriptionPlan? @relation(fields: [planId], references: [id])
 
   // Paymetn gateway mapping
   provider             PaymentGateway @default(razorpay)
@@ -83,8 +87,8 @@ model Payment {
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
-  planId String
-  plan   SubscriptionPlan @relation(fields: [planId], references: [id])
+  planId String?
+  plan   SubscriptionPlan? @relation(fields: [planId], references: [id])
 
   userSubscriptionId String?
   userSubscription   UserSubscription? @relation(fields: [userSubscriptionId], references: [id])
@@ -120,6 +124,7 @@ model Payment {
 enum SubscriptionType {
   monthly
   yearly
+  lifetime
 }
 
 enum SubscriptionStatus {
@@ -143,4 +148,41 @@ enum PaymentType {
   trial
   recurring
   one_time
+}
+
+// ------------------------------------------------------
+// NEW: ENTITLEMENTS (Fast lookups for access control)
+// ------------------------------------------------------
+
+enum PlanType {
+  WHOLE_APP
+  CATEGORY
+  COURSE
+}
+
+enum EntitlementStatus {
+  active
+  revoked
+  expired
+}
+
+model UserEntitlement {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  type     PlanType
+  targetId String? // Category ID or Course ID, null for WHOLE_APP
+
+  status EntitlementStatus @default(active)
+  source String? // 'WEB' or 'APP'
+
+  validUntil DateTime? // Null for lifetime access (e.g. Courses)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, type, targetId])
+  @@index([userId])
+  @@index([userId, status])
 }

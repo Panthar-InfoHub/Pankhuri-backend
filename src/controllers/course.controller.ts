@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/db";
 import { Request, Response, NextFunction } from "express";
 import * as courseService from "../services/course.service";
 import { CourseLevel, CourseStatus } from "@/prisma/generated/prisma/client";
@@ -31,6 +32,7 @@ export const getAllCourses = async (req: Request, res: Response, next: NextFunct
       sort: sort as any,
       page: page ? parseInt(page as string) : undefined,
       limit: limit ? parseInt(limit as string) : undefined,
+      userId: (req as any).user?.id || (req.query.userId as string),
     });
 
     res.json({
@@ -46,9 +48,10 @@ export const getAllCourses = async (req: Request, res: Response, next: NextFunct
 export const getCourseById = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const { userId } = req.query; // Optional: pass userId as query param
+    const { userId: queryUserId } = req.query;
+    const userId = (req as any).user?.id || (queryUserId as string);
 
-    const course = await courseService.getCourseById(id, userId as string | undefined);
+    const course = await courseService.getCourseById(id, userId);
 
     if (!course) {
       return res.status(404).json({
@@ -70,9 +73,10 @@ export const getCourseById = async (req: Request, res: Response, next: NextFunct
 export const getCourseBySlug = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { slug } = req.params;
-    const { userId } = req.query;
+    const { userId: queryUserId } = req.query;
+    const userId = (req as any).user?.id || (queryUserId as string);
 
-    const course = await courseService.getCourseBySlug(slug, userId as string | undefined);
+    const course = await courseService.getCourseBySlug(slug, userId);
 
     if (!course) {
       return res.status(404).json({
@@ -98,7 +102,8 @@ export const getRelatedCourses = async (req: Request, res: Response, next: NextF
 
     const courses = await courseService.getRelatedCourses(
       id,
-      limit ? parseInt(limit as string) : undefined
+      limit ? parseInt(limit as string) : undefined,
+      (req as any).user?.id || (req.query.userId as string)
     );
 
     res.json({
@@ -116,7 +121,8 @@ export const getTrendingCourses = async (req: Request, res: Response, next: Next
     const { limit } = req.query;
 
     const courses = await courseService.getTrendingCourses(
-      limit ? parseInt(limit as string) : undefined
+      limit ? parseInt(limit as string) : undefined,
+      (req as any).user?.id || (req.query.userId as string)
     );
 
     res.json({
@@ -147,6 +153,8 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
       tags,
       metadata,
       demoVideoId,
+      price,
+      discountedPrice,
     } = req.body;
 
     // Validation
@@ -175,10 +183,33 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
       trainer: { connect: { id: trainerId } },
     });
 
+    // If price is provided, create a lifetime plan for this course
+    let plan = null;
+    if (price !== undefined && price > 0) {
+      plan = await prisma.subscriptionPlan.create({
+        data: {
+          name: `${title} - Lifetime Access`,
+          slug: `${slug}-lifetime`,
+          description: `Lifetime access to ${title}`,
+          subscriptionType: "lifetime",
+          planType: "COURSE",
+          targetId: course.id,
+          price: price,
+          discountedPrice: discountedPrice,
+          currency: "INR",
+          isActive: true,
+          provider: "razorpay",
+        },
+      });
+    }
+
     res.status(201).json({
       success: true,
       message: "Course created successfully",
-      data: course,
+      data: {
+        ...course,
+        plan,
+      },
     });
   } catch (error) {
     next(error);

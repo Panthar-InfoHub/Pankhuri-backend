@@ -16,6 +16,8 @@ import reviewRoutes from "@/routes/review.route";
 import planRoutes from "@/routes/plan.route";
 import subscriptionRoutes from "@/routes/subscription.route";
 import webhookRoutes from "@/routes/webhook.route";
+import purchaseRoutes from "@/routes/purchase.route";
+import entitlementRoutes from "@/routes/entitlement.route";
 import { errorHandler } from "./middleware/error.middleware";
 import streamRouter from "./routes/stream.route";
 
@@ -47,6 +49,8 @@ app.use("/api", reviewRoutes);
 app.use("/api/plans", planRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
 app.use("/api/webhooks", webhookRoutes);
+app.use("/api/purchases", purchaseRoutes);
+app.use("/api/entitlements", entitlementRoutes);
 
 //Health check
 app.get("/ping", (_, res) => {

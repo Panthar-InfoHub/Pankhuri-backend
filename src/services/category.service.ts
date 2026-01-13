@@ -1,8 +1,83 @@
 import { Prisma, CategoryStatus } from "@/prisma/generated/prisma/client";
 import { prisma } from "../lib/db";
 
+// Helper to attach pricing and ownership to categories (Optimized)
+const attachPricingToCategories = async (categories: any[], userId?: string) => {
+  if (categories.length === 0) return [];
+
+  // Recursive collection of all IDs in the tree
+  const getAllIds = (cats: any[]): string[] => {
+    return cats.reduce((acc, cat) => {
+      acc.push(cat.id);
+      if (cat.children) acc.push(...getAllIds(cat.children));
+      return acc;
+    }, [] as string[]);
+  };
+
+  const allIds = getAllIds(categories);
+
+  // 1. Batch fetch all active plans for these categories
+  const allPlans = await prisma.subscriptionPlan.findMany({
+    where: {
+      targetId: { in: allIds },
+      planType: "CATEGORY",
+      isActive: true
+    }
+  });
+
+  // 2. If userId provided, batch fetch active entitlements
+  let activeEntitlements: string[] = [];
+  let hasFullApp = false;
+  if (userId) {
+    const entitlements = await prisma.userEntitlement.findMany({
+      where: {
+        userId,
+        status: "active",
+        OR: [
+          { validUntil: null },
+          { validUntil: { gt: new Date() } }
+        ]
+      }
+    });
+    hasFullApp = entitlements.some(e => e.type === "WHOLE_APP");
+    activeEntitlements = entitlements
+      .filter(e => e.type === "CATEGORY" && e.targetId)
+      .map(e => e.targetId as string);
+  }
+
+  // 3. Recursive mapper
+  const mapCategories = (cats: any[]): any[] => {
+    return cats.map(cat => {
+      const catPlans = allPlans.filter(p => p.targetId === cat.id);
+      const isOwned = activeEntitlements.includes(cat.id);
+
+      const categoryWithPricing = {
+        ...cat,
+        isPaid: catPlans.length > 0,
+        hasAccess: hasFullApp || isOwned || catPlans.length === 0,
+        pricing: catPlans
+      };
+
+      if (cat.children && cat.children.length > 0) {
+        categoryWithPricing.children = mapCategories(cat.children);
+      }
+
+      return categoryWithPricing;
+    });
+  };
+
+  return mapCategories(categories);
+};
+
+// Help to attach pricing to a single category
+const attachPricingToCategory = async (cat: any, userId?: string) => {
+  if (!cat) return null;
+  const results = await attachPricingToCategories([cat], userId);
+  return results[0];
+}
+
 // Get all categories (tree structure)
-export const getAllCategories = async (status?: CategoryStatus) => {
+export const getAllCategories = async (status?: CategoryStatus, userId?: string) => {
   const where: Prisma.CategoryWhereInput = status ? { status } : {};
 
   const categories = await prisma.category.findMany({
@@ -27,7 +102,7 @@ export const getAllCategories = async (status?: CategoryStatus) => {
     },
   });
 
-  return categories;
+  return await attachPricingToCategories(categories, userId);
 };
 
 // Get flat list of categories
@@ -36,8 +111,9 @@ export const getFlatCategories = async (filters?: {
   search?: string;
   page?: number;
   limit?: number;
+  userId?: string;
 }) => {
-  const { status, search, page = 1, limit = 50 } = filters || {};
+  const { status, search, page = 1, limit = 50, userId } = filters || {};
 
   const where: Prisma.CategoryWhereInput = {
     ...(status && { status }),
@@ -76,8 +152,10 @@ export const getFlatCategories = async (filters?: {
     prisma.category.count({ where }),
   ]);
 
+  const categoriesWithPricing = await attachPricingToCategories(categories, userId);
+
   return {
-    data: categories,
+    data: categoriesWithPricing,
     pagination: {
       page,
       limit,
@@ -88,7 +166,7 @@ export const getFlatCategories = async (filters?: {
 };
 
 // Get category by ID
-export const getCategoryById = async (id: string, showNestedCourses: boolean = false) => {
+export const getCategoryById = async (id: string, showNestedCourses: boolean = false, userId?: string) => {
   // Build dynamic include for children based on flag
   const childrenInclude: any = {
     select: {
@@ -174,11 +252,11 @@ export const getCategoryById = async (id: string, showNestedCourses: boolean = f
     });
   }
 
-  return category;
+  return await attachPricingToCategory(category, userId);
 };
 
 // Get category by slug
-export const getCategoryBySlug = async (slug: string, showNestedCourses: boolean = false) => {
+export const getCategoryBySlug = async (slug: string, showNestedCourses: boolean = false, userId?: string) => {
   // Build dynamic include for children based on flag
   const childrenInclude: any = {
     select: {
@@ -264,7 +342,7 @@ export const getCategoryBySlug = async (slug: string, showNestedCourses: boolean
     });
   }
 
-  return category;
+  return await attachPricingToCategory(category, userId);
 };
 
 // Get child categories
