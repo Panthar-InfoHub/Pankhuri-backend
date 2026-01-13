@@ -1,13 +1,15 @@
 import { Request, Response, NextFunction } from "express";
 import * as categoryService from "../services/category.service";
 import { CategoryStatus } from "@/prisma/generated/prisma/client";
+import { prisma } from "../lib/db";
 
 // GET /api/categories - Get all categories (tree structure)
 export const getAllCategories = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { status } = req.query;
+    const { status, userId: queryUserId } = req.query;
+    const userId = (req as any).user?.id || (queryUserId as string);
 
-    const categories = await categoryService.getAllCategories(status as CategoryStatus | undefined);
+    const categories = await categoryService.getAllCategories(status as CategoryStatus | undefined, userId);
 
     res.json({
       success: true,
@@ -28,6 +30,7 @@ export const getFlatCategories = async (req: Request, res: Response, next: NextF
       search: search as string | undefined,
       page: page ? parseInt(page as string) : undefined,
       limit: limit ? parseInt(limit as string) : undefined,
+      userId: (req as any).user?.id || (req.query.userId as string),
     });
 
     res.json({
@@ -43,9 +46,10 @@ export const getFlatCategories = async (req: Request, res: Response, next: NextF
 export const getCategoryById = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const { showNestedCourses } = req.query;
+    const { showNestedCourses, userId: queryUserId } = req.query;
+    const userId = (req as any).user?.id || (queryUserId as string);
 
-    const category = await categoryService.getCategoryById(id, showNestedCourses === "true");
+    const category = await categoryService.getCategoryById(id, showNestedCourses === "true", userId);
 
     if (!category) {
       return res.status(404).json({
@@ -67,9 +71,10 @@ export const getCategoryById = async (req: Request, res: Response, next: NextFun
 export const getCategoryBySlug = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { slug } = req.params;
-    const { showNestedCourses } = req.query;
+    const { showNestedCourses, userId: queryUserId } = req.query;
+    const userId = (req as any).user?.id || (queryUserId as string);
 
-    const category = await categoryService.getCategoryBySlug(slug, showNestedCourses === "true");
+    const category = await categoryService.getCategoryBySlug(slug, showNestedCourses === "true", userId);
 
     if (!category) {
       return res.status(404).json({
@@ -108,7 +113,10 @@ export const getChildCategories = async (req: Request, res: Response, next: Next
 // POST /api/admin/categories - Create category
 export const createCategory = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { name, slug, description, parentId, icon, status, sequence } = req.body;
+    const {
+      name, slug, description, parentId, icon, status, sequence,
+      price, discountedPrice, subscriptionType, currency = "INR"
+    } = req.body;
 
     // Validation
     if (!name || !slug) {
@@ -131,10 +139,33 @@ export const createCategory = async (req: Request, res: Response, next: NextFunc
       }),
     });
 
+    // If price is provided, create a subscription plan for this category
+    let plan = null;
+    if (price !== undefined && price > 0) {
+      plan = await prisma.subscriptionPlan.create({
+        data: {
+          name: `${name} - ${subscriptionType || 'Monthly'} Subscription`,
+          slug: `${slug}-${subscriptionType || 'monthly'}`,
+          description: `Subscription access to ${name} category`,
+          subscriptionType: (subscriptionType as any) || "monthly",
+          planType: "CATEGORY",
+          targetId: category.id,
+          price: price,
+          discountedPrice: discountedPrice,
+          currency: currency,
+          isActive: true,
+          provider: "razorpay"
+        }
+      });
+    }
+
     res.status(201).json({
       success: true,
       message: "Category created successfully",
-      data: category,
+      data: {
+        ...category,
+        plan
+      },
     });
   } catch (error) {
     next(error);

@@ -53,13 +53,14 @@ export const checkLessonAccess = async (
     };
   }
 
-  const hasSubscription = await hasActiveSubscription(userId);
+  const { hasAccess: checkEntitlement } = await import("./entitlement.service");
+  const hasAccess = await checkEntitlement(userId, "COURSE", lesson.courseId);
 
-  if (!hasSubscription) {
+  if (!hasAccess) {
     return {
       lesson,
       hasAccess: false,
-      reason: "This lesson requires an active subscription",
+      reason: "This lesson requires an active subscription or purchase of this course.",
     };
   }
 

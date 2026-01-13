@@ -72,7 +72,7 @@ export const createGatewaySubscription = async (subscriptionData: {
 
   const response = await razorpay.subscriptions.create(requestData);
 
-  console.log(`[RAZORPAY] Subscription created:`,response);
+  console.log(`[RAZORPAY] Subscription created:`, response);
 
   return {
     id: response.id,
@@ -103,6 +103,29 @@ export const cancelGatewaySubscription = async (
   return {
     id: response.id,
     status: response.status,
+  };
+};
+
+// ==================== ORDER OPERATIONS (One-time) ====================
+
+/**
+ * Create order for one-time payment in payment gateway
+ */
+export const createGatewayOrder = async (orderData: {
+  amount: number;
+  currency: string;
+  notes?: Record<string, string>;
+}): Promise<{ id: string; amount: number; currency: string }> => {
+  const response = await razorpay.orders.create({
+    amount: orderData.amount, // in paise
+    currency: orderData.currency,
+    notes: orderData.notes,
+  });
+
+  return {
+    id: response.id,
+    amount: response.amount as number,
+    currency: response.currency,
   };
 };
 

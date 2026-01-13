@@ -3,6 +3,7 @@
  * Handles subscription plan HTTP requests
  */
 
+import { prisma } from "@/lib/db";
 import { Request, Response, NextFunction } from "express";
 import {
   createPlan,
@@ -35,6 +36,11 @@ export const createPlanHandler = async (req: Request, res: Response, next: NextF
       trialFee,
       features,
       order,
+      planType,
+      targetId,
+      planId, // Razorpay Plan ID
+      provider, // razorpay | google_play
+      deactivateOthers, // Optional: auto-deactivate old plan
     } = req.body;
 
     // Validation
@@ -45,11 +51,67 @@ export const createPlanHandler = async (req: Request, res: Response, next: NextF
       });
     }
 
-    if (trialDays <= 0 || trialFee <= 0) {
+    const effectiveProvider = provider || "razorpay";
+    const effectivePlanType = planType || "WHOLE_APP";
+
+    // 1. Courses must be Lifetime (One-time pay)
+    if (effectivePlanType === "COURSE" && (subscriptionType === "monthly" || subscriptionType === "yearly")) {
       return res.status(400).json({
         success: false,
-        message: "TrialDays and trialFee must be greater than zero",
+        message: "Course plans must be 'lifetime' (one-time payment) in the current version.",
       });
+    }
+
+    // 2. Category & App must be Subscriptions (Recurring)
+    if ((effectivePlanType === "WHOLE_APP" || effectivePlanType === "CATEGORY") && subscriptionType === "lifetime") {
+      return res.status(400).json({
+        success: false,
+        message: "App and Category plans must be recurring ('monthly' or 'yearly') in the current version.",
+      });
+    }
+
+    // 3. Validate Target Existence
+    if (effectivePlanType === "COURSE") {
+      if (!targetId) {
+        return res.status(400).json({ success: false, message: "targetId is required for COURSE plans" });
+      }
+      const course = await prisma.course.findUnique({ where: { id: targetId }, select: { id: true } });
+      if (!course) {
+        return res.status(404).json({ success: false, message: `Course with ID ${targetId} not found` });
+      }
+    } else if (effectivePlanType === "CATEGORY") {
+      if (!targetId) {
+        return res.status(400).json({ success: false, message: "targetId is required for CATEGORY plans" });
+      }
+      const category = await prisma.category.findUnique({ where: { id: targetId }, select: { id: true } });
+      if (!category) {
+        return res.status(404).json({ success: false, message: `Category with ID ${targetId} not found` });
+      }
+    }
+
+    // 4. Enforce Uniqueness & Handle Deactivation
+    const existingActivePlan = await prisma.subscriptionPlan.findFirst({
+      where: {
+        planType: effectivePlanType,
+        targetId: targetId || null,
+        subscriptionType: subscriptionType,
+        isActive: true,
+      },
+    });
+
+    if (existingActivePlan) {
+      if (deactivateOthers) {
+        // Soft-delete the old plan to make room for the new one
+        await prisma.subscriptionPlan.update({
+          where: { id: existingActivePlan.id },
+          data: { isActive: false },
+        });
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: `An active ${subscriptionType} plan already exists for this ${effectivePlanType.toLowerCase()}. Deactivate it or use 'deactivateOthers' to replace it.`,
+        });
+      }
     }
 
     const planData: Prisma.SubscriptionPlanCreateInput = {
@@ -60,10 +122,14 @@ export const createPlanHandler = async (req: Request, res: Response, next: NextF
       price,
       discountedPrice,
       currency: currency || "INR",
-      trialDays,
-      trialFee,
+      trialDays: trialDays || 0,
+      trialFee: trialFee || 0,
       features,
       order,
+      planType: effectivePlanType,
+      targetId,
+      planId,
+      provider: effectiveProvider,
       isActive: true,
     };
 

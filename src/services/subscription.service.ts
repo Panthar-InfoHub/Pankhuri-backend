@@ -5,9 +5,10 @@
 
 import { prisma } from "@/lib/db";
 import { UserSubscription, SubscriptionStatus } from "@/prisma/generated/prisma/client";
-import { createGatewaySubscription, cancelGatewaySubscription } from "@/lib/payment-gateway";
+import { createGatewaySubscription, cancelGatewaySubscription, createGatewayOrder } from "@/lib/payment-gateway";
 import { GooglePlayReceipt } from "@/lib/types";
 import { google_auth } from "@/lib/pub_sub";
+import { syncSubscriptionToEntitlement } from "./entitlement.service";
 
 // ==================== INITIATE SUBSCRIPTION ====================
 
@@ -26,25 +27,56 @@ export const initiateSubscription = async (userId: string, planId: string, data?
     throw new Error("Plan not found or inactive");
   }
 
-  if (!plan.planId) {
-    throw new Error("Plan not synced with payment gateway");
-  }
-
-  // Get user to check if they've used trial
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { hasUsedTrial: true },
+  // 1. Overlapping Checks using Entitlements (Applies to all providers)
+  const activeEntitlements = await prisma.userEntitlement.findMany({
+    where: {
+      userId,
+      status: "active",
+      OR: [
+        { validUntil: null },
+        { validUntil: { gt: new Date() } }
+      ]
+    }
   });
 
-  if (!user) {
-    throw new Error("User not found");
+  // If user has WHOLE_APP, block all other recurring subscriptions
+  if (activeEntitlements.some(e => e.type === "WHOLE_APP")) {
+    throw new Error("You already have an active Full App access. No need to subscribe again.");
   }
 
+  // Hierarchical Overlap: If buying a COURSE, check if user has access via CATEGORY
+  if (plan.planType === "COURSE") {
+    const course = await prisma.course.findUnique({
+      where: { id: plan.targetId! },
+      select: { categoryId: true }
+    });
+
+    if (course && activeEntitlements.some(e => e.type === "CATEGORY" && e.targetId === course.categoryId)) {
+      throw new Error("You already have access to this course through your existing category subscription.");
+    }
+  }
+
+  // Direct Overlap: If user already has this specific entitlement
+  if (plan.planType === "CATEGORY" || plan.planType === "COURSE") {
+    const hasExistingDirect = activeEntitlements.some(e => e.type === plan.planType && e.targetId === plan.targetId);
+    if (hasExistingDirect) {
+      throw new Error(`You already have active access to this ${plan.planType.toLowerCase()}`);
+    }
+  }
+
+  // Prevent paying for free plans
+  if (plan.price <= 0) {
+    throw new Error("This plan is free. You don't need to initiate a purchase.");
+  }
+
+  // 2. Provider Specific Logic
   if (plan.provider === 'google_play') {
+    if (!data?.receipt) throw new Error("Google Play receipt data is required");
 
     const receipt = data.receipt;
-    const lineItem = receipt.lineItems[0]; // main plan info
+    const lineItem = receipt.lineItems[0];
     const expiryTime = new Date(lineItem.expiryTime);
+    const startTime = new Date(receipt.startTime);
 
     const isTrial = receipt.subscriptionState === 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD'
       || (lineItem.offerDetails?.offerTags?.includes('trial'));
@@ -59,17 +91,18 @@ export const initiateSubscription = async (userId: string, planId: string, data?
       },
       update: {
         currentPurchaseToken: data.purchaseToken,
-        currentPeriodStart: new Date(data.startTime),
-        currentPeriodEnd: new Date(data.lineItems[0].expiryTime),
+        currentPeriodStart: startTime,
+        currentPeriodEnd: expiryTime,
         status: status,
+        updatedAt: new Date(),
       },
       create: {
-        userId: data.userId,
+        userId,
         planId: plan.id,
         provider: 'google_play',
         currentPurchaseToken: data.purchaseToken,
         status,
-        currentPeriodStart: new Date(receipt.startTime),
+        currentPeriodStart: startTime,
         currentPeriodEnd: expiryTime,
         isTrial: !!isTrial,
       }
@@ -80,8 +113,8 @@ export const initiateSubscription = async (userId: string, planId: string, data?
         userId,
         planId: plan.id,
         userSubscriptionId: sub.id,
-        orderId : receipt.orderId,
-        amount: plan.price, // Use plan price or derive from lineItems priceAmountMicros
+        orderId: receipt.orderId,
+        amount: plan.price,
         currency: plan.currency,
         paymentGateway: 'google_play',
         status: 'paid',
@@ -90,45 +123,117 @@ export const initiateSubscription = async (userId: string, planId: string, data?
       }
     });
 
+    await syncSubscriptionToEntitlement(sub.id);
     return sub;
   }
 
+  // Razorpay Specific Checks
+  if (!plan.planId) {
+    throw new Error("Razorpay Plan ID missing from system. Please contact support.");
+  }
 
-
-  // Check for existing subscriptions (including pending)
+  // Check for existing pending/active recurring subscriptions
   const existingSubscription = await prisma.userSubscription.findFirst({
     where: {
       userId,
       status: { in: ["pending", "trial", "active", "past_due"] },
+      planId: plan.id
     },
   });
 
   if (existingSubscription) {
-    // Block if active, trial, or past_due
     if (["trial", "active", "past_due"].includes(existingSubscription.status)) {
-      throw new Error("You already have an active subscription");
+      throw new Error("You already have an active subscription for this plan.");
     }
 
-    // Handle pending subscriptions
     if (existingSubscription.status === "pending") {
       const pendingAge = Date.now() - existingSubscription.createdAt.getTime();
-      const STALE_TIMEOUT = 48 * 60 * 60 * 1000; // 48 hours
+      const STALE_TIMEOUT = 48 * 60 * 60 * 1000;
 
       if (pendingAge > STALE_TIMEOUT) {
-        // Auto-cancel stale pending subscription
         await prisma.userSubscription.update({
           where: { id: existingSubscription.id },
           data: { status: "cancelled" },
         });
       } else {
-        // Recent pending subscription - ask user to cancel first
-        throw new Error(
-          "You have a pending subscription. Please cancel it first using DELETE /api/subscriptions/pending"
-        );
+        throw new Error("You have a pending subscription for this plan. Please complete or cancel it.");
       }
     }
   }
 
+  // Get user for Razorpay trial logic
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { hasUsedTrial: true },
+  });
+
+  if (!user) throw new Error("User not found");
+
+  // ==================== LIFETIME (ONE-TIME) FLOW ====================
+  if (plan.subscriptionType === "lifetime") {
+    // 1. Create order in gateway
+    const gatewayOrder = await createGatewayOrder({
+      amount: plan.price, // already in paise
+      currency: plan.currency,
+      notes: {
+        userId,
+        planId: plan.id,
+        type: "ONE_TIME_PURCHASE",
+      },
+    });
+
+    // 2. Create/Update User Subscription Record (Pending)
+    const subscription = await prisma.userSubscription.upsert({
+      where: {
+        userId_planId: {
+          userId,
+          planId: plan.id,
+        }
+      },
+      update: {
+        status: "pending",
+        updatedAt: new Date()
+      },
+      create: {
+        userId,
+        planId: plan.id,
+        status: "pending",
+        provider: "razorpay"
+      }
+    });
+
+    // 3. Create pending payment record
+    await prisma.payment.create({
+      data: {
+        userId,
+        planId: plan.id,
+        userSubscriptionId: subscription.id,
+        orderId: gatewayOrder.id,
+        amount: plan.price,
+        currency: plan.currency,
+        paymentType: "one_time",
+        status: "pending",
+        metadata: {
+          planName: plan.name,
+          planType: plan.planType,
+          targetId: plan.targetId
+        }
+      },
+    });
+
+    return {
+      orderId: gatewayOrder.id,
+      amount: plan.price,
+      currency: plan.currency,
+      keyId: process.env.RAZORPAY_KEY_ID!,
+      planName: plan.name,
+      subscriptionType: "lifetime",
+      userSubscriptionId: subscription.id,
+      message: `Direct purchase: ₹${plan.price / 100} for lifetime access`,
+    };
+  }
+
+  // ==================== RECURRING FLOW ====================
   // Determine if user can get trial - only if plan has trial AND user hasn't used it
   const canUseTrial = plan.trialDays > 0 && !user.hasUsedTrial;
   const hasTrial = canUseTrial;
@@ -181,8 +286,20 @@ export const initiateSubscription = async (userId: string, planId: string, data?
     initialStatus = "pending";
   }
 
-  const subscription = await prisma.userSubscription.create({
-    data: {
+  const subscription = await prisma.userSubscription.upsert({
+    where: {
+      userId_planId: {
+        userId,
+        planId: plan.id,
+      },
+    },
+    update: {
+      subscriptionId: gatewaySubscription.id,
+      status: initialStatus,
+      isTrial: hasTrial,
+      updatedAt: new Date(),
+    },
+    create: {
       userId,
       planId: plan.id,
       subscriptionId: gatewaySubscription.id,
@@ -413,46 +530,39 @@ export const expireGracePeriods = async (): Promise<number> => {
 // ==================== PENDING SUBSCRIPTION MANAGEMENT ====================
 
 /**
- * Get user's subscription status (optimized single query)
+ * Get user's subscription status (Grouped by access type)
  */
 export const getUserSubscriptionStatus = async (userId: string) => {
-  const subscription = await prisma.userSubscription.findFirst({
+  const subscriptions = await prisma.userSubscription.findMany({
     where: {
       userId,
       status: { in: ["pending", "trial", "active", "past_due"] },
     },
     include: {
-      plan: {
-        select: {
-          name: true,
-          slug: true,
-          subscriptionType: true,
-        },
-      },
+      plan: true
     },
     orderBy: { createdAt: "desc" },
   });
 
-  if (!subscription) {
-    return { hasSubscription: false, canSubscribe: true };
-  }
-
-  const isPending = subscription.status === "pending";
-  const pendingAge = Date.now() - subscription.createdAt.getTime();
-  const isStale = isPending && pendingAge > 48 * 60 * 60 * 1000;
+  const formattedSubs = subscriptions.map(s => ({
+    id: s.id,
+    status: s.status,
+    planName: s.plan?.name,
+    planType: s.plan?.planType,
+    targetId: s.plan?.targetId,
+    subscriptionType: s.plan?.subscriptionType,
+    currentPeriodStart: s.currentPeriodStart,
+    currentPeriodEnd: s.currentPeriodEnd,
+    nextBillingAt: s.nextBillingAt,
+    isTrial: s.status === "trial",
+    provider: s.provider
+  }));
 
   return {
-    hasSubscription: true,
-    canSubscribe: isPending && isStale,
-    subscription: {
-      id: subscription.id,
-      status: subscription.status,
-      planName: subscription.plan.name,
-      planType: subscription.plan.subscriptionType,
-      createdAt: subscription.createdAt,
-      isPending,
-      isStale,
-    },
+    hasActiveSubscription: subscriptions.some(s => s.status !== "pending"),
+    wholeApp: formattedSubs.filter(s => s.planType === "WHOLE_APP"),
+    categories: formattedSubs.filter(s => s.planType === "CATEGORY"),
+    courses: formattedSubs.filter(s => s.planType === "COURSE"),
   };
 };
 
@@ -485,15 +595,19 @@ export const cancelPendingSubscription = async (userId: string): Promise<void> =
 export const hasActiveSubscription = async (userId: string): Promise<boolean> => {
   if (!userId) return false;
 
-  const subscription = await prisma.userSubscription.findFirst({
+  const entitlement = await prisma.userEntitlement.findFirst({
     where: {
       userId,
-      status: { in: ["trial", "active", "past_due"] },
+      status: "active",
+      OR: [
+        { validUntil: null },
+        { validUntil: { gt: new Date() } }
+      ]
     },
     select: { id: true },
   });
 
-  return !!subscription;
+  return !!entitlement;
 };
 
 /**
@@ -526,8 +640,8 @@ export const getUserAccessInfo = async (userId: string) => {
         isTrial: subscription.isTrial,
         trialEndsAt: subscription.trialEndsAt,
         currentPeriodEnd: subscription.currentPeriodEnd,
-        planName: subscription.plan.name,
-        planType: subscription.plan.subscriptionType,
+        planName: subscription?.plan?.name,
+        planType: subscription?.plan?.subscriptionType,
       }
       : null,
   };
@@ -586,5 +700,59 @@ export const acknowledgeGooglePlayPurchase = async (token: string, productId: st
 
   if (!response.ok) {
     console.error(`Ack failed: ${await response.text()}`);
+  }
+};
+
+/**
+ * CLEANUP LOGIC: Schedule cancellation for redundant lower-tier subscriptions
+ * Called when a user "Upgrades" to a higher tier (e.g., Category -> App)
+ */
+export const cleanupRedundantSubscriptions = async (userId: string, newPlanType: "WHOLE_APP" | "CATEGORY" | "COURSE", targetId?: string) => {
+  // 1. Find all active/trial recurring subscriptions for this user
+  const activeSubs = await prisma.userSubscription.findMany({
+    where: {
+      userId,
+      status: { in: ["active", "trial"] },
+      plan: {
+        subscriptionType: { in: ["monthly", "yearly"] } // Only affect recurring
+      }
+    },
+    include: { plan: true }
+  });
+
+  for (const sub of activeSubs) {
+    if (!sub.plan) continue;
+    let isRedundant = false;
+
+    // If I just bought WHOLE_APP, everything else is redundant
+    if (newPlanType === "WHOLE_APP" && sub.plan.planType !== "WHOLE_APP") {
+      isRedundant = true;
+    }
+
+    // If I just bought a CATEGORY, individual courses in that category are redundant
+    if (newPlanType === "CATEGORY" && sub.plan.planType === "COURSE") {
+      const course = await prisma.course.findUnique({
+        where: { id: sub.plan.targetId! },
+        select: { categoryId: true }
+      });
+      if (course?.categoryId === targetId) {
+        isRedundant = true;
+      }
+    }
+
+    if (isRedundant && sub.subscriptionId) {
+      console.log(`[Upgrade] Scheduling cancellation for redundant sub: ${sub.id} (Plan: ${sub.plan.name})`);
+      try {
+        // Cancel at period end in Gateway
+        await cancelGatewaySubscription(sub.subscriptionId, true);
+        // Update DB
+        await prisma.userSubscription.update({
+          where: { id: sub.id },
+          data: { cancelAtPeriodEnd: true }
+        });
+      } catch (err) {
+        console.error(`Failed to cancel redundant subscription ${sub.id}:`, err);
+      }
+    }
   }
 };
