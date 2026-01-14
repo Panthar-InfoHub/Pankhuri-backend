@@ -1,41 +1,33 @@
 import "dotenv/config";
 import { prisma } from "@/lib/db";
 
+const IMAGE_URL = "https://pankhuri-v3.blr1.cdn.digitaloceanspaces.com/dev/category-icons/1764848146087_pfp.jpg";
+
 async function main() {
   console.log("🌱 Starting database seeding...");
 
-  // Clear existing data
+  // Clear existing data in proper order (respecting foreign key constraints)
   console.log("🗑️  Clearing existing data...");
-  // await prisma.courseReview.deleteMany();
-  // await prisma.userLessonProgress.deleteMany();
-  // await prisma.userCourseProgress.deleteMany();
-  // await prisma.lessonAttachment.deleteMany();
-  // await prisma.lessonDescription.deleteMany();
-  // await prisma.textLesson.deleteMany();
-  // await prisma.videoLesson.deleteMany();
-  // await prisma.lesson.deleteMany();
-  // await prisma.module.deleteMany();
-  // await prisma.course.deleteMany();
-  // await prisma.video.deleteMany();
-  // await prisma.trainer.deleteMany();
-  // await prisma.category.deleteMany();
-  // await prisma.session.deleteMany();
-  // await prisma.user.deleteMany();
-
-  // Shared video data (since we only have one video)
-  const videoData = {
-    storageKey: "videos/sample-lesson.mp4",
-    thumbnailUrl: "https://example.com/thumbnails/sample-lesson.jpg",
-    playbackUrl: "https://example.com/videos/sample-lesson.mp4",
-    duration: 720, // 12 minutes
-    status: "ready",
-    metadata: {
-      resolution: "1920x1080",
-      bitrate: "5000",
-      codec: "h264",
-      format: "mp4",
-    },
-  };
+  await prisma.courseReview.deleteMany();
+  await prisma.userLessonProgress.deleteMany();
+  await prisma.userCourseProgress.deleteMany();
+  await prisma.userStreak.deleteMany();
+  await prisma.certificate.deleteMany();
+  await prisma.lessonAttachment.deleteMany();
+  await prisma.lessonDescription.deleteMany();
+  await prisma.textLesson.deleteMany();
+  await prisma.videoLesson.deleteMany();
+  await prisma.lesson.deleteMany();
+  await prisma.module.deleteMany();
+  await prisma.course.deleteMany();
+  await prisma.video.deleteMany();
+  await prisma.trainer.deleteMany();
+  await prisma.category.deleteMany();
+  await prisma.payment.deleteMany();
+  await prisma.userSubscription.deleteMany();
+  await prisma.subscriptionPlan.deleteMany();
+  await prisma.session.deleteMany();
+  await prisma.user.deleteMany();
 
   // 1. Create Users
   console.log("👤 Creating users...");
@@ -45,7 +37,7 @@ async function main() {
         email: "admin@pankhuri.com",
         phone: "+919876543210",
         displayName: "Admin User",
-        profileImage: "https://i.pravatar.cc/150?img=1",
+        profileImage: IMAGE_URL,
         dateOfBirth: new Date("1990-01-15"),
         gender: "female",
         countryCode: "IN",
@@ -54,14 +46,15 @@ async function main() {
         isPhoneVerified: true,
         role: "admin",
         status: "active",
+        profession: "Administrator",
       },
     }),
     prisma.user.create({
       data: {
         email: "trainer1@pankhuri.com",
         phone: "+919876543211",
-        displayName: "Dr. Priya Sharma",
-        profileImage: "https://i.pravatar.cc/150?img=5",
+        displayName: "Priya Sharma",
+        profileImage: IMAGE_URL,
         dateOfBirth: new Date("1985-03-20"),
         gender: "female",
         countryCode: "IN",
@@ -70,6 +63,7 @@ async function main() {
         isPhoneVerified: true,
         role: "user",
         status: "active",
+        profession: "Fitness Trainer",
       },
     }),
     prisma.user.create({
@@ -77,7 +71,7 @@ async function main() {
         email: "trainer2@pankhuri.com",
         phone: "+919876543212",
         displayName: "Anjali Mehta",
-        profileImage: "https://i.pravatar.cc/150?img=9",
+        profileImage: IMAGE_URL,
         dateOfBirth: new Date("1988-07-10"),
         gender: "female",
         countryCode: "IN",
@@ -86,6 +80,24 @@ async function main() {
         isPhoneVerified: true,
         role: "user",
         status: "active",
+        profession: "Nutrition Expert",
+      },
+    }),
+    prisma.user.create({
+      data: {
+        email: "trainer3@pankhuri.com",
+        phone: "+919876543216",
+        displayName: "Meera Kapoor",
+        profileImage: IMAGE_URL,
+        dateOfBirth: new Date("1987-09-12"),
+        gender: "female",
+        countryCode: "IN",
+        languagePreference: "en",
+        isEmailVerified: true,
+        isPhoneVerified: true,
+        role: "user",
+        status: "active",
+        profession: "Life Coach",
       },
     }),
     prisma.user.create({
@@ -93,7 +105,7 @@ async function main() {
         email: "student1@example.com",
         phone: "+919876543213",
         displayName: "Neha Gupta",
-        profileImage: "https://i.pravatar.cc/150?img=10",
+        profileImage: IMAGE_URL,
         dateOfBirth: new Date("1995-05-15"),
         gender: "female",
         countryCode: "IN",
@@ -102,6 +114,7 @@ async function main() {
         isPhoneVerified: true,
         role: "user",
         status: "active",
+        profession: "Software Engineer",
       },
     }),
     prisma.user.create({
@@ -109,7 +122,7 @@ async function main() {
         email: "student2@example.com",
         phone: "+919876543214",
         displayName: "Ritu Singh",
-        profileImage: "https://i.pravatar.cc/150?img=20",
+        profileImage: IMAGE_URL,
         dateOfBirth: new Date("1992-11-25"),
         gender: "female",
         countryCode: "IN",
@@ -118,6 +131,7 @@ async function main() {
         isPhoneVerified: false,
         role: "user",
         status: "active",
+        profession: "Teacher",
       },
     }),
     prisma.user.create({
@@ -125,7 +139,7 @@ async function main() {
         email: "student3@example.com",
         phone: "+919876543215",
         displayName: "Kavita Reddy",
-        profileImage: "https://i.pravatar.cc/150?img=25",
+        profileImage: IMAGE_URL,
         dateOfBirth: new Date("1998-02-28"),
         gender: "female",
         countryCode: "IN",
@@ -134,6 +148,7 @@ async function main() {
         isPhoneVerified: true,
         role: "user",
         status: "active",
+        profession: "Marketing Manager",
       },
     }),
   ]);
@@ -145,16 +160,16 @@ async function main() {
   const trainers = await Promise.all([
     prisma.trainer.create({
       data: {
-        userId: users[1].id, // Dr. Priya Sharma
-        bio: "Certified yoga instructor with over 15 years of experience. Specializes in prenatal and postnatal yoga, helping women through their motherhood journey with holistic wellness practices.",
-        specialization: ["Prenatal Yoga", "Postnatal Yoga", "Meditation", "Breathing Techniques"],
-        experience: 15,
+        userId: users[1].id, // Priya Sharma
+        bio: "Certified fitness trainer and yoga instructor with over 12 years of experience. Passionate about helping women achieve their fitness goals through sustainable and enjoyable workout routines.",
+        specialization: ["Yoga", "Strength Training", "Flexibility", "Mindfulness"],
+        experience: 12,
         rating: 4.8,
         totalStudents: 2500,
         socialLinks: {
           linkedin: "https://linkedin.com/in/priya-sharma",
-          instagram: "https://instagram.com/priya.yoga",
-          website: "https://priyayoga.com",
+          instagram: "https://instagram.com/priya.fitness",
+          website: "https://priyafitness.com",
         },
         status: "active",
       },
@@ -162,14 +177,29 @@ async function main() {
     prisma.trainer.create({
       data: {
         userId: users[2].id, // Anjali Mehta
-        bio: "Nutritionist and wellness coach specializing in maternal health and child nutrition. Passionate about helping mothers make informed dietary choices for themselves and their families.",
-        specialization: ["Nutrition", "Meal Planning", "Child Nutrition", "Wellness Coaching"],
-        experience: 10,
+        bio: "Nutritionist and wellness coach specializing in healthy lifestyle transformations. Helps people develop sustainable eating habits and improve their relationship with food.",
+        specialization: ["Nutrition", "Weight Management", "Healthy Cooking", "Lifestyle Coaching"],
+        experience: 8,
         rating: 4.9,
         totalStudents: 1800,
         socialLinks: {
           instagram: "https://instagram.com/anjali.nutrition",
           facebook: "https://facebook.com/anjalimehta.nutrition",
+        },
+        status: "active",
+      },
+    }),
+    prisma.trainer.create({
+      data: {
+        userId: users[3].id, // Meera Kapoor
+        bio: "Certified life coach and personal development expert. Specializes in helping women build confidence, set goals, and create meaningful life changes through mindset work and practical strategies.",
+        specialization: ["Life Coaching", "Personal Development", "Goal Setting", "Confidence Building"],
+        experience: 6,
+        rating: 4.7,
+        totalStudents: 950,
+        socialLinks: {
+          linkedin: "https://linkedin.com/in/meera-kapoor",
+          website: "https://meeracoach.com",
         },
         status: "active",
       },
@@ -183,42 +213,40 @@ async function main() {
   const parentCategories = await Promise.all([
     prisma.category.create({
       data: {
-        name: "Yoga & Fitness",
-        slug: "yoga-fitness",
-        description:
-          "Yoga, exercise, and fitness programs for prenatal, postnatal, and general wellness",
-        icon: "🧘‍♀️",
+        name: "Fitness & Yoga",
+        slug: "fitness-yoga",
+        description: "Workout routines, yoga practices, and fitness programs for all levels",
+        icon: IMAGE_URL,
         status: "active",
         sequence: 1,
       },
     }),
     prisma.category.create({
       data: {
-        name: "Nutrition & Diet",
-        slug: "nutrition-diet",
-        description:
-          "Nutrition guidance, meal planning, and dietary advice for mothers and families",
-        icon: "🥗",
+        name: "Nutrition & Wellness",
+        slug: "nutrition-wellness",
+        description: "Healthy eating, meal planning, and overall wellness guidance",
+        icon: IMAGE_URL,
         status: "active",
         sequence: 2,
       },
     }),
     prisma.category.create({
       data: {
-        name: "Mental Wellness",
-        slug: "mental-wellness",
-        description: "Mental health, meditation, stress management, and emotional well-being",
-        icon: "🧠",
+        name: "Personal Development",
+        slug: "personal-development",
+        description: "Self-improvement, confidence building, and life skills development",
+        icon: IMAGE_URL,
         status: "active",
         sequence: 3,
       },
     }),
     prisma.category.create({
       data: {
-        name: "Parenting",
-        slug: "parenting",
-        description: "Parenting tips, child development, and family care guidance",
-        icon: "👶",
+        name: "Lifestyle & Hobbies",
+        slug: "lifestyle-hobbies",
+        description: "Creative pursuits, hobbies, and lifestyle enhancement",
+        icon: IMAGE_URL,
         status: "active",
         sequence: 4,
       },
@@ -230,10 +258,10 @@ async function main() {
     prisma.category.create({
       data: {
         parentId: parentCategories[0].id,
-        name: "Prenatal Yoga",
-        slug: "prenatal-yoga",
-        description: "Yoga practices specifically designed for pregnancy",
-        icon: "🤰",
+        name: "Beginner Yoga",
+        slug: "beginner-yoga",
+        description: "Yoga practices for beginners and newcomers",
+        icon: IMAGE_URL,
         status: "active",
         sequence: 1,
       },
@@ -241,10 +269,10 @@ async function main() {
     prisma.category.create({
       data: {
         parentId: parentCategories[0].id,
-        name: "Postnatal Yoga",
-        slug: "postnatal-yoga",
-        description: "Yoga for recovery and strength after childbirth",
-        icon: "🤱",
+        name: "Strength Training",
+        slug: "strength-training",
+        description: "Building strength and muscle with safe, effective workouts",
+        icon: IMAGE_URL,
         status: "active",
         sequence: 2,
       },
@@ -252,23 +280,23 @@ async function main() {
     prisma.category.create({
       data: {
         parentId: parentCategories[1].id,
-        name: "Pregnancy Nutrition",
-        slug: "pregnancy-nutrition",
-        description: "Nutritional guidance during pregnancy",
-        icon: "🍎",
+        name: "Healthy Cooking",
+        slug: "healthy-cooking",
+        description: "Learn to prepare nutritious and delicious meals",
+        icon: IMAGE_URL,
         status: "active",
         sequence: 1,
       },
     }),
     prisma.category.create({
       data: {
-        parentId: parentCategories[1].id,
-        name: "Lactation & Breastfeeding",
-        slug: "lactation-breastfeeding",
-        description: "Nutrition for breastfeeding mothers",
-        icon: "🍼",
+        parentId: parentCategories[2].id,
+        name: "Confidence Building",
+        slug: "confidence-building",
+        description: "Build self-confidence and overcome limiting beliefs",
+        icon: IMAGE_URL,
         status: "active",
-        sequence: 2,
+        sequence: 1,
       },
     }),
   ]);
@@ -277,37 +305,62 @@ async function main() {
     `✅ Created ${parentCategories.length} parent categories and ${subCategories.length} subcategories`
   );
 
-  // 4. Create Videos
-  console.log("🎬 Creating videos...");
+  // 4. Create Videos (leaving empty as requested)
+  console.log("🎬 Creating placeholder videos...");
   const videos = await Promise.all([
     prisma.video.create({
       data: {
-        title: "Introduction to Prenatal Yoga",
-        ...videoData,
+        title: "Introduction to Yoga",
+        thumbnailUrl: IMAGE_URL,
+        storageKey: "",
+        playbackUrl: null,
+        status: "uploading",
+        duration: null,
+
       },
     }),
     prisma.video.create({
       data: {
-        title: "Breathing Techniques for Labor",
-        ...videoData,
+        title: "Strength Training Basics",
+        thumbnailUrl: IMAGE_URL,
+        storageKey: "",
+        playbackUrl: null,
+        status: "uploading",
+        duration: null,
+        // 
       },
     }),
     prisma.video.create({
       data: {
-        title: "Gentle Stretching Exercises",
-        ...videoData,
+        title: "Cooking Demonstration",
+        thumbnailUrl: IMAGE_URL,
+        storageKey: "",
+        playbackUrl: null,
+        status: "uploading",
+        duration: null,
+        // 
       },
     }),
     prisma.video.create({
       data: {
-        title: "Nutrition Basics Demo",
-        ...videoData,
+        title: "Confidence Workshop",
+        thumbnailUrl: IMAGE_URL,
+        storageKey: "",
+        playbackUrl: null,
+        status: "uploading",
+        duration: null,
+
       },
     }),
     prisma.video.create({
       data: {
         title: "Course Demo Video",
-        ...videoData,
+        thumbnailUrl: IMAGE_URL,
+        storageKey: "",
+        playbackUrl: null,
+        status: "uploading",
+        duration: null,
+
       },
     }),
   ]);
@@ -319,15 +372,15 @@ async function main() {
   const courses = await Promise.all([
     prisma.course.create({
       data: {
-        categoryId: subCategories[0].id, // Prenatal Yoga
+        categoryId: subCategories[0].id, // Beginner Yoga
         trainerId: trainers[0].id,
         demoVideoId: videos[4].id,
-        title: "Complete Prenatal Yoga Program",
-        slug: "complete-prenatal-yoga-program",
+        title: "Yoga for Beginners: Complete Foundation",
+        slug: "yoga-for-beginners-complete-foundation",
         description:
-          "A comprehensive yoga program designed specifically for expecting mothers. Learn safe and effective yoga practices to support your pregnancy journey, improve flexibility, reduce stress, and prepare your body for childbirth.",
-        thumbnailImage: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800",
-        coverImage: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1200",
+          "A comprehensive yoga course designed for complete beginners. Learn fundamental poses, breathing techniques, and build a sustainable practice from the ground up.",
+        thumbnailImage: IMAGE_URL,
+        coverImage: IMAGE_URL,
         level: "beginner",
         duration: 480, // 8 hours
         language: "en",
@@ -336,31 +389,31 @@ async function main() {
         rating: 4.8,
         averageRating: 4.8,
         totalReviews: 125,
-        tags: ["pregnancy", "yoga", "prenatal", "wellness", "flexibility"],
+        tags: ["beginner", "yoga", "flexibility", "wellness", "mindfulness"],
         metadata: {
           prerequisites: [],
-          targetAudience: "Pregnant women in any trimester",
+          targetAudience: "Complete beginners to yoga",
           whatYouWillLearn: [
-            "Safe yoga poses for pregnancy",
-            "Breathing techniques for labor",
-            "Stress reduction and relaxation",
-            "Pelvic floor exercises",
-            "Preparation for childbirth",
+            "Basic yoga poses and alignment",
+            "Breathing techniques and meditation",
+            "Building flexibility and strength",
+            "Creating a daily practice routine",
+            "Understanding yoga philosophy",
           ],
         },
       },
     }),
     prisma.course.create({
       data: {
-        categoryId: subCategories[1].id, // Postnatal Yoga
+        categoryId: subCategories[1].id, // Strength Training
         trainerId: trainers[0].id,
         demoVideoId: videos[4].id,
-        title: "Postnatal Recovery & Strength",
-        slug: "postnatal-recovery-strength",
+        title: "Women's Strength Training Program",
+        slug: "womens-strength-training-program",
         description:
-          "Rebuild your strength and restore your body after childbirth with this specially designed postnatal yoga program. Focus on core recovery, pelvic floor strengthening, and gentle exercises safe for new mothers.",
-        thumbnailImage: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=800",
-        coverImage: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=1200",
+          "Build strength, confidence, and transform your body with this comprehensive strength training program designed specifically for women. No gym intimidation, just results.",
+        thumbnailImage: IMAGE_URL,
+        coverImage: IMAGE_URL,
         level: "beginner",
         duration: 360, // 6 hours
         language: "en",
@@ -369,31 +422,31 @@ async function main() {
         rating: 4.9,
         averageRating: 4.9,
         totalReviews: 89,
-        tags: ["postnatal", "yoga", "recovery", "strength", "new-mom"],
+        tags: ["strength", "fitness", "beginner-friendly", "confidence", "transformation"],
         metadata: {
-          prerequisites: ["Minimum 6 weeks postpartum or cleared by doctor"],
-          targetAudience: "New mothers post-childbirth",
+          prerequisites: ["No prior experience needed"],
+          targetAudience: "Women wanting to start strength training",
           whatYouWillLearn: [
-            "Core strengthening exercises",
-            "Pelvic floor rehabilitation",
-            "Gentle stretching routines",
-            "Energy restoration techniques",
-            "Managing diastasis recti",
+            "Proper form and technique",
+            "Progressive workout routines",
+            "Home and gym workout options",
+            "Nutrition for strength building",
+            "Overcoming gym anxiety",
           ],
         },
       },
     }),
     prisma.course.create({
       data: {
-        categoryId: subCategories[2].id, // Pregnancy Nutrition
+        categoryId: subCategories[2].id, // Healthy Cooking
         trainerId: trainers[1].id,
         demoVideoId: videos[4].id,
-        title: "Nutrition for a Healthy Pregnancy",
-        slug: "nutrition-healthy-pregnancy",
+        title: "Healthy Cooking Mastery",
+        slug: "healthy-cooking-mastery",
         description:
-          "Learn everything you need to know about nutrition during pregnancy. Discover the right foods, supplements, and meal plans to support your baby's development and your own health throughout pregnancy.",
-        thumbnailImage: "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=800",
-        coverImage: "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=1200",
+          "Transform your kitchen skills and learn to create delicious, nutritious meals that fuel your body and satisfy your taste buds. Perfect for busy lifestyles.",
+        thumbnailImage: IMAGE_URL,
+        coverImage: IMAGE_URL,
         level: "beginner",
         duration: 240, // 4 hours
         language: "en",
@@ -402,49 +455,49 @@ async function main() {
         rating: 4.7,
         averageRating: 4.7,
         totalReviews: 156,
-        tags: ["nutrition", "pregnancy", "diet", "health", "meal-planning"],
+        tags: ["cooking", "nutrition", "meal-prep", "healthy-eating", "lifestyle"],
         metadata: {
           prerequisites: [],
-          targetAudience: "Expecting mothers and women planning pregnancy",
+          targetAudience: "Anyone wanting to improve their cooking and nutrition",
           whatYouWillLearn: [
-            "Essential nutrients for pregnancy",
+            "Essential cooking techniques",
             "Meal planning and preparation",
-            "Managing pregnancy symptoms through diet",
-            "Safe foods and foods to avoid",
-            "Healthy weight gain guidelines",
+            "Understanding nutrition basics",
+            "Quick and healthy recipes",
+            "Kitchen organization tips",
           ],
         },
       },
     }),
     prisma.course.create({
       data: {
-        categoryId: subCategories[3].id, // Lactation & Breastfeeding
-        trainerId: trainers[1].id,
+        categoryId: subCategories[3].id, // Confidence Building
+        trainerId: trainers[2].id,
         demoVideoId: videos[4].id,
-        title: "Breastfeeding & Lactation Nutrition",
-        slug: "breastfeeding-lactation-nutrition",
+        title: "Build Unshakeable Confidence",
+        slug: "build-unshakeable-confidence",
         description:
-          "Optimize your nutrition for successful breastfeeding. Learn about foods that support milk production, nutritional needs during lactation, and how to maintain your health while nursing.",
-        thumbnailImage: "https://images.unsplash.com/photo-1516627145497-ae6968895b74?w=800",
-        coverImage: "https://images.unsplash.com/photo-1516627145497-ae6968895b74?w=1200",
+          "Overcome self-doubt and build lasting confidence through proven techniques, mindset shifts, and practical exercises. Transform how you show up in the world.",
+        thumbnailImage: IMAGE_URL,
+        coverImage: IMAGE_URL,
         level: "beginner",
         duration: 180, // 3 hours
-        language: "hi",
+        language: "en",
         status: "active",
         hasCertificate: false,
         rating: 4.8,
         averageRating: 4.8,
         totalReviews: 92,
-        tags: ["breastfeeding", "lactation", "nutrition", "new-mom", "infant-care"],
+        tags: ["confidence", "self-development", "mindset", "personal-growth", "empowerment"],
         metadata: {
           prerequisites: [],
-          targetAudience: "Breastfeeding mothers and pregnant women",
+          targetAudience: "Women looking to build confidence and self-esteem",
           whatYouWillLearn: [
-            "Foods for milk production",
-            "Nutritional requirements while nursing",
-            "Managing common breastfeeding issues",
-            "Hydration and supplements",
-            "Balancing diet and baby's needs",
+            "Understanding confidence vs self-esteem",
+            "Overcoming limiting beliefs",
+            "Building positive self-talk",
+            "Body language and presence",
+            "Setting and achieving goals",
           ],
         },
       },
@@ -453,24 +506,23 @@ async function main() {
 
   console.log(`✅ Created ${courses.length} courses`);
 
-  // 6. Create Modules and Lessons for Course 1 (Prenatal Yoga)
+  // 6. Create Modules and Lessons for Course 1 (Beginner Yoga)
   console.log("📖 Creating modules and lessons for Course 1...");
 
   const course1Module1 = await prisma.module.create({
     data: {
       courseId: courses[0].id,
-      title: "Getting Started with Prenatal Yoga",
-      slug: "getting-started",
-      description:
-        "Introduction to prenatal yoga, understanding the benefits, and learning the basics",
+      title: "Yoga Fundamentals",
+      slug: "yoga-fundamentals",
+      description: "Learn the basics of yoga practice, breathing, and alignment",
       sequence: 1,
       duration: 120,
       status: "published",
       metadata: {
         learningObjectives: [
-          "Understand benefits of prenatal yoga",
-          "Learn safety guidelines",
-          "Master basic poses",
+          "Understand yoga basics and philosophy",
+          "Learn proper breathing techniques",
+          "Master fundamental poses",
         ],
       },
     },
@@ -479,17 +531,17 @@ async function main() {
   const course1Module2 = await prisma.module.create({
     data: {
       courseId: courses[0].id,
-      title: "First Trimester Practices",
-      slug: "first-trimester",
-      description: "Gentle yoga practices safe for the first trimester of pregnancy",
+      title: "Building Flexibility",
+      slug: "building-flexibility",
+      description: "Gentle stretches and poses to improve flexibility safely",
       sequence: 2,
       duration: 180,
       status: "published",
       metadata: {
         learningObjectives: [
-          "Safe exercises for first trimester",
-          "Managing morning sickness",
-          "Building foundation",
+          "Improve overall flexibility",
+          "Learn safe stretching techniques",
+          "Develop body awareness",
         ],
       },
     },
@@ -498,23 +550,23 @@ async function main() {
   const course1Module3 = await prisma.module.create({
     data: {
       courseId: courses[0].id,
-      title: "Second & Third Trimester",
-      slug: "second-third-trimester",
-      description: "Advanced practices as your pregnancy progresses",
+      title: "Strength & Balance",
+      slug: "strength-balance",
+      description: "Build strength and improve balance through yoga practice",
       sequence: 3,
       duration: 180,
       status: "published",
       metadata: {
         learningObjectives: [
-          "Adapt poses for growing belly",
-          "Prepare for labor",
-          "Maintain strength and flexibility",
+          "Develop core strength",
+          "Improve balance and coordination",
+          "Build confidence in poses",
         ],
       },
     },
   });
 
-  // Create lessons for Module 1
+  // Create lessons for Course 1
   const course1Lessons = [];
 
   // Lesson 1 - Video
@@ -522,12 +574,12 @@ async function main() {
     data: {
       courseId: courses[0].id,
       moduleId: course1Module1.id,
-      title: "Welcome to Prenatal Yoga",
-      slug: "welcome-to-prenatal-yoga",
+      title: "Welcome to Yoga",
+      slug: "welcome-to-yoga",
       type: "video",
-      description: "An introduction to the course and what you can expect",
+      description: "An introduction to yoga and what you can expect from this course",
       sequence: 1,
-      duration: 12,
+      duration: 15,
       isFree: true,
       status: "published",
       metadata: {
@@ -537,31 +589,11 @@ async function main() {
   });
   course1Lessons.push(lesson1);
 
-  await prisma.videoLesson.create({
-    data: {
-      lessonId: lesson1.id,
-      videoId: videos[0].id,
-    },
-  });
-
   await prisma.lessonDescription.create({
     data: {
       lessonId: lesson1.id,
       textContent:
-        "<p>Welcome to the Complete Prenatal Yoga Program! In this introductory lesson, we'll cover:</p><ul><li>What to expect from this course</li><li>The benefits of prenatal yoga</li><li>Safety guidelines and precautions</li><li>How to set up your practice space</li></ul><p>Remember to always listen to your body and consult with your healthcare provider before starting any new exercise program.</p>",
-    },
-  });
-
-  await prisma.lessonAttachment.create({
-    data: {
-      lessonId: lesson1.id,
-      title: "Course Welcome Guide",
-      fileUrl: "https://example.com/attachments/course-welcome-guide.pdf",
-      fileName: "course-welcome-guide.pdf",
-      fileSize: 524288, // 512 KB
-      mimeType: "application/pdf",
-      type: "pdf",
-      sequence: 1,
+        "<p>Welcome to your yoga journey! In this introductory lesson, we'll cover:</p><ul><li>What yoga is and its benefits</li><li>Setting up your practice space</li><li>What equipment you'll need</li><li>How to approach your practice safely</li></ul><p>Remember to listen to your body and never force any movements.</p>",
     },
   });
 
@@ -570,10 +602,10 @@ async function main() {
     data: {
       courseId: courses[0].id,
       moduleId: course1Module1.id,
-      title: "Understanding Your Changing Body",
-      slug: "understanding-changing-body",
+      title: "Understanding Your Body",
+      slug: "understanding-your-body",
       type: "text",
-      description: "Learn about the physical changes during pregnancy",
+      description: "Learn about body awareness and listening to your limits",
       sequence: 2,
       duration: 15,
       isFree: true,
@@ -585,58 +617,43 @@ async function main() {
   await prisma.textLesson.create({
     data: {
       lessonId: lesson2.id,
-      content: `# Understanding Your Changing Body
+      content: `# Understanding Your Body in Yoga
 
-## Physical Changes During Pregnancy
+## Body Awareness is Key
 
-Pregnancy brings remarkable changes to your body. Understanding these changes will help you adapt your yoga practice safely and effectively.
+One of the most important aspects of yoga is developing awareness of your body. This means:
 
-### First Trimester Changes
-- Hormonal shifts causing fatigue and nausea
-- Breast tenderness and enlargement
-- Increased blood volume
-- Subtle changes in balance
+### Listen to Your Body
+- Every body is different and unique
+- What feels good for others might not work for you
+- Pain is never the goal in yoga
+- Discomfort vs pain: learn the difference
 
-### Second Trimester Changes
-- Growing belly and shift in center of gravity
-- Loosening of ligaments due to relaxin hormone
-- Increased energy levels
-- Back pain may begin
+### Breathing and Movement
+- Your breath guides your practice
+- Move with your breath, not against it
+- If you can't breathe comfortably, ease up
+- Breath is your best teacher
 
-### Third Trimester Changes
-- Significant weight in the front affecting posture
-- Shortness of breath as baby pushes on diaphragm
-- Swelling in feet and ankles
-- Preparation for labor
+### Modifications Are Your Friend
+- Every pose can be modified
+- Props can help you find comfort
+- There's no "perfect" pose
+- Progress is personal
 
-## How Yoga Helps
+## Building Your Foundation
 
-Prenatal yoga is specifically designed to:
-- Strengthen muscles that support pregnancy
-- Improve flexibility and prepare for childbirth
-- Reduce stress and promote relaxation
-- Connect with your baby
-- Build community with other expecting mothers
+### Start Slow
+Begin with basic poses and simple movements. Build strength and flexibility gradually.
 
-## Safety First
+### Consistency Over Intensity
+A short daily practice is better than an intense weekly session.
 
-Always remember:
-- Avoid lying flat on your back after the first trimester
-- Don't overstretch - your ligaments are looser
-- Stay hydrated
-- Stop if you feel dizzy, short of breath, or experience pain
-- Modify poses as your body changes
+### Be Patient
+Flexibility and strength take time to develop. Enjoy the journey!
 
-Your journey is unique. Honor your body and its wisdom.`,
+Remember: Yoga is not about perfection—it's about connection with yourself.`,
       estimatedReadTime: 15,
-    },
-  });
-
-  await prisma.lessonDescription.create({
-    data: {
-      lessonId: lesson2.id,
-      textContent:
-        "<p>This comprehensive guide covers the physical changes you'll experience during pregnancy and how yoga can support you through each stage.</p>",
     },
   });
 
@@ -648,7 +665,7 @@ Your journey is unique. Honor your body and its wisdom.`,
       title: "Basic Breathing Techniques",
       slug: "basic-breathing-techniques",
       type: "video",
-      description: "Learn foundational breathing exercises for pregnancy",
+      description: "Learn foundational breathing exercises for your practice",
       sequence: 3,
       duration: 12,
       isFree: false,
@@ -657,123 +674,75 @@ Your journey is unique. Honor your body and its wisdom.`,
   });
   course1Lessons.push(lesson3);
 
-  await prisma.videoLesson.create({
-    data: {
-      lessonId: lesson3.id,
-      videoId: videos[1].id,
-    },
-  });
-
   await prisma.lessonDescription.create({
     data: {
       lessonId: lesson3.id,
       textContent:
-        "<p>Master essential breathing techniques that will help you throughout pregnancy and during labor. We'll practice:</p><ul><li>Ujjayi (Ocean) Breath</li><li>Alternate Nostril Breathing</li><li>Deep Belly Breathing</li><li>Calming Breath for stress relief</li></ul>",
+        "<p>Master essential breathing techniques that form the foundation of yoga practice. We'll explore:</p><ul><li>Deep abdominal breathing</li><li>Ujjayi (ocean) breath</li><li>Breath awareness during movement</li><li>Using breath for relaxation</li></ul>",
     },
   });
 
-  await Promise.all([
-    prisma.lessonAttachment.create({
-      data: {
-        lessonId: lesson3.id,
-        title: "Breathing Exercise Chart",
-        fileUrl: "https://example.com/attachments/breathing-chart.pdf",
-        fileName: "breathing-chart.pdf",
-        fileSize: 327680, // 320 KB
-        mimeType: "application/pdf",
-        type: "pdf",
-        sequence: 1,
-      },
-    }),
-    prisma.lessonAttachment.create({
-      data: {
-        lessonId: lesson3.id,
-        title: "Audio Guide - Breathing Practice",
-        fileUrl: "https://example.com/attachments/breathing-audio.mp3",
-        fileName: "breathing-audio.mp3",
-        fileSize: 2097152, // 2 MB
-        mimeType: "audio/mpeg",
-        type: "other",
-        sequence: 2,
-      },
-    }),
-  ]);
-
-  // Lesson 4 - Video (Module 2)
+  // Additional lessons for other modules
   const lesson4 = await prisma.lesson.create({
     data: {
       courseId: courses[0].id,
       moduleId: course1Module2.id,
-      title: "Gentle Morning Flow",
-      slug: "gentle-morning-flow",
+      title: "Gentle Morning Stretches",
+      slug: "gentle-morning-stretches",
       type: "video",
-      description: "A gentle yoga sequence perfect for first trimester mornings",
+      description: "Start your day with gentle stretches to awaken your body",
       sequence: 1,
-      duration: 12,
+      duration: 20,
       isFree: false,
       status: "published",
     },
   });
   course1Lessons.push(lesson4);
 
-  await prisma.videoLesson.create({
-    data: {
-      lessonId: lesson4.id,
-      videoId: videos[2].id,
-    },
-  });
-
   await prisma.lessonDescription.create({
     data: {
       lessonId: lesson4.id,
       textContent:
-        "<p>Start your day with this gentle 12-minute flow designed for the first trimester. This sequence helps with energy, reduces nausea, and prepares you for the day ahead.</p>",
+        "<p>Begin your day with this gentle 20-minute routine designed to wake up your body and mind.</p>",
     },
   });
 
-  // Lesson 5 - Direct lesson (not in module)
+  // Bonus lesson
   const lesson5 = await prisma.lesson.create({
     data: {
       courseId: courses[0].id,
       moduleId: null, // Direct lesson
-      title: "Bonus: Meditation for Expecting Mothers",
-      slug: "meditation-expecting-mothers",
+      title: "Bonus: Relaxation & Meditation",
+      slug: "relaxation-meditation",
       type: "video",
-      description: "A calming meditation practice to connect with your baby",
-      sequence: 100, // High sequence number for bonus content
-      duration: 12,
+      description: "A calming meditation practice to end your yoga sessions",
+      sequence: 100,
+      duration: 15,
       isFree: false,
       status: "published",
     },
   });
   course1Lessons.push(lesson5);
 
-  await prisma.videoLesson.create({
-    data: {
-      lessonId: lesson5.id,
-      videoId: videos[0].id,
-    },
-  });
-
   await prisma.lessonDescription.create({
     data: {
       lessonId: lesson5.id,
       textContent:
-        "<p>Take time to connect with your baby through this guided meditation. Perfect for any time of day when you need to relax and bond.</p>",
+        "<p>End your practice with this peaceful meditation to integrate your yoga experience.</p>",
     },
   });
 
   console.log(`✅ Created ${course1Lessons.length} lessons for Course 1`);
 
-  // 7. Create Modules and Lessons for Course 2 (Postnatal)
+  // 7. Create Modules and Lessons for Course 2 (Strength Training)
   console.log("📖 Creating modules and lessons for Course 2...");
 
   const course2Module1 = await prisma.module.create({
     data: {
       courseId: courses[1].id,
-      title: "Foundation & Recovery",
-      slug: "foundation-recovery",
-      description: "Gentle exercises to begin your postnatal recovery journey",
+      title: "Strength Training Basics",
+      slug: "strength-training-basics",
+      description: "Learn the fundamentals of safe and effective strength training",
       sequence: 1,
       duration: 120,
       status: "published",
@@ -783,9 +752,9 @@ Your journey is unique. Honor your body and its wisdom.`,
   const course2Module2 = await prisma.module.create({
     data: {
       courseId: courses[1].id,
-      title: "Core & Pelvic Floor",
-      slug: "core-pelvic-floor",
-      description: "Rebuilding core strength and pelvic floor health",
+      title: "Building Your Routine",
+      slug: "building-your-routine",
+      description: "Create a sustainable strength training routine that fits your lifestyle",
       sequence: 2,
       duration: 120,
       status: "published",
@@ -798,12 +767,12 @@ Your journey is unique. Honor your body and its wisdom.`,
       data: {
         courseId: courses[1].id,
         moduleId: course2Module1.id,
-        title: "Getting Started Safely",
-        slug: "getting-started-safely",
+        title: "Getting Started with Strength Training",
+        slug: "getting-started-strength-training",
         type: "video",
-        description: "Learn when and how to start exercising after childbirth",
+        description: "Learn the basics and overcome intimidation",
         sequence: 1,
-        duration: 12,
+        duration: 15,
         isFree: true,
         status: "published",
       },
@@ -812,12 +781,12 @@ Your journey is unique. Honor your body and its wisdom.`,
       data: {
         courseId: courses[1].id,
         moduleId: course2Module1.id,
-        title: "Gentle Stretching Routine",
-        slug: "gentle-stretching-routine",
+        title: "Proper Form and Technique",
+        slug: "proper-form-technique",
         type: "video",
-        description: "Easy stretches to release tension and improve flexibility",
+        description: "Master the fundamentals of safe lifting",
         sequence: 2,
-        duration: 12,
+        duration: 20,
         isFree: false,
         status: "published",
       },
@@ -826,47 +795,39 @@ Your journey is unique. Honor your body and its wisdom.`,
       data: {
         courseId: courses[1].id,
         moduleId: course2Module2.id,
-        title: "Pelvic Floor Exercises",
-        slug: "pelvic-floor-exercises",
+        title: "Your First Workout Plan",
+        slug: "first-workout-plan",
         type: "video",
-        description: "Essential exercises for pelvic floor recovery",
+        description: "Step-by-step guide to your first strength workout",
         sequence: 1,
-        duration: 12,
+        duration: 25,
         isFree: false,
         status: "published",
       },
     }),
   ]);
 
-  // Create video lessons for Course 2
+  // Create lesson descriptions for Course 2
   for (const lesson of course2Lessons) {
-    await prisma.videoLesson.create({
-      data: {
-        lessonId: lesson.id,
-        videoId: videos[0].id,
-      },
-    });
-
     await prisma.lessonDescription.create({
       data: {
         lessonId: lesson.id,
-        textContent:
-          "<p>This lesson provides essential techniques for your postnatal recovery journey.</p>",
+        textContent: "<p>This lesson provides essential techniques for building strength safely and effectively.</p>",
       },
     });
   }
 
   console.log(`✅ Created ${course2Lessons.length} lessons for Course 2`);
 
-  // 8. Create Modules and Lessons for Course 3 (Pregnancy Nutrition)
+  // 8. Create Modules and Lessons for Course 3 (Healthy Cooking)
   console.log("📖 Creating modules and lessons for Course 3...");
 
   const course3Module1 = await prisma.module.create({
     data: {
       courseId: courses[2].id,
-      title: "Nutrition Fundamentals",
-      slug: "nutrition-fundamentals",
-      description: "Essential nutrients and dietary guidelines for pregnancy",
+      title: "Cooking Fundamentals",
+      slug: "cooking-fundamentals",
+      description: "Essential skills and techniques for healthy cooking",
       sequence: 1,
       duration: 90,
       status: "published",
@@ -878,12 +839,12 @@ Your journey is unique. Honor your body and its wisdom.`,
       data: {
         courseId: courses[2].id,
         moduleId: course3Module1.id,
-        title: "Introduction to Pregnancy Nutrition",
-        slug: "intro-pregnancy-nutrition",
+        title: "Kitchen Essentials & Setup",
+        slug: "kitchen-essentials-setup",
         type: "video",
-        description: "Overview of nutritional needs during pregnancy",
+        description: "Setting up your kitchen for healthy cooking success",
         sequence: 1,
-        duration: 12,
+        duration: 15,
         isFree: true,
         status: "published",
       },
@@ -892,10 +853,10 @@ Your journey is unique. Honor your body and its wisdom.`,
       data: {
         courseId: courses[2].id,
         moduleId: course3Module1.id,
-        title: "Essential Nutrients Guide",
-        slug: "essential-nutrients-guide",
+        title: "Nutrition Basics for Cooking",
+        slug: "nutrition-basics-cooking",
         type: "text",
-        description: "Detailed guide on vitamins, minerals, and macronutrients",
+        description: "Understanding macronutrients and micronutrients in cooking",
         sequence: 2,
         duration: 20,
         isFree: false,
@@ -906,130 +867,88 @@ Your journey is unique. Honor your body and its wisdom.`,
       data: {
         courseId: courses[2].id,
         moduleId: course3Module1.id,
-        title: "Meal Planning Workshop",
-        slug: "meal-planning-workshop",
+        title: "Meal Prep Masterclass",
+        slug: "meal-prep-masterclass",
         type: "video",
-        description: "Learn to create balanced meal plans for pregnancy",
+        description: "Learn to meal prep like a pro for busy weeks",
         sequence: 3,
-        duration: 12,
+        duration: 30,
         isFree: false,
         status: "published",
       },
     }),
   ]);
 
-  // Create lesson content for Course 3
-  await prisma.videoLesson.create({
-    data: {
-      lessonId: course3Lessons[0].id,
-      videoId: videos[3].id,
-    },
-  });
-
   await prisma.lessonDescription.create({
     data: {
       lessonId: course3Lessons[0].id,
-      textContent:
-        "<p>Learn about the key nutrients you need during pregnancy and why they're important for you and your baby.</p>",
+      textContent: "<p>Learn how to set up your kitchen for cooking success with the right tools and ingredients.</p>",
     },
   });
 
   await prisma.textLesson.create({
     data: {
       lessonId: course3Lessons[1].id,
-      content: `# Essential Nutrients for Pregnancy
+      content: `# Nutrition Basics for Healthy Cooking
 
-## Macronutrients
+## Understanding Macronutrients
 
-### Protein
-- **Daily Need:** 75-100g
-- **Sources:** Lean meats, eggs, dairy, legumes, nuts
-- **Benefits:** Supports baby's growth and maternal tissue expansion
+### Proteins
+- **Function:** Build and repair tissues, support immune function
+- **Sources:** Lean meats, fish, eggs, legumes, tofu, quinoa
+- **Cooking Tips:** Don't overcook to preserve nutrients
 
 ### Carbohydrates
-- **Daily Need:** 175-210g
-- **Sources:** Whole grains, fruits, vegetables
-- **Benefits:** Primary energy source
+- **Function:** Primary energy source for the body
+- **Choose:** Complex carbs like whole grains, vegetables, fruits
+- **Cooking Tips:** Steam or roast vegetables to retain nutrients
 
 ### Healthy Fats
-- **Daily Need:** Include omega-3s daily
-- **Sources:** Fish, nuts, seeds, avocado
-- **Benefits:** Brain and eye development
+- **Function:** Support hormone production, vitamin absorption
+- **Sources:** Avocados, nuts, seeds, olive oil, fatty fish
+- **Cooking Tips:** Add healthy fats after cooking to preserve benefits
 
-## Key Micronutrients
+## Essential Micronutrients
 
-### Folic Acid (Folate)
-- **Daily Need:** 600 mcg
-- **Critical for:** Neural tube development
-- **Sources:** Leafy greens, fortified grains, citrus
+### Vitamins
+- **Water-soluble:** B vitamins, Vitamin C (cook lightly to preserve)
+- **Fat-soluble:** A, D, E, K (cook with healthy fats for absorption)
 
-### Iron
-- **Daily Need:** 27 mg
-- **Critical for:** Blood production
-- **Sources:** Red meat, spinach, fortified cereals
+### Minerals
+- **Iron:** Enhance absorption with Vitamin C
+- **Calcium:** Combine with Vitamin D sources
+- **Magnesium:** Found in leafy greens and nuts
 
-### Calcium
-- **Daily Need:** 1000 mg
-- **Critical for:** Bone and teeth development
-- **Sources:** Dairy, fortified plant milk, leafy greens
+## Cooking Methods That Preserve Nutrients
 
-### Vitamin D
-- **Daily Need:** 600 IU
-- **Critical for:** Calcium absorption, immune function
-- **Sources:** Sunlight, fortified dairy, fatty fish
+1. **Steaming:** Retains most vitamins and minerals
+2. **Roasting:** Concentrates flavors without adding fats
+3. **Sautéing:** Quick cooking preserves nutrients
+4. **Raw preparations:** Maximum nutrient retention
 
-## Hydration
-
-Drink 8-10 glasses of water daily. Proper hydration helps:
-- Prevent constipation
-- Reduce swelling
-- Support increased blood volume
-- Maintain amniotic fluid levels
-
-Remember: Every pregnancy is unique. Consult your healthcare provider for personalized nutrition advice.`,
+Remember: Variety is key to getting all essential nutrients!`,
       estimatedReadTime: 20,
-    },
-  });
-
-  await prisma.videoLesson.create({
-    data: {
-      lessonId: course3Lessons[2].id,
-      videoId: videos[3].id,
     },
   });
 
   await prisma.lessonDescription.create({
     data: {
       lessonId: course3Lessons[2].id,
-      textContent:
-        "<p>Join us for a practical workshop on creating healthy, balanced meal plans that support your pregnancy.</p>",
-    },
-  });
-
-  await prisma.lessonAttachment.create({
-    data: {
-      lessonId: course3Lessons[2].id,
-      title: "Weekly Meal Planner Template",
-      fileUrl: "https://example.com/attachments/meal-planner.pdf",
-      fileName: "weekly-meal-planner.pdf",
-      fileSize: 245760, // 240 KB
-      mimeType: "application/pdf",
-      type: "pdf",
-      sequence: 1,
+      textContent: "<p>Master the art of meal preparation to save time and eat healthier throughout the week.</p>",
     },
   });
 
   console.log(`✅ Created ${course3Lessons.length} lessons for Course 3`);
 
-  // 9. Create Modules and Lessons for Course 4 (Lactation)
+  // 9. Create Modules and Lessons for Course 4 (Confidence Building)
   console.log("📖 Creating modules and lessons for Course 4...");
 
   const course4Module1 = await prisma.module.create({
     data: {
       courseId: courses[3].id,
-      title: "Lactation Nutrition Basics",
-      slug: "lactation-nutrition-basics",
-      description: "Fundamental nutrition for breastfeeding mothers",
+      title: "Confidence Foundations",
+      slug: "confidence-foundations",
+      description: "Building the foundation of unshakeable confidence",
       sequence: 1,
       duration: 90,
       status: "published",
@@ -1041,12 +960,12 @@ Remember: Every pregnancy is unique. Consult your healthcare provider for person
       data: {
         courseId: courses[3].id,
         moduleId: course4Module1.id,
-        title: "Nutrition for Milk Production",
-        slug: "nutrition-milk-production",
+        title: "Understanding Confidence",
+        slug: "understanding-confidence",
         type: "video",
-        description: "Foods and nutrients that support healthy milk supply",
+        description: "What confidence really is and how to build it",
         sequence: 1,
-        duration: 12,
+        duration: 18,
         isFree: true,
         status: "published",
       },
@@ -1055,78 +974,85 @@ Remember: Every pregnancy is unique. Consult your healthcare provider for person
       data: {
         courseId: courses[3].id,
         moduleId: course4Module1.id,
-        title: "Hydration and Breastfeeding",
-        slug: "hydration-breastfeeding",
+        title: "Overcoming Limiting Beliefs",
+        slug: "overcoming-limiting-beliefs",
         type: "text",
-        description: "The importance of staying hydrated while nursing",
+        description: "Identify and transform beliefs that hold you back",
         sequence: 2,
-        duration: 10,
+        duration: 15,
         isFree: false,
         status: "published",
       },
     }),
   ]);
 
-  await prisma.videoLesson.create({
-    data: {
-      lessonId: course4Lessons[0].id,
-      videoId: videos[3].id,
-    },
-  });
-
   await prisma.lessonDescription.create({
     data: {
       lessonId: course4Lessons[0].id,
-      textContent:
-        "<p>Discover the best foods to support healthy milk production and meet your baby's nutritional needs.</p>",
+      textContent: "<p>Discover what true confidence means and learn practical steps to build it in your daily life.</p>",
     },
   });
 
   await prisma.textLesson.create({
     data: {
       lessonId: course4Lessons[1].id,
-      content: `# Hydration and Breastfeeding
+      content: `# Overcoming Limiting Beliefs
 
-## Why Hydration Matters
+## What Are Limiting Beliefs?
 
-Breast milk is about 88% water, making proper hydration crucial for milk production and your overall health.
+Limiting beliefs are thoughts or convictions that constrain us in some way. They're often unconscious and formed early in life.
 
-## Daily Water Needs
+### Common Limiting Beliefs About Confidence
 
-- **Minimum:** 8-10 glasses (2-2.5 liters)
-- **Recommended:** 12-13 glasses (3+ liters)
-- **Listen to your body:** Drink when thirsty
+- "I'm not good enough"
+- "I don't deserve success"
+- "People will judge me if I speak up"
+- "I'm too shy/quiet/awkward"
+- "I need to be perfect to be worthy"
 
-## Signs of Good Hydration
+## How Limiting Beliefs Form
 
-✓ Light yellow urine
-✓ Regular urination
-✓ Moist lips and mouth
-✓ Adequate milk supply
+### Early Experiences
+- Childhood comments from parents, teachers, peers
+- Comparison with siblings or classmates
+- Traumatic or embarrassing experiences
 
-## Hydration Tips
+### Societal Messages
+- Media representations
+- Cultural expectations
+- Gender stereotypes
 
-1. **Keep water nearby:** Have a water bottle within reach during nursing sessions
-2. **Set reminders:** Use phone alerts to remember to drink
-3. **Vary your fluids:** Include herbal teas, coconut water, fresh juices
-4. **Eat water-rich foods:** Cucumbers, watermelon, oranges, soups
+## Steps to Transform Limiting Beliefs
 
-## What to Limit
+### 1. Identify Your Beliefs
+Write down thoughts that come up when you feel unconfident. What story are you telling yourself?
 
-- Caffeine (max 2-3 cups coffee/day)
-- Sugary drinks
-- Alcohol (wait 2-3 hours after drinking before nursing)
+### 2. Question the Evidence
+- Is this belief absolutely true?
+- What evidence supports it? What contradicts it?
+- Would I say this to a dear friend?
 
-## Electrolyte Balance
+### 3. Reframe with Empowering Beliefs
+- "I am learning and growing every day"
+- "My voice and opinions matter"
+- "I am worthy exactly as I am"
+- "Mistakes are opportunities to learn"
 
-During breastfeeding, you also lose electrolytes. Include:
-- Coconut water (natural electrolytes)
-- Bananas (potassium)
-- Yogurt (calcium, sodium)
-- Nuts (magnesium)
+### 4. Take Small Actions
+Choose one small action that contradicts your limiting belief and practice it regularly.
 
-Remember: Your hydration directly impacts your milk supply. Make it a priority!`,
-      estimatedReadTime: 10,
+### 5. Celebrate Progress
+Acknowledge every step forward, no matter how small.
+
+## Affirmations for Confidence
+
+- "I trust myself and my abilities"
+- "I am becoming more confident every day"
+- "My unique perspective has value"
+- "I choose courage over comfort"
+
+Remember: Transforming beliefs takes time and patience. Be kind to yourself in this process.`,
+      estimatedReadTime: 15,
     },
   });
 
@@ -1135,92 +1061,92 @@ Remember: Your hydration directly impacts your milk supply. Make it a priority!`
   // 10. Create Course Reviews
   console.log("⭐ Creating course reviews...");
   const reviews = await Promise.all([
-    // Reviews for Course 1
+    // Reviews for Course 1 (Beginner Yoga)
     prisma.courseReview.create({
       data: {
         courseId: courses[0].id,
-        userId: users[3].id, // Neha Gupta
+        userId: users[4].id, // Neha Gupta
         rating: 5,
         review:
-          "Absolutely loved this course! Dr. Priya's teaching style is so calming and easy to follow. The prenatal yoga practices helped me throughout my pregnancy and made me feel more prepared for childbirth.",
+          "Perfect introduction to yoga! Priya's teaching style is so clear and encouraging. I went from being completely intimidated by yoga to practicing every day. The progression is just right for beginners.",
       },
     }),
     prisma.courseReview.create({
       data: {
         courseId: courses[0].id,
-        userId: users[4].id, // Ritu Singh
+        userId: users[5].id, // Ritu Singh
         rating: 5,
         review:
-          "बहुत अच्छा कोर्स है। हर exercise को बहुत अच्छे से समझाया गया है। Pregnancy के दौरान बहुत help मिली।",
+          "यह course बहुत अच्छा है। हर pose को बहुत अच्छे से explain किया गया है। अब मैं confident feel करती हूं yoga करते समय।",
       },
     }),
     prisma.courseReview.create({
       data: {
         courseId: courses[0].id,
-        userId: users[5].id, // Kavita Reddy
+        userId: users[6].id, // Kavita Reddy
         rating: 4,
         review:
-          "Great course with comprehensive content. The breathing techniques were especially helpful during labor. Would have loved more third-trimester specific content.",
+          "Great course for beginners! Love the breathing techniques. I feel more flexible and relaxed. Would love to see more advanced sequences as a follow-up course.",
       },
     }),
 
-    // Reviews for Course 2
-    prisma.courseReview.create({
-      data: {
-        courseId: courses[1].id,
-        userId: users[3].id,
-        rating: 5,
-        review:
-          "Perfect for new moms! The exercises are gentle yet effective. I started feeling stronger within 3 weeks. Dr. Priya really understands the postnatal body.",
-      },
-    }),
+    // Reviews for Course 2 (Strength Training)
     prisma.courseReview.create({
       data: {
         courseId: courses[1].id,
         userId: users[4].id,
         rating: 5,
         review:
-          "Delivery के बाद यह course मेरे लिए बहुत helpful रहा। Core strength वापस आ रही है और back pain भी कम हो गया।",
+          "This course completely changed my relationship with strength training! Priya made it so approachable and non-intimidating. I'm actually excited to go to the gym now!",
+      },
+    }),
+    prisma.courseReview.create({
+      data: {
+        courseId: courses[1].id,
+        userId: users[5].id,
+        rating: 5,
+        review:
+          "मुझे लगता था कि strength training सिर्फ men के लिए है। लेकिन यह course ने मेरी सोच बदल दी। अब मैं confident हूं gym में।",
       },
     }),
 
-    // Reviews for Course 3
+    // Reviews for Course 3 (Healthy Cooking)
     prisma.courseReview.create({
       data: {
         courseId: courses[2].id,
-        userId: users[3].id,
+        userId: users[4].id,
         rating: 4,
         review:
-          "Very informative course! Anjali explains everything clearly. The meal planning section was particularly useful. My only wish is for more Indian recipe examples.",
+          "Really practical course! Anjali's recipes are simple but delicious. The meal prep tips save me so much time. My family loves the healthy meals I'm making now.",
       },
     }),
     prisma.courseReview.create({
       data: {
         courseId: courses[2].id,
-        userId: users[5].id,
+        userId: users[6].id,
         rating: 5,
         review:
-          "This course transformed how I eat during pregnancy. I feel healthier, more energetic, and my doctor is happy with my nutrition choices. Highly recommend!",
+          "As someone who lived on takeout, this course was a game-changer! I can actually cook healthy, tasty meals now. The nutrition information is so helpful too.",
       },
     }),
 
-    // Reviews for Course 4
-    prisma.courseReview.create({
-      data: {
-        courseId: courses[3].id,
-        userId: users[4].id,
-        rating: 5,
-        review:
-          "Breastfeeding journey के लिए perfect guidance। Foods for milk supply की information बहुत useful थी। Thank you Anjali!",
-      },
-    }),
+    // Reviews for Course 4 (Confidence Building)
     prisma.courseReview.create({
       data: {
         courseId: courses[3].id,
         userId: users[5].id,
         rating: 5,
         review:
-          "As a first-time mom, this course gave me so much confidence about nutrition while breastfeeding. Clear, practical advice that actually works!",
+          "यह course ने मुझमें confidence लाया है। Meera के techniques really work करते हैं। अब मैं meetings में बात करने से डरती नहीं।",
+      },
+    }),
+    prisma.courseReview.create({
+      data: {
+        courseId: courses[3].id,
+        userId: users[6].id,
+        rating: 5,
+        review:
+          "Incredible transformation! I used to second-guess everything I said. Meera's practical exercises helped me build genuine confidence. Highly recommend!",
       },
     }),
   ]);
@@ -1314,16 +1240,19 @@ Remember: Your hydration directly impacts your milk supply. Make it a priority!`
   console.log(`   👤 Users: ${users.length}`);
   console.log(`   🎓 Trainers: ${trainers.length}`);
   console.log(`   📁 Categories: ${parentCategories.length + subCategories.length}`);
-  console.log(`   🎬 Videos: ${videos.length}`);
+  console.log(`   🎬 Videos: ${videos.length} (empty as requested)`);
   console.log(`   📚 Courses: ${courses.length}`);
   console.log(`   📖 Modules: 7`);
-  console.log(
-    `   📄 Lessons: ${
+  console.log(`   📄 Lessons: ${
       course1Lessons.length + course2Lessons.length + course3Lessons.length + course4Lessons.length
-    }`
-  );
+    }`);
   console.log(`   ⭐ Reviews: ${reviews.length}`);
   console.log(`   📊 Progress Records: ${courseProgress.length + lessonProgress.length}`);
+  console.log("\n📚 Course Topics:");
+  console.log("   🧘‍♀️ Yoga for Beginners: Complete Foundation");
+  console.log("   💪 Women's Strength Training Program");
+  console.log("   🍳 Healthy Cooking Mastery");
+  console.log("   ✨ Build Unshakeable Confidence");
   console.log("\n✅ Ready for testing!");
 }
 

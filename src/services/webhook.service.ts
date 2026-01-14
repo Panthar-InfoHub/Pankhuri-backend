@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/db";
 import { SubscriptionStatus } from "@/prisma/generated/prisma/client";
+import { syncSubscriptionToEntitlement, revokeEntitlement, grantEntitlement } from "./entitlement.service";
+import { cleanupRedundantSubscriptions } from "./subscription.service";
 
 // ==================== WEBHOOK EVENT HANDLERS ====================
 
@@ -21,8 +23,8 @@ export const handleSubscriptionAuthenticated = async (payload: any): Promise<voi
     include: { plan: true },
   });
 
-  if (!subscription) {
-    console.error(`[WEBHOOK] ❌ Subscription not found: ${subscriptionId}`);
+  if (!subscription || !subscription.plan) {
+    console.error(`[WEBHOOK] ❌ Subscription or plan not found: ${subscriptionId}`);
     return;
   }
 
@@ -30,31 +32,30 @@ export const handleSubscriptionAuthenticated = async (payload: any): Promise<voi
     `[WEBHOOK] Found subscription - Plan trialFee: ${subscription.plan.trialFee}, trialDays: ${subscription.plan.trialDays}`
   );
 
-  // This webhook only fires for paid trials (addon payment)
-  // Check if this was a paid trial
+  // 1. Determine trial status based on plan
+  const hasTrial = (subscription.plan?.trialDays || 0) > 0;
   const isPaidTrial = notes.subscriptionType === "paid_trial" || subscription.plan.trialFee > 0;
 
   console.log(
-    `[WEBHOOK] isPaidTrial check: ${isPaidTrial} (notes.subscriptionType: ${notes.subscriptionType}, plan.trialFee: ${subscription.plan.trialFee})`
+    `[WEBHOOK] hasTrial: ${hasTrial}, isPaidTrial: ${isPaidTrial} (notes.subscriptionType: ${notes.subscriptionType}, plan.trialFee: ${subscription.plan.trialFee})`
   );
 
-  if (!isPaidTrial) {
-    console.log(`[WEBHOOK] ⚠️ Not a paid trial, skipping authenticated handler`);
-    return;
+  // Calculate trial end date ONLY if there is a trial
+  let trialEndsAt: Date | null = null;
+  if (hasTrial) {
+    trialEndsAt = new Date();
+    trialEndsAt.setDate(trialEndsAt.getDate() + (subscription.plan.trialDays || 0));
   }
 
-  // Calculate trial end date
-  const trialEndsAt = new Date();
-  trialEndsAt.setDate(trialEndsAt.getDate() + subscription.plan.trialDays);
+  const finalStatus: SubscriptionStatus = hasTrial ? "trial" : "active";
+  console.log(`[WEBHOOK] Setting status to: ${finalStatus}, trialEndsAt: ${trialEndsAt?.toISOString() || "null"}`);
 
-  console.log(`[WEBHOOK] Setting trialEndsAt to: ${trialEndsAt.toISOString()}`);
-
-  // Update subscription status to trial, mark addon payment as paid, and set hasUsedTrial
+  // Update subscription status, payment, and user
   await Promise.all([
     prisma.userSubscription.update({
       where: { id: subscription.id },
       data: {
-        status: "trial" as SubscriptionStatus,
+        status: finalStatus,
         trialEndsAt,
       },
     }),
@@ -70,14 +71,20 @@ export const handleSubscriptionAuthenticated = async (payload: any): Promise<voi
         eventType: "subscription.authenticated",
       },
     }),
-    prisma.user.update({
-      where: { id: subscription.userId },
-      data: { hasUsedTrial: true },
-    }),
+    // Only mark trial as used if it actually was a trial
+    ...(hasTrial ? [
+      prisma.user.update({
+        where: { id: subscription.userId },
+        data: { hasUsedTrial: true },
+      })
+    ] : []),
   ]);
 
+  // Sync Entitlement
+  await syncSubscriptionToEntitlement(subscription.id);
+
   console.log(
-    `[WEBHOOK] ✅ Paid trial addon completed, status set to trial with trialEndsAt: ${trialEndsAt.toISOString()}, hasUsedTrial set to true`
+    `[WEBHOOK] ✅ Authentication completed. Status set to ${finalStatus}${hasTrial ? ` until ${trialEndsAt?.toISOString()}` : ""}`
   );
 };
 
@@ -101,8 +108,8 @@ export const handleSubscriptionActivated = async (payload: any): Promise<void> =
     include: { plan: true },
   });
 
-  if (!subscription) {
-    console.error(`[WEBHOOK] ❌ Subscription not found: ${subscriptionId}`);
+  if (!subscription || !subscription.plan) {
+    console.error(`[WEBHOOK] ❌ Subscription or plan not found: ${subscriptionId}`);
     return;
   }
 
@@ -111,7 +118,7 @@ export const handleSubscriptionActivated = async (payload: any): Promise<void> =
   );
 
   const subscriptionType = notes.subscriptionType || "direct";
-  const hasTrial = subscription.plan.trialDays > 0;
+  const hasTrial = (subscription.plan?.trialDays || 0) > 0;
 
   console.log(`[WEBHOOK] subscriptionType: ${subscriptionType}, hasTrial: ${hasTrial}`);
 
@@ -135,14 +142,14 @@ export const handleSubscriptionActivated = async (payload: any): Promise<void> =
         orderBy: { createdAt: "desc" },
       });
 
-      if (trialPayment) {
+      if (trialPayment && subscription.plan) {
         trialEndsAt = new Date(trialPayment.createdAt);
-        trialEndsAt.setDate(trialEndsAt.getDate() + subscription.plan.trialDays);
+        trialEndsAt.setDate(trialEndsAt.getDate() + (subscription.plan.trialDays || 0));
       }
     } else {
       // For free trial: calculate from now (activation time)
       trialEndsAt = new Date();
-      trialEndsAt.setDate(trialEndsAt.getDate() + subscription.plan.trialDays);
+      trialEndsAt.setDate(trialEndsAt.getDate() + (subscription.plan?.trialDays || 0));
     }
   }
 
@@ -192,6 +199,15 @@ export const handleSubscriptionActivated = async (payload: any): Promise<void> =
     `[WEBHOOK] ✅ Subscription activated: ${subscriptionId}, type: ${subscriptionType}, status: ${finalStatus}, trialEndsAt: ${trialEndsAt?.toISOString() || "null"
     }${finalStatus === "trial" ? ", hasUsedTrial set to true" : ""}`
   );
+
+  // Sync Entitlement
+  await syncSubscriptionToEntitlement(subscription.id);
+
+  // 10. Cleanup redundant subscriptions
+  const plan = subscription.plan;
+  if (plan) {
+    await cleanupRedundantSubscriptions(subscription.userId, plan.planType, plan.targetId || undefined);
+  }
 };
 
 /**
@@ -279,6 +295,11 @@ export const handleInvoicePaid = async (payload: any): Promise<void> => {
       })
       : Promise.resolve(),
   ]);
+
+  // Sync Entitlement
+  if (subscription) {
+    await syncSubscriptionToEntitlement(subscription.id);
+  }
 
   console.log(`[WEBHOOK] Invoice paid: ${invoiceId}`);
 };
@@ -403,6 +424,7 @@ export const handleSubscriptionHalted = async (payload: any): Promise<void> => {
   const subscriptionEntity = payload.payload.subscription.entity;
   const subscription = await prisma.userSubscription.findUnique({
     where: { subscriptionId: subscriptionEntity.id },
+    include: { plan: true },
   });
 
   if (!subscription) return;
@@ -411,6 +433,11 @@ export const handleSubscriptionHalted = async (payload: any): Promise<void> => {
     where: { id: subscription.id },
     data: { status: "halted" },
   });
+
+  // Revoke Entitlement
+  if (subscription.plan) {
+    await revokeEntitlement(subscription.userId, subscription.plan.planType, subscription.plan.targetId);
+  }
 
   console.log(`[WEBHOOK] Subscription halted: ${subscriptionEntity.id}`);
 };
@@ -462,7 +489,94 @@ export const handleSubscriptionCharged = async (payload: any): Promise<void> => 
     }),
   ]);
 
+  // Sync Entitlement
+  await syncSubscriptionToEntitlement(subscription.id);
+
   console.log(`[WEBHOOK] Recurring charge: ${subscriptionEntity.id}`);
+};
+
+/**
+ * payment.captured - One-time payment successful
+ * Used for lifetime plans and individual course purchases
+ */
+export const handlePaymentCaptured = async (payload: any): Promise<void> => {
+  const paymentEntity = payload.payload.payment.entity;
+  const orderId = paymentEntity.order_id;
+
+  console.log(`[WEBHOOK] 💳 CAPTURED webhook received for order: ${orderId}`);
+
+  if (!orderId) return;
+
+  const payment = await prisma.payment.findFirst({
+    where: { orderId },
+    include: { plan: true }
+  });
+
+  if (!payment) {
+    console.error(`[WEBHOOK] ❌ One-time payment record not found for order: ${orderId}`);
+    return;
+  }
+
+  if (payment.status === "paid") {
+    console.log(`[WEBHOOK] ⚠️ Payment already processed for order: ${orderId}`);
+    return;
+  }
+
+  // Atomic Update: Payment, Subscription, and Entitlements
+  await prisma.$transaction(async (tx) => {
+    // 1. Update Payment
+    await tx.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: "paid",
+        paymentId: paymentEntity.id,
+        paymentMethod: paymentEntity.method,
+        isWebhookProcessed: true,
+        eventType: "payment.captured",
+        updatedAt: new Date()
+      },
+    });
+
+    // 2. Update Subscription status
+    if (payment.userSubscriptionId) {
+      await tx.userSubscription.update({
+        where: { id: payment.userSubscriptionId },
+        data: {
+          status: "active",
+          updatedAt: new Date()
+        }
+      });
+    }
+
+    // 3. Grant Entitlement
+    if (payment.plan) {
+      // If it was a Lifetime Plan (One-time Access Bundle)
+      await grantEntitlement(
+        payment.userId,
+        payment.plan.planType,
+        payment.plan.targetId,
+        { source: 'WEB' }
+      );
+    } else {
+      // If it was a Direct Course Purchase (from purchase.service.ts)
+      const courseId = (payment.metadata as any)?.courseId;
+      if (courseId) {
+        await grantEntitlement(payment.userId, "COURSE", courseId, { source: 'WEB' });
+      }
+    }
+  });
+
+  // 4. Cleanup redundant subscriptions (Post-transaction)
+  if (payment.plan) {
+    await cleanupRedundantSubscriptions(payment.userId, payment.plan.planType, payment.plan.targetId || undefined);
+  } else {
+    const courseId = (payment.metadata as any)?.courseId;
+    if (courseId) {
+      await cleanupRedundantSubscriptions(payment.userId, "COURSE", courseId);
+    }
+  }
+
+  console.log(`[WEBHOOK] ✅ One-time payment captured and entitlement granted: ${orderId}`);
 };
 
 // ==================== WEBHOOK ROUTER ====================
@@ -481,6 +595,7 @@ export const processWebhook = async (event: string, payload: any): Promise<void>
     "subscription.cancelled": handleSubscriptionCancelled,
     "subscription.halted": handleSubscriptionHalted,
     "subscription.charged": handleSubscriptionCharged,
+    "payment.captured": handlePaymentCaptured,
   };
 
   const handler = handlers[event];

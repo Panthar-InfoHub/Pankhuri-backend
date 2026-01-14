@@ -45,6 +45,7 @@ model User {
   subscriptions  UserSubscription[]
   payments       Payment[]
   certificates   Certificate[]
+  entitlements   UserEntitlement[]
   UserStreak     UserStreak?
 
   @@index([email])

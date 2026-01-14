@@ -1,3 +1,13 @@
+export type VideoDescription = {
+    disclaimer?: string //markdown
+    timestamps?: {
+        time_interval: string
+        time_content: string
+    }[]
+    description?: string // markdown
+}
+
+
 export interface GooglePlayReceipt {
     startTime: string;
     subscriptionState: string;

@@ -23,13 +23,20 @@ export const createPlan = async (
         data: planData,
     });
 
+    // Lifetime plans are one-time payments and don't need a Gateway Plan (recurring template)
+    if (plan.subscriptionType === 'lifetime') {
+        console.log(`[PLAN] Lifetime plan created locally for ${plan.name}. Skipping gateway sync.`);
+        return plan;
+    }
+
     try {
-        // Step 2: Create plan in payment gateway
+        // Step 2: Create plan in payment gateway for RECURRING billing
         const gatewayPlan = await createGatewayPlan({
             name: plan.name,
             amount: plan.price,
             currency: plan.currency,
-            period: plan.subscriptionType,
+            // period needs to be 'monthly' or 'yearly' for Razorpay
+            period: plan.subscriptionType as "monthly" | "yearly",
             interval: 1,
             description: plan.description || undefined,
         });
@@ -115,7 +122,10 @@ export const updatePlan = async (
 
     return await prisma.subscriptionPlan.update({
         where: { id },
-        data: updates,
+        data: {
+            ...updates,
+            updatedAt: new Date(),
+        },
     });
 };
 

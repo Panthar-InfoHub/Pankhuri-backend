@@ -1,6 +1,66 @@
 import { Prisma, CourseStatus, CourseLevel } from "@/prisma/generated/prisma/client";
 import { prisma } from "../lib/db";
 
+// ==================== HELPERS ====================
+
+/**
+ * Optimized helper to attach pricing and ownership to multiple courses
+ */
+const attachPricingToCourses = async (courses: any[], userId?: string) => {
+  const courseIds = courses.map(c => c.id).filter(id => id !== null && id !== undefined) as string[];
+
+  if (courseIds.length === 0) return courses;
+  const allPlans = await prisma.subscriptionPlan.findMany({
+    where: {
+      targetId: { in: courseIds },
+      planType: "COURSE",
+      isActive: true
+    }
+  });
+
+  // 2. If userId provided, batch fetch active entitlements to check ownership
+  let activeEntitlements: string[] = [];
+  let hasFullApp = false;
+  if (userId) {
+    const entitlements = await prisma.userEntitlement.findMany({
+      where: {
+        userId,
+        status: "active",
+        OR: [
+          { validUntil: null },
+          { validUntil: { gt: new Date() } }
+        ]
+      }
+    });
+    hasFullApp = entitlements.some(e => e.type === "WHOLE_APP");
+    activeEntitlements = entitlements
+      .filter(e => e.type === "COURSE" && e.targetId)
+      .map(e => e.targetId as string);
+  }
+
+  // 3. Map everything back to the courses
+  return courses.map(course => {
+    const plan = allPlans.find(p => p.targetId === course.id);
+    const hasDirectAccess = activeEntitlements.includes(course.id);
+
+    return {
+      ...course,
+      isPaid: !!plan,
+      hasAccess: hasFullApp || hasDirectAccess || !plan, // Access if full app, owned, or free
+      pricing: plan || null
+    };
+  });
+};
+
+/**
+ * Helper for single course (detail)
+ */
+const attachPricingToCourse = async (course: any, userId?: string) => {
+  if (!course) return null;
+  const results = await attachPricingToCourses([course], userId);
+  return results[0];
+};
+
 // ==================== COURSE QUERIES ====================
 
 // Get all courses with filters
@@ -16,6 +76,7 @@ export const getAllCourses = async (filters?: {
   sort?: "newest" | "popular" | "rating" | "title";
   page?: number;
   limit?: number;
+  userId?: string;
 }) => {
   const {
     categoryId,
@@ -29,6 +90,7 @@ export const getAllCourses = async (filters?: {
     sort = "newest",
     page = 1,
     limit = 20,
+    userId
   } = filters || {};
 
   const where: Prisma.CourseWhereInput = {
@@ -39,10 +101,10 @@ export const getAllCourses = async (filters?: {
     ...(status && { status }),
     ...(tags &&
       tags.length > 0 && {
-        tags: {
-          hasSome: tags,
-        },
-      }),
+      tags: {
+        hasSome: tags,
+      },
+    }),
     ...(duration && {
       duration: duration === "short" ? { lte: 180 } : { gt: 180 },
     }),
@@ -99,8 +161,10 @@ export const getAllCourses = async (filters?: {
     prisma.course.count({ where }),
   ]);
 
+  const data = await attachPricingToCourses(courses, userId);
+
   return {
-    data: courses,
+    data,
     pagination: {
       page,
       limit,
@@ -221,9 +285,10 @@ export const getCourseById = async (id: string, userId?: string) => {
     totalDuration += lesson.duration || 0;
   });
 
-  // Data is already sanitized at query level - no sensitive URLs or content fetched
+  const courseWithPricing = await attachPricingToCourse(course);
+
   return {
-    ...course,
+    ...courseWithPricing,
     stats: {
       totalModules: (course as any)._count.modules,
       totalLessons,
@@ -335,9 +400,10 @@ export const getCourseBySlug = async (slug: string, userId?: string) => {
     totalDuration += lesson.duration || 0;
   });
 
-  // Data is already sanitized at query level - no sensitive URLs or content fetched
+  const courseWithPricing = await attachPricingToCourse(course);
+
   return {
-    ...course,
+    ...courseWithPricing,
     stats: {
       totalModules: (course as any)._count.modules,
       totalLessons,
@@ -347,7 +413,7 @@ export const getCourseBySlug = async (slug: string, userId?: string) => {
 };
 
 // Get related courses
-export const getRelatedCourses = async (courseId: string, limit = 6) => {
+export const getRelatedCourses = async (courseId: string, limit = 6, userId?: string) => {
   const course = await prisma.course.findUnique({
     where: { id: courseId },
     select: { categoryId: true, level: true, tags: true },
@@ -388,11 +454,11 @@ export const getRelatedCourses = async (courseId: string, limit = 6) => {
     },
   });
 
-  return relatedCourses;
+  return await attachPricingToCourses(relatedCourses, userId);
 };
 
 // Get trending courses
-export const getTrendingCourses = async (limit = 10) => {
+export const getTrendingCourses = async (limit = 10, userId?: string) => {
   const courses = await prisma.course.findMany({
     where: {
       status: "active",
@@ -420,7 +486,7 @@ export const getTrendingCourses = async (limit = 10) => {
     take: limit,
   });
 
-  return courses;
+  return await attachPricingToCourses(courses);
 };
 
 // Create course (Admin/Trainer)
@@ -586,7 +652,7 @@ export const togglePublish = async (id: string, status: CourseStatus) => {
 };
 
 // Get courses by trainer
-export const getCoursesByTrainer = async (trainerId: string, includeUnpublished = false) => {
+export const getCoursesByTrainer = async (trainerId: string, includeUnpublished = false, userId?: string) => {
   const where: Prisma.CourseWhereInput = {
     trainerId,
     ...(includeUnpublished ? {} : { status: "active" }),
@@ -602,5 +668,5 @@ export const getCoursesByTrainer = async (trainerId: string, includeUnpublished 
     },
   });
 
-  return courses;
+  return await attachPricingToCourses(courses);
 };

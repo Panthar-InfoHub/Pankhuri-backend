@@ -6,9 +6,10 @@ import path from "path";
 config();
 
 export default defineConfig({
-   schema: path.join("src", "prisma"), // ROOT for Prisma
+  schema: path.join("src", "prisma"), // ROOT for Prisma
   migrations: {
     path: "src/prisma/migrations",
+    seed: "npx ts-node -r tsconfig-paths/register src/prisma/seed.ts"
   },
   engine: "classic",
   datasource: {
