@@ -83,32 +83,17 @@ export const getLessonsByModuleHandler = async (
  */
 export const getLessonByIdHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
-    const userId = req.user?.id; // May be undefined for guest users
-
-    // Check lesson access
-    const { lesson, hasAccess, reason } = await checkLessonAccess(id, userId);
+    // Lesson and access have already been checked by requireLessonAccess middleware
+    const lesson = (req as any).lesson;
 
     if (!lesson) {
-      return res.status(404).json({
-        success: false,
-        error: "Lesson not found",
-      });
-    }
+      const { id } = req.params;
+      const userId = req.user?.id;
+      const { lesson: fetchedLesson, hasAccess, reason } = await checkLessonAccess(id, userId);
 
-    // If no access, return limited info
-    if (!hasAccess) {
-      return res.status(403).json({
-        success: false,
-        error: reason || "Access denied",
-        code: "SUBSCRIPTION_REQUIRED",
-        data: {
-          id: lesson.id,
-          title: lesson.title,
-          isFree: lesson.isFree,
-          requiresSubscription: !lesson.isFree,
-        },
-      });
+      if (!fetchedLesson) return res.status(404).json({ success: false, error: "Lesson not found" });
+      if (!hasAccess) return res.status(403).json({ success: false, error: reason || "Access denied", code: "SUBSCRIPTION_REQUIRED" });
+      // Fallback if middleware wasn't applied
     }
 
     // Get navigation (next/previous lessons)

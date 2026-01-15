@@ -109,17 +109,28 @@ export const hasAccess = async (
 
     if (!userId) return false;
 
-    // 1. Fetch all active entitlements for the user
-    const activeEntitlements = await prisma.userEntitlement.findMany({
-        where: {
-            userId,
-            status: "active",
-            OR: [
-                { validUntil: null },
-                { validUntil: { gt: new Date() } }
-            ]
+    // 1. Fetch user to check globally for ADMIN role or active entitlements
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+            entitlements: {
+                where: {
+                    status: "active",
+                    OR: [
+                        { validUntil: null },
+                        { validUntil: { gt: new Date() } }
+                    ]
+                }
+            }
         }
     });
+
+    if (!user) return false;
+
+    // Global Bypass: Admins have access to everything
+    if (user.role === "admin") return true;
+
+    const activeEntitlements = user.entitlements;
 
     if (activeEntitlements.length === 0) return false;
 

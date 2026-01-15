@@ -89,6 +89,45 @@ export const authenticateWithSession = async (req: Request, res: Response, next:
 };
 
 /**
+ * Verify JWT token and attach user to request if present, but don't fail if missing
+ * Used for public routes that need to know if a user is logged in (e.g. to check course ownership)
+ */
+export const optionalAuthenticate = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return next();
+    }
+
+    const token = authHeader.substring(7);
+
+    try {
+      const decoded = verifyJWT(token);
+      req.user = decoded;
+
+      const sessionId = decoded.sessionId;
+      if (sessionId) {
+        // Validate session but don't fail if invalid, just remove user
+        const session = await validateSession(sessionId);
+        if (session && session.userId === decoded.id) {
+          req.sessionId = sessionId;
+        } else {
+          req.user = undefined;
+        }
+      }
+      next();
+    } catch (error) {
+      // Invalid token - just continue as guest
+      req.user = undefined;
+      next();
+    }
+  } catch (error) {
+    next();
+  }
+};
+
+/**
  * Check if user is admin
  */
 export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {

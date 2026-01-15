@@ -1,5 +1,6 @@
 import express from "express";
-import { authenticateWithSession, requireAdmin } from "@/middleware/session.middleware";
+import { authenticateWithSession, requireAdmin, optionalAuthenticate } from "@/middleware/session.middleware";
+import { requireLessonAccess, requireAttachmentAccess } from "@/middleware/resource-access.middleware";
 import {
   getLessonsByCourseHandler,
   getLessonsByModuleHandler,
@@ -29,21 +30,21 @@ const router = express.Router();
 // Lesson lists are public - show all lessons with title, duration, etc.
 
 // Get lessons by course
-router.get("/course/:courseId", getLessonsByCourseHandler);
+router.get("/course/:courseId", optionalAuthenticate, getLessonsByCourseHandler);
 
 // Get free lessons (preview)
-router.get("/course/:courseId/free", getFreeLessonsHandler);
+router.get("/course/:courseId/free", optionalAuthenticate, getFreeLessonsHandler);
 
 // Get lessons by module
-router.get("/module/:moduleId", getLessonsByModuleHandler);
+router.get("/module/:moduleId", optionalAuthenticate, getLessonsByModuleHandler);
 
 // ==================== AUTHENTICATED ROUTES ====================
 // Individual lesson access requires authentication + subscription check
 
-// Get lesson by ID (requires auth, checks subscription in controller)
-router.get("/:id", authenticateWithSession, getLessonByIdHandler);
+// Get lesson by ID (requires auth, checks subscription in middleware)
+router.get("/:id", authenticateWithSession, requireLessonAccess, getLessonByIdHandler);
 
-// Get lesson by slug (requires auth, checks subscription in controller)
+// Get lesson by slug (requires auth, checks subscription in controller - slug routes handle gating themselves currently)
 router.get("/course/:courseId/slug/:slug", authenticateWithSession, getLessonBySlugHandler);
 
 // ==================== ADMIN/TRAINER ROUTES ====================
@@ -69,7 +70,7 @@ router.patch("/:id/status", authenticateWithSession, requireAdmin, updateLessonS
 router.put("/:id/description", authenticateWithSession, requireAdmin, upsertLessonDescriptionHandler);
 
 // Get lesson description
-router.get("/:id/description", authenticateWithSession, getLessonDescriptionHandler);
+router.get("/:id/description", authenticateWithSession, requireLessonAccess, getLessonDescriptionHandler);
 
 // Delete lesson description
 router.delete("/:id/description", authenticateWithSession, requireAdmin, deleteLessonDescriptionHandler);
@@ -80,7 +81,7 @@ router.delete("/:id/description", authenticateWithSession, requireAdmin, deleteL
 router.post("/:id/attachments", authenticateWithSession, requireAdmin, addLessonAttachmentHandler);
 
 // Get all attachments for a lesson
-router.get("/:id/attachments", authenticateWithSession, getLessonAttachmentsHandler);
+router.get("/:id/attachments", authenticateWithSession, requireLessonAccess, getLessonAttachmentsHandler);
 
 // Delete all attachments for a lesson
 router.delete("/:id/attachments/all", authenticateWithSession, requireAdmin, deleteAllLessonAttachmentsHandler);
@@ -94,7 +95,7 @@ router.patch(
 );
 
 // Get single attachment by ID
-router.get("/attachments/:attachmentId", authenticateWithSession, getLessonAttachmentByIdHandler);
+router.get("/attachments/:attachmentId", authenticateWithSession, requireAttachmentAccess, getLessonAttachmentByIdHandler);
 
 // Update attachment metadata
 router.put("/attachments/:attachmentId", authenticateWithSession, requireAdmin, updateLessonAttachmentHandler);
