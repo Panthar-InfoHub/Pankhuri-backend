@@ -194,6 +194,16 @@ export const getCategoryBySlug = async (slug: string, showNestedCourses: boolean
   return getCategoryById(cat.id, showNestedCourses, userId);
 };
 
+export const getChildCategories = async (parentId: string) => {
+  return await prisma.category.findMany({
+    where: { parentId },
+    orderBy: { sequence: "asc" },
+    include: {
+      _count: { select: { courses: true, children: true } }
+    }
+  });
+};
+
 // ==================== MUTATIONS (ADMIN) ====================
 
 export const createCategory = async (data: Prisma.CategoryCreateInput) => {
@@ -229,5 +239,12 @@ export const toggleStatus = async (id: string, status: CategoryStatus) => {
   return await prisma.category.update({
     where: { id },
     data: { status }
+  });
+};
+
+export const updateSequence = async (id: string, sequence: number) => {
+  return await prisma.category.update({
+    where: { id },
+    data: { sequence }
   });
 };
