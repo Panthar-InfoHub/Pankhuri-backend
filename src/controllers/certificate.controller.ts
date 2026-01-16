@@ -1,4 +1,5 @@
 import path from "path";
+import { prisma } from "@/lib/db";
 import os from "os";
 import fs from "fs/promises";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
@@ -11,38 +12,87 @@ import { getUserById } from "@/services/user.service";
 
 export const createCertificate = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { course_id, date: studentDate, phone } = req.body;
+        const { course_id, date: studentDate } = req.body;
+        let { phone } = req.body;
         const userId = req.user!.id;
 
-        if (!userId || !course_id || !phone) {
-            return res.status(401).json({
+        if (!userId || !course_id) {
+            return res.status(400).json({
                 success: false,
-                message: "Missing required fields for certificate generation.",
+                message: "Missing required fields for certificate generation (course_id).",
             });
         }
-        const user = await getUserById(userId);
+
+        // 1. Fetch User and Course Details
+        const [user, course] = await Promise.all([
+            getUserById(userId),
+            getCourseById(course_id)
+        ]);
 
         if (!user || !user.displayName) {
             return res.status(404).json({
                 success: false,
-                message: "User not found",
+                message: "User not found or profile incomplete.",
             });
         }
-
-        console.debug("\n\nStudent data ===> ", req.body)
-        const date = studentDate ? studentDate : new Date().toISOString().split("T")[0]
-
-
-        console.debug(`\n\n Creating certificate of student with data :  `, { name: user.displayName, course_id, date, phone })
-        const course = await getCourseById(course_id);
-
 
         if (!course) {
-            console.warn("\n Course not found for certificate generation:", course_id)
             return res.status(404).json({
-                success: false, message: "Course not found."
+                success: false,
+                message: "Course not found."
             });
         }
+
+        // 2. Security Checks
+        // A. Does the course provide a certificate?
+        if (!course.hasCertificate) {
+            return res.status(400).json({
+                success: false,
+                message: "This course does not provide a certificate."
+            });
+        }
+
+        // B. Has the user completed the course?
+        const progress = await prisma.userCourseProgress.findUnique({
+            where: { userId_courseId: { userId, courseId: course_id } }
+        });
+
+        if (!progress || !progress.isCompleted) {
+            return res.status(403).json({
+                success: false,
+                message: "You must complete the course before claiming your certificate."
+            });
+        }
+
+        // C. Duplicate Check - return existing if already generated
+        const existingCert = await prisma.certificate.findFirst({
+            where: { userId, courseId: course_id }
+        });
+
+        if (existingCert) {
+            return res.status(200).json({
+                success: true,
+                message: "Certificate already generated.",
+                data: {
+                    name: user.displayName,
+                    publicUrl: existingCert.certificateUrl,
+                }
+            });
+        }
+
+        // 3. Fallbacks for missing optional data
+        const date = studentDate ? studentDate : new Date().toISOString().split("T")[0];
+        if (!phone) phone = user.phone;
+
+        if (!phone) {
+            return res.status(400).json({
+                success: false,
+                message: "Phone number is required for certificate registration but missing from profile.",
+            });
+        }
+
+        console.debug(`\n\n Creating certificate for: `, { name: user.displayName, course: course.title, date, phone })
+
 
         const { renderToStaticMarkup } = await import("react-dom/server")
         const Certificate = (await import("@/lib/certificate")).default

@@ -300,9 +300,39 @@ export const getCourseById = async (id: string, userId?: string) => {
   });
   rawLessons.forEach((l: any) => { totalDuration += l.duration || 0; });
 
+  // 4. Certificate and Progress Info
+  let certificateInfo = {
+    hasCertificate: course.hasCertificate,
+    isClaimable: false,
+    isCompleted: false,
+    certificateUrl: null as string | null,
+  };
+
+  if (userId) {
+    const [progress, certificate] = await Promise.all([
+      prisma.userCourseProgress.findUnique({
+        where: { userId_courseId: { userId, courseId: id } },
+        select: { isCompleted: true }
+      }),
+      prisma.certificate.findFirst({
+        where: { userId, courseId: id },
+        select: { certificateUrl: true }
+      })
+    ]);
+
+    certificateInfo.isCompleted = progress?.isCompleted || false;
+    certificateInfo.certificateUrl = certificate?.certificateUrl || null;
+
+    // Claimable if course has cert, user completed it, and user has access
+    certificateInfo.isClaimable = course.hasCertificate &&
+      hasAccess &&
+      (progress?.isCompleted || false);
+  }
+
   return {
     ...courseWithPricing,
     curriculum,
+    certificateInfo,
     stats: {
       totalModules: course._count.modules,
       totalLessons,
