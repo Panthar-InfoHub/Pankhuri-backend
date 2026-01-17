@@ -11,7 +11,6 @@ async function main() {
   await prisma.courseReview.deleteMany();
   await prisma.userLessonProgress.deleteMany();
   await prisma.userCourseProgress.deleteMany();
-  await prisma.userStreak.deleteMany();
   await prisma.certificate.deleteMany();
   await prisma.lessonAttachment.deleteMany();
   await prisma.lessonDescription.deleteMany();
@@ -1243,8 +1242,7 @@ Remember: Transforming beliefs takes time and patience. Be kind to yourself in t
   console.log(`   🎬 Videos: ${videos.length} (empty as requested)`);
   console.log(`   📚 Courses: ${courses.length}`);
   console.log(`   📖 Modules: 7`);
-  console.log(`   📄 Lessons: ${
-      course1Lessons.length + course2Lessons.length + course3Lessons.length + course4Lessons.length
+  console.log(`   📄 Lessons: ${course1Lessons.length + course2Lessons.length + course3Lessons.length + course4Lessons.length
     }`);
   console.log(`   ⭐ Reviews: ${reviews.length}`);
   console.log(`   📊 Progress Records: ${courseProgress.length + lessonProgress.length}`);
