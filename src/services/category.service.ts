@@ -156,6 +156,8 @@ export const getFlatCategories = async (filters?: {
 
   console.log("Filters for category result ==> ", filters)
 
+  console.log("Filters for category result ==> ", filters)
+
   const where: Prisma.CategoryWhereInput = {
     status,
     ...(search && {
