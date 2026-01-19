@@ -1,4 +1,4 @@
-import { Prisma, CourseStatus, CourseLevel } from "@/prisma/generated/prisma/client";
+import { Prisma, CourseStatus, CourseLevel, PlanType } from "@/prisma/generated/prisma/client";
 import { prisma } from "../lib/db";
 
 // ==================== HELPERS ====================
@@ -11,18 +11,46 @@ const attachPricingToCourses = async (courses: any[], userId?: string) => {
   if (courses.length === 0) return courses;
 
   const courseIds = courses.map(c => c.id).filter(Boolean);
-  const categoryIds = [...new Set(courses.map(c => c.categoryId).filter(Boolean))];
+  const directCategoryIds = [...new Set(courses.map(c => c.categoryId).filter(Boolean))];
 
-  // 1. Fetch all active course-specific plans in one go
+  // 1. Fetch category hierarchy to support recursive access and pricing
+  const allCategories = await prisma.category.findMany({
+    select: { id: true, parentId: true }
+  });
+
+  const getCategoryAndAncestors = (catId: string): string[] => {
+    const ancestors: string[] = [];
+    let currentId: string | null = catId;
+    while (currentId) {
+      ancestors.push(currentId);
+      const cat = allCategories.find(c => c.id === currentId);
+      currentId = cat?.parentId || null;
+    }
+    return ancestors;
+  };
+
+  // Map each category to its full ancestor chain (including itself)
+  const categoryHierarchyMap = new Map<string, string[]>();
+  directCategoryIds.forEach(id => {
+    categoryHierarchyMap.set(id as string, getCategoryAndAncestors(id as string));
+  });
+
+  // Collect all relevant category IDs (direct + ancestors) for plan fetching
+  const allRelevantCategoryIds = [...new Set(Array.from(categoryHierarchyMap.values()).flat())];
+
+  // 2. Fetch all applicable active plans (Course, Category [including ancestors], or Whole App)
   const allPlans = await prisma.subscriptionPlan.findMany({
     where: {
-      targetId: { in: courseIds as string[] },
-      planType: "COURSE",
-      isActive: true
+      isActive: true,
+      OR: [
+        { targetId: { in: courseIds as string[] }, planType: PlanType.COURSE },
+        { targetId: { in: allRelevantCategoryIds }, planType: PlanType.CATEGORY },
+        { planType: PlanType.WHOLE_APP }
+      ]
     }
   });
 
-  // 2. Fetch User Context (Role & Entitlements)
+  // 3. Fetch User Context (Role & Entitlements)
   let activeCourseEntitlements: string[] = [];
   let activeCategoryEntitlements: string[] = [];
   let hasFullApp = false;
@@ -58,16 +86,25 @@ const attachPricingToCourses = async (courses: any[], userId?: string) => {
     }
   }
 
-  // 3. Map everything back to the courses with optimized logic
-  return courses.map(course => {
-    const plan = allPlans.find(p => p.targetId === course.id);
+  const wholeAppPlan = allPlans.find(p => p.planType === "WHOLE_APP");
 
-    // Ownership check: Admin BYPASS OR App-wide OR Direct Course OR Parent Category
+  // 4. Map everything back to the courses with optimized logic
+  return courses.map(course => {
+    const ancestors = categoryHierarchyMap.get(course.categoryId) || [course.categoryId];
+
+    // Find relevant plans, prioritizing specificity (Course > Category > App)
+    const coursePlan = allPlans.find(p => p.planType === PlanType.COURSE && p.targetId === course.id);
+    // For category plans, find the nearest one (first in the ancestor chain)
+    const categoryPlan = allPlans.find(p => p.planType === PlanType.CATEGORY && ancestors.includes(p.targetId as string));
+
+    const plan = coursePlan || categoryPlan || wholeAppPlan;
+
+    // Ownership check: Admin BYPASS OR App-wide OR Direct Course OR Any Category in hierarchy (Parent/Indirect)
     const isOwned =
       isAdmin ||
       hasFullApp ||
       activeCourseEntitlements.includes(course.id) ||
-      activeCategoryEntitlements.includes(course.categoryId);
+      ancestors.some(id => activeCategoryEntitlements.includes(id));
 
     return {
       ...course,

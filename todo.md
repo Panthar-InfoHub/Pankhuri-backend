@@ -1,8 +1,7 @@
 - scheduling the videos
-- streak system on what basis
-- app notifications
-- analytics
-- signed url for videos
+- app notifications - like new video etc
+- analytics only google scripts
+- make edit flow as well inscluding plans  so they can change the pricing for the category and course
 
 
 
@@ -37,4 +36,3 @@ acknowledge purchase subscription
 
 
 ----------------------
-- target id in subscription has no check it accespts eveything so need a check based on type

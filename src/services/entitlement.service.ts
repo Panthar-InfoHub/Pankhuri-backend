@@ -94,18 +94,70 @@ export const hasAccess = async (
     resourceType: "COURSE" | "CATEGORY" | "APP",
     resourceId?: string
 ): Promise<boolean> => {
-    // 0. Check if the resource is natively FREE
+    // Helper to get all category ancestors
+    const getCategoryAncestors = async (catId: string): Promise<string[]> => {
+        const ancestors: string[] = [catId];
+        let currentId: string | null = catId;
+        while (currentId) {
+            const cat: { parentId: string | null } | null = await prisma.category.findUnique({
+                where: { id: currentId },
+                select: { parentId: true }
+            });
+            if (cat?.parentId) {
+                ancestors.push(cat.parentId);
+                currentId = cat.parentId;
+            } else {
+                currentId = null;
+            }
+        }
+        return ancestors;
+    };
+
+    // 0. Check if the resource requires a purchase (is NOT free)
+    let isPaid = false;
+
     if (resourceType === "COURSE" && resourceId) {
-        const plans = await prisma.subscriptionPlan.count({
-            where: { targetId: resourceId, planType: "COURSE", isActive: true }
+        // Fetch course to get its category hierarchy
+        const course = await prisma.course.findUnique({
+            where: { id: resourceId },
+            select: { categoryId: true }
         });
-        if (plans === 0) return true; // It's a free course
+
+        const catIds = course ? await getCategoryAncestors(course.categoryId) : [];
+
+        const planCount = await prisma.subscriptionPlan.count({
+            where: {
+                isActive: true,
+                OR: [
+                    { targetId: resourceId, planType: PlanType.COURSE },
+                    { targetId: { in: catIds }, planType: PlanType.CATEGORY },
+                    { planType: PlanType.WHOLE_APP }
+                ]
+            }
+        });
+        isPaid = planCount > 0;
     } else if (resourceType === "CATEGORY" && resourceId) {
-        const plans = await prisma.subscriptionPlan.count({
-            where: { targetId: resourceId, planType: "CATEGORY", isActive: true }
+        const catIds = await getCategoryAncestors(resourceId);
+
+        const planCount = await prisma.subscriptionPlan.count({
+            where: {
+                isActive: true,
+                OR: [
+                    { targetId: { in: catIds }, planType: PlanType.CATEGORY },
+                    { planType: PlanType.WHOLE_APP }
+                ]
+            }
         });
-        if (plans === 0) return true; // It's a free category
+        isPaid = planCount > 0;
+    } else if (resourceType === "APP") {
+        const planCount = await prisma.subscriptionPlan.count({
+            where: { planType: PlanType.WHOLE_APP, isActive: true }
+        });
+        isPaid = planCount > 0;
     }
+
+    // If no plans exist for this resource, it's free
+    if (!isPaid) return true;
 
     if (!userId) return false;
 
@@ -141,20 +193,26 @@ export const hasAccess = async (
         // Check for direct COURSE access
         if (activeEntitlements.some(e => e.type === "COURSE" && e.targetId === resourceId)) return true;
 
-        // Check for CATEGORY access that contains this course
+        // Check for CATEGORY access that contains this course (including hierarchy)
         const course = await prisma.course.findUnique({
             where: { id: resourceId },
             select: { categoryId: true }
         });
 
-        if (course && activeEntitlements.some(e => e.type === "CATEGORY" && e.targetId === course.categoryId)) {
-            return true;
+        if (course) {
+            const catIds = await getCategoryAncestors(course.categoryId);
+            if (activeEntitlements.some(e => e.type === "CATEGORY" && catIds.includes(e.targetId as string))) {
+                return true;
+            }
         }
     }
 
     if (resourceType === "CATEGORY" && resourceId) {
-        // Check for direct CATEGORY access
-        if (activeEntitlements.some(e => e.type === "CATEGORY" && e.targetId === resourceId)) return true;
+        // Check for direct or parent CATEGORY access
+        const catIds = await getCategoryAncestors(resourceId);
+        if (activeEntitlements.some(e => e.type === "CATEGORY" && catIds.includes(e.targetId as string))) {
+            return true;
+        }
     }
 
     return false;

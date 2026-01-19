@@ -1,4 +1,4 @@
-import { Prisma, CategoryStatus } from "@/prisma/generated/prisma/client";
+import { Prisma, CategoryStatus, PlanType } from "@/prisma/generated/prisma/client";
 import { prisma } from "../lib/db";
 
 // ==================== HELPERS ====================
@@ -10,25 +10,47 @@ import { prisma } from "../lib/db";
 const attachPricingToCategories = async (categories: any[], userId?: string) => {
   if (categories.length === 0) return [];
 
+  // 0. Fetch category hierarchy to support recursive access and pricing
+  const allCategories = await prisma.category.findMany({
+    select: { id: true, parentId: true }
+  });
+
+  const getCategoryAncestors = (catId: string): string[] => {
+    const ancestors: string[] = [];
+    let currentId: string | null = catId;
+    while (currentId) {
+      ancestors.push(currentId);
+      const cat = allCategories.find(c => c.id === currentId);
+      currentId = cat?.parentId || null;
+    }
+    return ancestors;
+  };
+
   // Helper to get all IDs including nested children for batch processing
-  const getAllIds = (cats: any[]): string[] => {
+  const getAllIdsInSet = (cats: any[]): string[] => {
     return cats.reduce((acc, cat) => {
       acc.push(cat.id);
-      if (cat.children) acc.push(...getAllIds(cat.children));
+      if (cat.children) acc.push(...getAllIdsInSet(cat.children));
       return acc;
     }, [] as string[]);
   };
 
-  const allIds = getAllIds(categories);
+  const seedIds = getAllIdsInSet(categories);
+  // Collect all relevant category IDs (direct + ancestors) for plan fetching
+  const allRelevantCategoryIds = [...new Set(seedIds.flatMap(id => getCategoryAncestors(id)))];
 
-  // 1. Batch fetch all category-specific plans
+  // 1. Batch fetch all category-specific plans and whole-app plans
   const allPlans = await prisma.subscriptionPlan.findMany({
     where: {
-      targetId: { in: allIds },
-      planType: "CATEGORY",
-      isActive: true
+      isActive: true,
+      OR: [
+        { targetId: { in: allRelevantCategoryIds }, planType: PlanType.CATEGORY },
+        { planType: PlanType.WHOLE_APP }
+      ]
     }
   });
+
+  const wholeAppPlan = allPlans.find(p => p.planType === PlanType.WHOLE_APP);
 
   // 2. Fetch User Context (Role & Entitlements)
   let userEntitlementIds: string[] = [];
@@ -65,17 +87,25 @@ const attachPricingToCategories = async (categories: any[], userId?: string) => 
   // 3. Recursive mapper with hierarchy-aware access
   const mapCategories = (cats: any[], parentHasAccess: boolean = false): any[] => {
     return cats.map(cat => {
-      const catPlans = allPlans.filter(p => p.targetId === cat.id);
-      const hasDirectEntitlement = userEntitlementIds.includes(cat.id);
+      const ancestors = getCategoryAncestors(cat.id);
 
-      // Access Logic: Admin BYPASS OR App-wide OR Direct OR Inherited from Parent OR Free (no plans)
-      const currentCatHasAccess = isAdmin || hasFullApp || hasDirectEntitlement || parentHasAccess || catPlans.length === 0;
+      // Find relevant plans in order of proximity (Self > Parent > Grandparent > App)
+      // Since ancestors is [self, parent, ...], we find the first one that has a plan
+      const nearestPlan = allPlans.find(p => p.planType === PlanType.CATEGORY && ancestors.includes(p.targetId as string));
+
+      const hasDirectOrParentEntitlement = ancestors.some(id => userEntitlementIds.includes(id));
+
+      // Effective plan for this category (direct/parent or app-wide)
+      const effectivePlan = nearestPlan || wholeAppPlan;
+
+      // Access Logic: Admin BYPASS OR App-wide OR Direct/Parent Entitlement OR Inherited from Parent (recursive param) OR Free (no plans)
+      const currentCatHasAccess = isAdmin || hasFullApp || hasDirectOrParentEntitlement || parentHasAccess || !effectivePlan;
 
       const categoryWithPricing: any = {
         ...cat,
-        isPaid: catPlans.length > 0,
+        isPaid: !!effectivePlan,
         hasAccess: currentCatHasAccess,
-        pricing: catPlans
+        pricing: nearestPlan ? [nearestPlan] : (wholeAppPlan ? [wholeAppPlan] : [])
       };
 
       if (cat.children && cat.children.length > 0) {
