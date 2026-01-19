@@ -431,9 +431,10 @@ export const updateLesson = async (
 
       // 2. Update type-specific data
       if (existingLesson.type === LessonType.video && data.videoId !== undefined) {
-        await tx.videoLesson.update({
+        await tx.videoLesson.upsert({
           where: { lessonId },
-          data: { videoId: data.videoId },
+          update: { videoId: data.videoId },
+          create: { lessonId, videoId: data.videoId },
         });
       } else if (existingLesson.type === LessonType.text) {
         const textUpdateData: any = {};
