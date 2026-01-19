@@ -154,6 +154,10 @@ export const getFlatCategories = async (filters?: {
 }) => {
   const { status = CategoryStatus.active, search, page = 1, limit = 50, userId } = filters || {};
 
+  console.log("Filters for category result ==> ", filters)
+
+  console.log("Filters for category result ==> ", filters)
+
   const where: Prisma.CategoryWhereInput = {
     status,
     ...(search && {
@@ -168,10 +172,24 @@ export const getFlatCategories = async (filters?: {
     prisma.category.findMany({
       where,
       include: {
-        parent: { select: { id: true, name: true, slug: true } },
-        _count: { select: { courses: true, children: true } }
+        parent: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        _count: {
+          select: {
+            courses: true,
+            children: true,
+          },
+        },
       },
-      orderBy: { sequence: "asc" },
+      orderBy: [
+        { sequence: "asc" },
+        { createdAt: "desc" },
+      ],
       skip: (page - 1) * limit,
       take: limit,
     }),
