@@ -115,6 +115,8 @@ export const getFlatCategories = async (filters?: {
 }) => {
   const { status, search, page = 1, limit = 50, userId } = filters || {};
 
+  console.log("Filters for category result ==> ", filters)
+
   const where: Prisma.CategoryWhereInput = {
     ...(status && { status }),
     ...(search && {
@@ -143,9 +145,10 @@ export const getFlatCategories = async (filters?: {
           },
         },
       },
-      orderBy: {
-        sequence: "asc",
-      },
+      orderBy: [
+        { sequence: "asc" },
+        { createdAt: "desc" },
+      ],
       skip: (page - 1) * limit,
       take: limit,
     }),
