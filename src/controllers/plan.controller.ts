@@ -13,7 +13,7 @@ import {
   updatePlan,
   deletePlan,
 } from "@/services/plan.service";
-import { Prisma } from "@/prisma/generated/prisma/client";
+import { PlanType, Prisma, SubscriptionType } from "@/prisma/generated/prisma/client";
 
 // ==================== CREATE PLAN ====================
 
@@ -154,7 +154,11 @@ export const createPlanHandler = async (req: Request, res: Response, next: NextF
  */
 export const getActivePlansHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const plans = await getActivePlans();
+    const { plan_type, subscription_type } = req.query;
+    const plans = await getActivePlans({
+      plan_type: plan_type as PlanType | undefined,
+      subscription_type: subscription_type as SubscriptionType | undefined,
+    });
 
     return res.status(200).json({
       success: true,

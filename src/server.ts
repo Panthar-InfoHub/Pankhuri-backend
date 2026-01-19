@@ -20,6 +20,7 @@ import purchaseRoutes from "@/routes/purchase.route";
 import entitlementRoutes from "@/routes/entitlement.route";
 import { errorHandler } from "./middleware/error.middleware";
 import streamRouter from "./routes/stream.route";
+import cors from "cors";
 
 //Configurations
 dotenv.config({
@@ -29,6 +30,7 @@ dotenv.config({
 const app = express();
 
 //Middlewares
+app.use(cors())
 app.use(express.json());
 app.use(morgan("dev"));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));

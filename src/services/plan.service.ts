@@ -4,7 +4,7 @@
  */
 
 import { prisma } from "@/lib/db";
-import { SubscriptionPlan, Prisma } from "@/prisma/generated/prisma/client";
+import { SubscriptionPlan, Prisma, PlanType, SubscriptionType } from "@/prisma/generated/prisma/client";
 import { createGatewayPlan } from "@/lib/payment-gateway";
 
 // ==================== CREATE PLAN ====================
@@ -92,11 +92,15 @@ export const getPlanById = async (id: string): Promise<SubscriptionPlan> => {
 /**
  * Get all active plans
  */
-export const getActivePlans = async (): Promise<SubscriptionPlan[]> => {
+export const getActivePlans = async ({ plan_type, subscription_type, is_active }: { plan_type?: PlanType, subscription_type?: SubscriptionType, is_active?: boolean }): Promise<SubscriptionPlan[]> => {
+
+    const where: Prisma.SubscriptionPlanWhereInput = {
+        ...(plan_type && { planType: plan_type }),
+        ...(subscription_type && { subscriptionType: subscription_type }),
+        ...(typeof is_active === "boolean" && { isActive: is_active }),
+    };
     return await prisma.subscriptionPlan.findMany({
-        where: {
-            isActive: true,
-        },
+        where,
         orderBy: {
             order: "asc",
         },
