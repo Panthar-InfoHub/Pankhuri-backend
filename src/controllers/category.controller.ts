@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import * as categoryService from "../services/category.service";
+import * as planService from "../services/plan.service";
 import { CategoryStatus } from "@/prisma/generated/prisma/client";
 import { prisma } from "../lib/db";
 
@@ -142,20 +143,18 @@ export const createCategory = async (req: Request, res: Response, next: NextFunc
     // If price is provided, create a subscription plan for this category
     let plan = null;
     if (price !== undefined && price > 0) {
-      plan = await prisma.subscriptionPlan.create({
-        data: {
-          name: `${name} - ${subscriptionType || 'Monthly'} Subscription`,
-          slug: `${slug}-${subscriptionType || 'monthly'}`,
-          description: `Subscription access to ${name} category`,
-          subscriptionType: (subscriptionType as any) || "monthly",
-          planType: "CATEGORY",
-          targetId: category.id,
-          price: price,
-          discountedPrice: discountedPrice,
-          currency: currency,
-          isActive: true,
-          provider: "razorpay"
-        }
+      plan = await planService.createPlan({
+        name: `${name} - ${subscriptionType || 'Monthly'} Subscription`,
+        slug: `${slug}-${subscriptionType || 'monthly'}`,
+        description: `Subscription access to ${name} category`,
+        subscriptionType: (subscriptionType as any) || "monthly",
+        planType: "CATEGORY",
+        targetId: category.id,
+        price: price,
+        discountedPrice: discountedPrice,
+        currency: currency,
+        isActive: true,
+        provider: "razorpay"
       });
     }
 

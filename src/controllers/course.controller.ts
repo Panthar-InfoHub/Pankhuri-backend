@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { Request, Response, NextFunction } from "express";
 import * as courseService from "../services/course.service";
+import * as planService from "../services/plan.service";
 import { CourseLevel, CourseStatus } from "@/prisma/generated/prisma/client";
 
 // GET /api/courses - Get all courses with filters
@@ -186,20 +187,18 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
     // If price is provided, create a lifetime plan for this course
     let plan = null;
     if (price !== undefined && price > 0) {
-      plan = await prisma.subscriptionPlan.create({
-        data: {
-          name: `${title} - Lifetime Access`,
-          slug: `${slug}-lifetime`,
-          description: `Lifetime access to ${title}`,
-          subscriptionType: "lifetime",
-          planType: "COURSE",
-          targetId: course.id,
-          price: price,
-          discountedPrice: discountedPrice,
-          currency: "INR",
-          isActive: true,
-          provider: "razorpay",
-        },
+      plan = await planService.createPlan({
+        name: `${title} - Lifetime Access`,
+        slug: `${slug}-lifetime`,
+        description: `Lifetime access to ${title}`,
+        subscriptionType: "lifetime",
+        planType: "COURSE",
+        targetId: course.id,
+        price: price,
+        discountedPrice: discountedPrice,
+        currency: "INR",
+        isActive: true,
+        provider: "razorpay",
       });
     }
 
