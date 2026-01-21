@@ -43,6 +43,7 @@ model Course {
   lessons        Lesson[] // Direct lessons (not inside modules)
   courseProgress UserCourseProgress[]
   reviews        CourseReview[]
+  certificates   Certificate[]
 
   @@index([slug])
   @@index([categoryId])
@@ -51,3 +52,4 @@ model Course {
   @@index([level])
   @@index([language])
 }
+ 

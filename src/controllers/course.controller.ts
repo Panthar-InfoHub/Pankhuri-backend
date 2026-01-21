@@ -1,12 +1,25 @@
+import { prisma } from "@/lib/db";
 import { Request, Response, NextFunction } from "express";
 import * as courseService from "../services/course.service";
+import * as planService from "../services/plan.service";
 import { CourseLevel, CourseStatus } from "@/prisma/generated/prisma/client";
 
 // GET /api/courses - Get all courses with filters
 export const getAllCourses = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { categoryId, trainerId, level, language, status, search, tags, sort, page, limit } =
-      req.query;
+    const {
+      categoryId,
+      trainerId,
+      level,
+      language,
+      status,
+      search,
+      tags,
+      duration,
+      sort,
+      page,
+      limit,
+    } = req.query;
 
     const result = await courseService.getAllCourses({
       categoryId: categoryId as string | undefined,
@@ -16,9 +29,11 @@ export const getAllCourses = async (req: Request, res: Response, next: NextFunct
       status: status as CourseStatus | undefined,
       search: search as string | undefined,
       tags: tags ? (tags as string).split(",") : undefined,
+      duration: duration as "short" | "long" | undefined,
       sort: sort as any,
       page: page ? parseInt(page as string) : undefined,
       limit: limit ? parseInt(limit as string) : undefined,
+      userId: (req as any).user?.id || (req.query.userId as string),
     });
 
     res.json({
@@ -34,9 +49,10 @@ export const getAllCourses = async (req: Request, res: Response, next: NextFunct
 export const getCourseById = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const { userId } = req.query; // Optional: pass userId as query param
+    const { userId: queryUserId } = req.query;
+    const userId = (req as any).user?.id || (queryUserId as string);
 
-    const course = await courseService.getCourseById(id, userId as string | undefined);
+    const course = await courseService.getCourseById(id, userId);
 
     if (!course) {
       return res.status(404).json({
@@ -58,9 +74,10 @@ export const getCourseById = async (req: Request, res: Response, next: NextFunct
 export const getCourseBySlug = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { slug } = req.params;
-    const { userId } = req.query;
+    const { userId: queryUserId } = req.query;
+    const userId = (req as any).user?.id || (queryUserId as string);
 
-    const course = await courseService.getCourseBySlug(slug, userId as string | undefined);
+    const course = await courseService.getCourseBySlug(slug, userId);
 
     if (!course) {
       return res.status(404).json({
@@ -86,7 +103,8 @@ export const getRelatedCourses = async (req: Request, res: Response, next: NextF
 
     const courses = await courseService.getRelatedCourses(
       id,
-      limit ? parseInt(limit as string) : undefined
+      limit ? parseInt(limit as string) : undefined,
+      (req as any).user?.id || (req.query.userId as string)
     );
 
     res.json({
@@ -104,7 +122,8 @@ export const getTrendingCourses = async (req: Request, res: Response, next: Next
     const { limit } = req.query;
 
     const courses = await courseService.getTrendingCourses(
-      limit ? parseInt(limit as string) : undefined
+      limit ? parseInt(limit as string) : undefined,
+      (req as any).user?.id || (req.query.userId as string)
     );
 
     res.json({
@@ -135,6 +154,8 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
       tags,
       metadata,
       demoVideoId,
+      price,
+      discountedPrice,
     } = req.body;
 
     // Validation
@@ -144,12 +165,6 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
         message: "Title, slug, categoryId, and trainerId are required",
       });
     }
-
-    // Validate that the user has an active trainer profile and get trainer ID
-    const actualTrainerId = await courseService.validateTrainer(trainerId);
-
-    // Validate category exists
-    await courseService.validateCategory(categoryId);
 
     const course = await courseService.createCourse({
       title,
@@ -164,17 +179,36 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
       hasCertificate,
       tags,
       metadata,
-      demoVideo: demoVideoId
-        ? { connect: { id: demoVideoId } }
-        : undefined,
+      demoVideo: demoVideoId ? { connect: { id: demoVideoId } } : undefined,
       category: { connect: { id: categoryId } },
-      trainer: { connect: { id: actualTrainerId } },
+      trainer: { connect: { id: trainerId } },
     });
+
+    // If price is provided, create a lifetime plan for this course
+    let plan = null;
+    if (price !== undefined && price > 0) {
+      plan = await planService.createPlan({
+        name: `${title} - Lifetime Access`,
+        slug: `${slug}-lifetime`,
+        description: `Lifetime access to ${title}`,
+        subscriptionType: "lifetime",
+        planType: "COURSE",
+        targetId: course.id,
+        price: price,
+        discountedPrice: discountedPrice,
+        currency: "INR",
+        isActive: true,
+        provider: "razorpay",
+      });
+    }
 
     res.status(201).json({
       success: true,
       message: "Course created successfully",
-      data: course,
+      data: {
+        ...course,
+        plan,
+      },
     });
   } catch (error) {
     next(error);
@@ -187,7 +221,6 @@ export const updateCourse = async (req: Request, res: Response, next: NextFuncti
     const { id } = req.params;
     const {
       trainerId,
-      isAdmin,
       title,
       slug,
       description,
@@ -203,13 +236,6 @@ export const updateCourse = async (req: Request, res: Response, next: NextFuncti
       metadata,
       demoVideoId,
     } = req.body;
-
-    if (!trainerId) {
-      return res.status(400).json({
-        success: false,
-        message: "trainerId is required in request body",
-      });
-    }
 
     const updateData: any = {};
 
@@ -231,13 +257,12 @@ export const updateCourse = async (req: Request, res: Response, next: NextFuncti
       updateData.category = { connect: { id: categoryId } };
     }
 
-    // If trainerId is being updated, validate the new trainer
-    if (updateData.trainer) {
-      const actualTrainerId = await courseService.validateTrainer(trainerId);
-      updateData.trainer = { connect: { id: actualTrainerId } };
+    // If changing course trainer (admin only)
+    if (trainerId !== undefined) {
+      updateData.trainer = { connect: { id: trainerId } };
     }
 
-    const course = await courseService.updateCourse(id, trainerId, updateData, isAdmin || false);
+    const course = await courseService.updateCourse(id, updateData);
 
     res.json({
       success: true,
@@ -249,20 +274,11 @@ export const updateCourse = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
-// DELETE /api/admin/courses/:id - Delete course
+// DELETE /api/admin/courses/:id - Delete course (Admin only)
 export const deleteCourse = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const { trainerId, isAdmin } = req.body;
-
-    if (!trainerId) {
-      return res.status(400).json({
-        success: false,
-        message: "trainerId is required in request body",
-      });
-    }
-
-    const result = await courseService.deleteCourse(id, trainerId, isAdmin || false);
+    const result = await courseService.deleteCourse(id);
 
     res.json({
       success: true,
@@ -277,14 +293,7 @@ export const deleteCourse = async (req: Request, res: Response, next: NextFuncti
 export const togglePublish = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const { status, trainerId, isAdmin } = req.body;
-
-    if (!trainerId) {
-      return res.status(400).json({
-        success: false,
-        message: "trainerId is required in request body",
-      });
-    }
+    const { status } = req.body;
 
     if (!status || (status !== "active" && status !== "inactive" && status !== "archived")) {
       return res.status(400).json({
@@ -292,13 +301,7 @@ export const togglePublish = async (req: Request, res: Response, next: NextFunct
         message: "status must be 'active', 'inactive', or 'archived'",
       });
     }
-
-    const course = await courseService.togglePublish(
-      id,
-      trainerId,
-      status as CourseStatus,
-      isAdmin || false
-    );
+    const course = await courseService.togglePublish(id, status as CourseStatus);
 
     res.json({
       success: true,
@@ -318,7 +321,7 @@ export const getCoursesByTrainer = async (req: Request, res: Response, next: Nex
 
     const courses = await courseService.getCoursesByTrainer(
       trainerId,
-      includeUnpublished === "true"
+      (req as any).user?.id || (req.query.userId as string)
     );
 
     res.json({

@@ -49,6 +49,9 @@ export const googleLogin = async (req: Request, res: Response) => {
     // Generate JWT with session ID
     const jwtToken = generateJWT(user, session.id);
 
+    // Check if onboarding is completed
+    const isOnboardingCompleted = !!(user.displayName && user.dateOfBirth && user.gender);
+
     // Send response
     return res.status(200).json({
       success: true,
@@ -57,6 +60,7 @@ export const googleLogin = async (req: Request, res: Response) => {
         token: jwtToken,
         sessionId: session.id,
         user: user,
+        isOnboardingCompleted,
       },
     });
   } catch (error: any) {
@@ -112,6 +116,9 @@ export const phoneLogin = async (req: Request, res: Response) => {
     // Generate JWT with session ID
     const token = generateJWT(user, session.id);
 
+    // Check if onboarding is completed
+    const isOnboardingCompleted = !!(user.displayName && user.dateOfBirth && user.gender);
+
     // Send response
     return res.status(200).json({
       success: true,
@@ -120,6 +127,7 @@ export const phoneLogin = async (req: Request, res: Response) => {
         token,
         sessionId: session.id,
         user: user,
+        isOnboardingCompleted,
       },
     });
   } catch (error: any) {
@@ -157,6 +165,7 @@ export const googleVerifyAdmin = async (req: Request, res: Response) => {
 
     // Find user by email (don't create if not exists)
     const user = await findAdminByEmail(admin_mail);
+    console.log("Admin User:", user);
 
     if (!user) {
       return res.status(404).json({
@@ -234,6 +243,56 @@ export const updateFcmToken = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       error: error.message || "Failed to update FCM token",
+    });
+  }
+};
+
+/**
+ * Tester Login (BYPASS FIREBASE)
+ * ONLY FOR LOCAL TESTING/DEVELOPMENT
+ * POST /api/auth/tester-login
+ */
+export const testerLogin = async (req: Request, res: Response) => {
+  try {
+    const { email, fcmToken } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: "Email is required",
+      });
+    }
+
+    // Find user by email
+    const user = await findOrCreateUserByEmail(email);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+    }
+
+    // Create session
+    const session = await manageUserSessions(user.id, fcmToken);
+
+    // Generate JWT
+    const token = generateJWT(user, session.id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Tester login successful",
+      data: {
+        token,
+        sessionId: session.id,
+        user: user,
+      },
+    });
+  } catch (error: any) {
+    console.error("Tester login error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Tester login failed",
     });
   }
 };

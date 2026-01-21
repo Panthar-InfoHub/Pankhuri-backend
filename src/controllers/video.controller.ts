@@ -8,14 +8,60 @@ import {
   updateVideoStatus,
   bulkDeleteVideos,
 } from "@/services/video.service";
+import { VideoDescription } from "@/lib/types";
+import { z } from "zod";
 
 /**
  * Create a new video
  * POST /api/videos
  */
+
+/**
+ * Zod Schema for videoDescription field validation
+ * 
+ * NOTE: The videoDescription field in the Video model is stored as Json type in the database,
+ * which provides flexibility but no runtime type safety or structure validation. We explicitly
+ * use Zod parsing here to enforce a consistent structure and validate the data before storing.
+ * 
+ * Expected Structure:
+ * {
+ *   disclaimer?: string,              // Optional disclaimer text for the video
+ *   timestamps?: Array<{               // Optional array of video chapter/section timestamps
+ *     time_interval: string,           // Format: "MM:SS" (e.g., "05:30")
+ *     time_content: string             // Description of what happens at this timestamp
+ *   }>,
+ *   description?: string               // Optional detailed description of the video
+ * }
+ * 
+ * This schema ensures data consistency and helps future developers understand
+ * the expected structure when working with videoDescription field.
+ */
+const VideoDescriptionSchema = z.object({
+  disclaimer: z.string().optional(),
+
+  products: z.array(
+    z.object({
+      name: z.string().min(1),
+      url: z.string(),
+      image: z.string(),
+    })
+  ).optional(),
+
+  timestamps: z
+    .array(
+      z.object({
+        time_interval: z.string().regex(/^\d{2}:\d{2}$/, "Invalid time format"),
+        time_content: z.string().min(1),
+      })
+    )
+    .optional(),
+
+  description: z.string().optional(),
+})
+
 export const createVideoHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { title, thumbnailUrl, storageKey, playbackUrl, status, duration, metadata, quality } = req.body;
+    const { title, thumbnailUrl, storageKey, playbackUrl, status, duration, metadata, quality, videoDescription } = req.body;
 
     // Validation
     if (!title || !storageKey) {
@@ -23,6 +69,22 @@ export const createVideoHandler = async (req: Request, res: Response, next: Next
         success: false,
         error: "Title and storageKey are required",
       });
+    }
+
+    let parsedVideoDescription: VideoDescription | undefined;
+
+    if (videoDescription) {
+      const result = VideoDescriptionSchema.safeParse(videoDescription);
+
+      if (!result.success) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid videoDescription format",
+          details: result.error.flatten(),
+        });
+      }
+
+      parsedVideoDescription = result.data;
     }
 
     const video = await createVideo({
@@ -33,6 +95,7 @@ export const createVideoHandler = async (req: Request, res: Response, next: Next
       status,
       duration,
       metadata,
+      videoDescription: parsedVideoDescription,
     }, parseInt(quality) || 1080);
 
     return res.status(201).json({

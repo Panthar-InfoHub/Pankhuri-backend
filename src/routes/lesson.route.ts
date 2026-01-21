@@ -1,5 +1,6 @@
 import express from "express";
-import { authenticateWithSession } from "@/middleware/session.middleware";
+import { authenticateWithSession, requireAdmin, optionalAuthenticate } from "@/middleware/session.middleware";
+import { requireLessonAccess, requireAttachmentAccess } from "@/middleware/resource-access.middleware";
 import {
   getLessonsByCourseHandler,
   getLessonsByModuleHandler,
@@ -25,76 +26,81 @@ import {
 
 const router = express.Router();
 
-// ==================== PUBLIC/AUTHENTICATED ROUTES ====================
+// ==================== PUBLIC ROUTES ====================
+// Lesson lists are public - show all lessons with title, duration, etc.
 
 // Get lessons by course
-router.get("/course/:courseId", authenticateWithSession, getLessonsByCourseHandler);
+router.get("/course/:courseId", optionalAuthenticate, getLessonsByCourseHandler);
 
 // Get free lessons (preview)
-router.get("/course/:courseId/free", getFreeLessonsHandler);
+router.get("/course/:courseId/free", optionalAuthenticate, getFreeLessonsHandler);
 
 // Get lessons by module
-router.get("/module/:moduleId", authenticateWithSession, getLessonsByModuleHandler);
+router.get("/module/:moduleId", optionalAuthenticate, getLessonsByModuleHandler);
 
-// Get lesson by ID
-router.get("/:id", authenticateWithSession, getLessonByIdHandler);
+// ==================== AUTHENTICATED ROUTES ====================
+// Individual lesson access requires authentication + subscription check
 
-// Get lesson by slug
+// Get lesson by ID (requires auth, checks subscription in middleware)
+router.get("/:id", authenticateWithSession, requireLessonAccess, getLessonByIdHandler);
+
+// Get lesson by slug (requires auth, checks subscription in controller - slug routes handle gating themselves currently)
 router.get("/course/:courseId/slug/:slug", authenticateWithSession, getLessonBySlugHandler);
 
 // ==================== ADMIN/TRAINER ROUTES ====================
 
 // Create lesson (auto-detects video or text type)
-router.post("/", authenticateWithSession, createLessonHandler);
+router.post("/", authenticateWithSession, requireAdmin, createLessonHandler);
 
 // Update lesson
-router.put("/:id", authenticateWithSession, updateLessonHandler);
+router.put("/:id", authenticateWithSession, requireAdmin, updateLessonHandler);
 
 // Delete lesson
-router.delete("/:id", authenticateWithSession, deleteLessonHandler);
+router.delete("/:id", authenticateWithSession, requireAdmin, deleteLessonHandler);
 
 // Bulk update sequences
-router.patch("/sequences", bulkUpdateSequencesHandler);
+router.patch("/sequences", authenticateWithSession, requireAdmin, bulkUpdateSequencesHandler);
 
 // Update lesson status (draft/published/archived)
-router.patch("/:id/status", authenticateWithSession, updateLessonStatusHandler);
+router.patch("/:id/status", authenticateWithSession, requireAdmin, updateLessonStatusHandler);
 
 // ==================== LESSON DESCRIPTIONS ====================
 
 // Create or update lesson description
-router.put("/:id/description", authenticateWithSession, upsertLessonDescriptionHandler);
+router.put("/:id/description", authenticateWithSession, requireAdmin, upsertLessonDescriptionHandler);
 
 // Get lesson description
-router.get("/:id/description", authenticateWithSession, getLessonDescriptionHandler);
+router.get("/:id/description", authenticateWithSession, requireLessonAccess, getLessonDescriptionHandler);
 
 // Delete lesson description
-router.delete("/:id/description", authenticateWithSession, deleteLessonDescriptionHandler);
+router.delete("/:id/description", authenticateWithSession, requireAdmin, deleteLessonDescriptionHandler);
 
 // ==================== LESSON ATTACHMENTS ====================
 
 // Add attachment to lesson
-router.post("/:id/attachments", authenticateWithSession, addLessonAttachmentHandler);
+router.post("/:id/attachments", authenticateWithSession, requireAdmin, addLessonAttachmentHandler);
 
 // Get all attachments for a lesson
-router.get("/:id/attachments", authenticateWithSession, getLessonAttachmentsHandler);
+router.get("/:id/attachments", authenticateWithSession, requireLessonAccess, getLessonAttachmentsHandler);
 
 // Delete all attachments for a lesson
-router.delete("/:id/attachments/all", authenticateWithSession, deleteAllLessonAttachmentsHandler);
+router.delete("/:id/attachments/all", authenticateWithSession, requireAdmin, deleteAllLessonAttachmentsHandler);
 
 // Bulk update attachment sequences
 router.patch(
   "/attachments/sequences",
   authenticateWithSession,
+  requireAdmin,
   bulkUpdateAttachmentSequencesHandler
 );
 
 // Get single attachment by ID
-router.get("/attachments/:attachmentId", authenticateWithSession, getLessonAttachmentByIdHandler);
+router.get("/attachments/:attachmentId", authenticateWithSession, requireAttachmentAccess, getLessonAttachmentByIdHandler);
 
 // Update attachment metadata
-router.put("/attachments/:attachmentId", authenticateWithSession, updateLessonAttachmentHandler);
+router.put("/attachments/:attachmentId", authenticateWithSession, requireAdmin, updateLessonAttachmentHandler);
 
 // Delete attachment
-router.delete("/attachments/:attachmentId", authenticateWithSession, deleteLessonAttachmentHandler);
+router.delete("/attachments/:attachmentId", authenticateWithSession, requireAdmin, deleteLessonAttachmentHandler);
 
 export default router;

@@ -1,7 +1,135 @@
-import { Prisma, CourseStatus, CourseLevel } from "@/prisma/generated/prisma/client";
+import { Prisma, CourseStatus, CourseLevel, PlanType } from "@/prisma/generated/prisma/client";
 import { prisma } from "../lib/db";
 
-// Get all courses with filters
+// ==================== HELPERS ====================
+
+/**
+ * Optimized helper to attach pricing and ownership to multiple courses
+ * PRODUCTION GRADE: Now includes Category-based entitlements and Whole App access.
+ */
+const attachPricingToCourses = async (courses: any[], userId?: string) => {
+  if (courses.length === 0) return courses;
+
+  const courseIds = courses.map(c => c.id).filter(Boolean);
+  const directCategoryIds = [...new Set(courses.map(c => c.categoryId).filter(Boolean))];
+
+  // 1. Fetch category hierarchy to support recursive access and pricing
+  const allCategories = await prisma.category.findMany({
+    select: { id: true, parentId: true }
+  });
+
+  const getCategoryAndAncestors = (catId: string): string[] => {
+    const ancestors: string[] = [];
+    let currentId: string | null = catId;
+    while (currentId) {
+      ancestors.push(currentId);
+      const cat = allCategories.find(c => c.id === currentId);
+      currentId = cat?.parentId || null;
+    }
+    return ancestors;
+  };
+
+  // Map each category to its full ancestor chain (including itself)
+  const categoryHierarchyMap = new Map<string, string[]>();
+  directCategoryIds.forEach(id => {
+    categoryHierarchyMap.set(id as string, getCategoryAndAncestors(id as string));
+  });
+
+  // Collect all relevant category IDs (direct + ancestors) for plan fetching
+  const allRelevantCategoryIds = [...new Set(Array.from(categoryHierarchyMap.values()).flat())];
+
+  // 2. Fetch all applicable active plans (Course, Category [including ancestors], or Whole App)
+  const allPlans = await prisma.subscriptionPlan.findMany({
+    where: {
+      isActive: true,
+      OR: [
+        { targetId: { in: courseIds as string[] }, planType: PlanType.COURSE },
+        { targetId: { in: allRelevantCategoryIds }, planType: PlanType.CATEGORY },
+        { planType: PlanType.WHOLE_APP }
+      ]
+    }
+  });
+
+  // 3. Fetch User Context (Role & Entitlements)
+  let activeCourseEntitlements: string[] = [];
+  let activeCategoryEntitlements: string[] = [];
+  let hasFullApp = false;
+  let isAdmin = false;
+
+  if (userId) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        role: true,
+        entitlements: {
+          where: {
+            status: "active",
+            OR: [
+              { validUntil: null },
+              { validUntil: { gt: new Date() } }
+            ]
+          }
+        }
+      }
+    });
+
+    if (user) {
+      isAdmin = user.role === "admin";
+      const entitlements = user.entitlements;
+      hasFullApp = entitlements.some(e => e.type === "WHOLE_APP");
+      activeCourseEntitlements = entitlements
+        .filter(e => e.type === "COURSE")
+        .map(e => e.targetId as string);
+      activeCategoryEntitlements = entitlements
+        .filter(e => e.type === "CATEGORY")
+        .map(e => e.targetId as string);
+    }
+  }
+
+  const wholeAppPlan = allPlans.find(p => p.planType === "WHOLE_APP");
+
+  // 4. Map everything back to the courses with optimized logic
+  return courses.map(course => {
+    const ancestors = categoryHierarchyMap.get(course.categoryId) || [course.categoryId];
+
+    // Find relevant plans, prioritizing specificity (Course > Category > App)
+    const coursePlan = allPlans.find(p => p.planType === PlanType.COURSE && p.targetId === course.id);
+    // For category plans, find the nearest one (first in the ancestor chain)
+    const categoryPlan = allPlans.find(p => p.planType === PlanType.CATEGORY && ancestors.includes(p.targetId as string));
+
+    const plan = coursePlan || categoryPlan || wholeAppPlan;
+
+    // Ownership check: Admin BYPASS OR App-wide OR Direct Course OR Any Category in hierarchy (Parent/Indirect)
+    const isOwned =
+      isAdmin ||
+      hasFullApp ||
+      activeCourseEntitlements.includes(course.id) ||
+      ancestors.some(id => activeCategoryEntitlements.includes(id));
+
+    return {
+      ...course,
+      isPaid: !!plan,
+      hasAccess: isOwned || !plan,
+      pricing: plan || null
+    };
+  });
+};
+
+/**
+ * Helper for single course detail
+ */
+const attachPricingToCourse = async (course: any, userId?: string) => {
+  if (!course) return null;
+  const results = await attachPricingToCourses([course], userId);
+  return results[0];
+};
+
+// ==================== COURSE QUERIES ====================
+
+/**
+ * Get all courses with advanced filtering and pagination
+ * Optimized for production search and sorting.
+ */
 export const getAllCourses = async (filters?: {
   categoryId?: string;
   trainerId?: string;
@@ -10,77 +138,57 @@ export const getAllCourses = async (filters?: {
   status?: CourseStatus;
   search?: string;
   tags?: string[];
+  duration?: "short" | "long";
   sort?: "newest" | "popular" | "rating" | "title";
   page?: number;
   limit?: number;
+  userId?: string;
 }) => {
   const {
     categoryId,
     trainerId,
     level,
     language,
-    status,
+    status = CourseStatus.active, // Default to active for public
     search,
     tags,
+    duration,
     sort = "newest",
     page = 1,
     limit = 20,
+    userId
   } = filters || {};
 
   const where: Prisma.CourseWhereInput = {
+    status,
     ...(categoryId && { categoryId }),
     ...(trainerId && { trainerId }),
     ...(level && { level }),
     ...(language && { language }),
-    ...(status && { status }),
-    ...(tags &&
-      tags.length > 0 && {
-      tags: {
-        hasSome: tags,
-      },
-    }),
+    ...(tags && tags.length > 0 && { tags: { hasSome: tags } }),
+    ...(duration && { duration: duration === "short" ? { lte: 180 } : { gt: 180 } }),
     ...(search && {
       OR: [
         { title: { contains: search, mode: "insensitive" } },
         { description: { contains: search, mode: "insensitive" } },
+        { tags: { has: search } }
       ],
     }),
   };
 
   let orderBy: Prisma.CourseOrderByWithRelationInput = { createdAt: "desc" };
-
-  switch (sort) {
-    case "popular":
-      orderBy = { rating: "desc" };
-      break;
-    case "rating":
-      orderBy = { rating: "desc" };
-      break;
-    case "title":
-      orderBy = { title: "asc" };
-      break;
-  }
+  if (sort === "popular" || sort === "rating") orderBy = { rating: "desc" };
+  else if (sort === "title") orderBy = { title: "asc" };
 
   const [courses, total] = await Promise.all([
     prisma.course.findMany({
       where,
       include: {
-        category: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
+        category: { select: { id: true, name: true, slug: true } },
         trainer: {
           select: {
             id: true,
-            user: {
-              select: {
-                displayName: true,
-                profileImage: true,
-              },
-            },
+            user: { select: { id: true, displayName: true, profileImage: true } },
           },
         },
       },
@@ -91,8 +199,10 @@ export const getAllCourses = async (filters?: {
     prisma.course.count({ where }),
   ]);
 
+  const data = await attachPricingToCourses(courses, userId);
+
   return {
-    data: courses,
+    data,
     pagination: {
       page,
       limit,
@@ -102,246 +212,193 @@ export const getAllCourses = async (filters?: {
   };
 };
 
-// Get course by ID with modules and lessons
+/**
+ * Get detailed course data including curriculum
+ * Optimized: Single query for curriculum, secure post-processing.
+ */
 export const getCourseById = async (id: string, userId?: string) => {
+  // 1. Fetch course first to check status
   const course = await prisma.course.findUnique({
     where: { id },
     include: {
       category: true,
-      demoVideo: {
+      demoVideo: { select: { id: true, playbackUrl: true } },
+      trainer: {
         select: {
           id: true,
-          playbackUrl: true,
+          user: { select: { id: true, displayName: true, profileImage: true, email: true } },
+        },
+      },
+      _count: { select: { modules: true, lessons: true } },
+    },
+  });
+
+  if (!course) return null;
+
+  // 2. Fetch User Context for Admin check
+  let isAdmin = false;
+  if (userId) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+    isAdmin = user?.role === "admin";
+  }
+
+  // Edge Case: Non-admin trying to view unpublished/archived course
+  if (!isAdmin && course.status !== CourseStatus.active) {
+    return null; // Or throw custom error
+  }
+
+  // 3. Define status filter & Fetch Curriculum (Separate query or include)
+  const courseStatusFilter = isAdmin ? {} : { status: CourseStatus.active };
+  const lessonStatusFilter = isAdmin ? {} : { status: "published" as any };
+
+  // Fetch full curriculum now that we have the status policy
+  const fullCurriculum = await prisma.course.findUnique({
+    where: { id: id },
+    select: {
+      modules: {
+        where: isAdmin ? {} : { status: "published" as any }, // Modules use published/draft
+        orderBy: { sequence: "asc" },
+        include: {
+          lessons: {
+            where: lessonStatusFilter,
+            orderBy: { sequence: "asc" },
+            include: {
+              videoLesson: {
+                include: {
+                  video: { select: { id: true, title: true, thumbnailUrl: true, duration: true } }
+                }
+              },
+              textLesson: true,
+            },
+          },
+        },
+      },
+      lessons: {
+        where: { moduleId: null, ...lessonStatusFilter },
+        orderBy: { sequence: "asc" },
+        include: {
+          videoLesson: {
+            include: {
+              video: { select: { id: true, title: true, thumbnailUrl: true, duration: true } }
+            }
+          },
+          textLesson: true,
+        },
+      },
+    }
+  });
+
+  const { modules: rawModules, lessons: rawLessons } = fullCurriculum || { modules: [], lessons: [] };
+  const courseWithPricing = await attachPricingToCourse(course, userId);
+  const hasAccess = courseWithPricing.hasAccess;
+
+  // curriculum logic: Secure items and flatten for unified UI
+  const curriculum: any[] = [];
+
+  // 1. Process Modules
+  rawModules.forEach((module: any) => {
+    curriculum.push({
+      ...module,
+      type: "module",
+      lessons: module.lessons.map((l: any) => {
+        const thumbnail = l.videoLesson?.video?.thumbnailUrl || null;
+        if (!hasAccess && !l.isFree) {
+          // Strip core content for locked lessons but KEEP thumbnail for UI
+          const { videoLesson, textLesson, metadata, description, ...safeLesson } = l;
+          return { ...safeLesson, thumbnail, isLocked: true };
         }
-      },
-      trainer: {
-        select: {
-          id: true,
-          user: {
-            select: {
-              displayName: true,
-              profileImage: true,
-              email: true,
-            },
-          },
-        },
-      },
-      // Get modules with their lessons
-      modules: {
-        where: { status: "published" },
-        orderBy: { sequence: "asc" },
-        include: {
-          lessons: {
-            where: { status: "published" },
-            orderBy: { sequence: "asc" },
-            include: {
-              videoLesson: {
-                include: {
-                  video: {
-                    select: {
-                      id: true,
-                      title: true,
-                      thumbnailUrl: true,
-                      duration: true,
-                      status: true,
-                    },
-                  },
-                },
-              },
-              textLesson: true,
-            },
-          },
-          _count: {
-            select: {
-              lessons: true,
-            },
-          },
-        },
-      },
-      // Get direct lessons (not in modules)
-      lessons: {
-        where: {
-          moduleId: null,
-          status: "published",
-        },
-        orderBy: { sequence: "asc" },
-        include: {
-          videoLesson: {
-            include: {
-              video: {
-                select: {
-                  id: true,
-                  title: true,
-                  thumbnailUrl: true,
-                  duration: true,
-                  status: true,
-                },
-              },
-            },
-          },
-          textLesson: true,
-        },
-      },
-      _count: {
-        select: {
-          modules: true,
-          lessons: true,
-        },
-      },
-    },
-  });
-
-  if (!course) {
-    return null;
-  }
-
-  // Calculate total lessons and duration
-  let totalLessons = (course as any).lessons.length;
-  let totalDuration = 0;
-
-  // Count lessons in modules
-  (course as any).modules.forEach((module: any) => {
-    totalLessons += module.lessons.length;
-    module.lessons.forEach((lesson: any) => {
-      totalDuration += lesson.duration || 0;
+        return { ...l, thumbnail, isLocked: false };
+      })
     });
   });
 
-  // Count direct lessons duration
-  (course as any).lessons.forEach((lesson: any) => {
-    totalDuration += lesson.duration || 0;
+  // 2. Process Direct Lessons
+  rawLessons.forEach((lesson: any) => {
+    const thumbnail = lesson.videoLesson?.video?.thumbnailUrl || null;
+    if (!hasAccess && !lesson.isFree) {
+      const { videoLesson, textLesson, metadata, description, ...safeLesson } = lesson;
+      curriculum.push({ ...safeLesson, type: "lesson", thumbnail, isLocked: true });
+    } else {
+      curriculum.push({ ...lesson, type: "lesson", thumbnail, isLocked: false });
+    }
   });
 
+  curriculum.sort((a, b) => a.sequence - b.sequence);
+
+  // Stats calculation
+  let totalLessons = rawLessons.length;
+  let totalDuration = 0;
+  rawModules.forEach((m: any) => {
+    totalLessons += m.lessons.length;
+    m.lessons.forEach((l: any) => { totalDuration += l.duration || 0; });
+  });
+  rawLessons.forEach((l: any) => { totalDuration += l.duration || 0; });
+
+  // 4. Certificate and Progress Info
+  let certificateInfo = {
+    hasCertificate: course.hasCertificate,
+    isClaimable: false,
+    isCompleted: false,
+    certificateUrl: null as string | null,
+  };
+
+  if (userId) {
+    const [progress, certificate] = await Promise.all([
+      prisma.userCourseProgress.findUnique({
+        where: { userId_courseId: { userId, courseId: id } },
+        select: { isCompleted: true }
+      }),
+      prisma.certificate.findFirst({
+        where: { userId, courseId: id },
+        select: { certificateUrl: true }
+      })
+    ]);
+
+    certificateInfo.isCompleted = progress?.isCompleted || false;
+    certificateInfo.certificateUrl = certificate?.certificateUrl || null;
+
+    // Claimable if course has cert, user completed it, and user has access
+    certificateInfo.isClaimable = course.hasCertificate &&
+      hasAccess &&
+      (progress?.isCompleted || false);
+  }
+
   return {
-    ...course,
+    ...courseWithPricing,
+    curriculum,
+    certificateInfo,
     stats: {
-      totalModules: (course as any)._count.modules,
+      totalModules: course._count.modules,
       totalLessons,
-      totalDuration, // in minutes
+      totalDuration,
     },
   };
 };
 
-// Get course by slug with modules and lessons
+/**
+ * Get detailed course by slug
+ */
 export const getCourseBySlug = async (slug: string, userId?: string) => {
-  const course = await prisma.course.findUnique({
+  // For production, we reuse the ID logic after fetching ID by slug
+  // This avoids maintain duality between ID and Slug curriculum logic.
+  const courseMeta = await prisma.course.findUnique({
     where: { slug },
-    include: {
-      category: true,
-      trainer: {
-        select: {
-          id: true,
-          user: {
-            select: {
-              displayName: true,
-              profileImage: true,
-            },
-          },
-        },
-      },
-      // Get modules with their lessons
-      modules: {
-        where: { status: "published" },
-        orderBy: { sequence: "asc" },
-        include: {
-          lessons: {
-            where: { status: "published" },
-            orderBy: { sequence: "asc" },
-            include: {
-              videoLesson: {
-                include: {
-                  video: {
-                    select: {
-                      id: true,
-                      title: true,
-                      thumbnailUrl: true,
-                      duration: true,
-                      status: true,
-                    },
-                  },
-                },
-              },
-              textLesson: true,
-            },
-          },
-          _count: {
-            select: {
-              lessons: true,
-            },
-          },
-        },
-      },
-      // Get direct lessons (not in modules)
-      lessons: {
-        where: {
-          moduleId: null,
-          status: "published",
-        },
-        orderBy: { sequence: "asc" },
-        include: {
-          videoLesson: {
-            include: {
-              video: {
-                select: {
-                  id: true,
-                  title: true,
-                  thumbnailUrl: true,
-                  duration: true,
-                  status: true,
-                },
-              },
-            },
-          },
-          textLesson: true,
-        },
-      },
-      _count: {
-        select: {
-          modules: true,
-          lessons: true,
-        },
-      },
-    },
+    select: { id: true }
   });
-
-  if (!course) {
-    return null;
-  }
-
-  // Calculate total lessons and duration
-  let totalLessons = (course as any).lessons.length;
-  let totalDuration = 0;
-
-  // Count lessons in modules
-  (course as any).modules.forEach((module: any) => {
-    totalLessons += module.lessons.length;
-    module.lessons.forEach((lesson: any) => {
-      totalDuration += lesson.duration || 0;
-    });
-  });
-
-  // Count direct lessons duration
-  (course as any).lessons.forEach((lesson: any) => {
-    totalDuration += lesson.duration || 0;
-  });
-
-  return {
-    ...course,
-    stats: {
-      totalModules: (course as any)._count.modules,
-      totalLessons,
-      totalDuration, // in minutes
-    },
-  };
+  if (!courseMeta) return null;
+  return getCourseById(courseMeta.id, userId);
 };
 
-// Get related courses
-export const getRelatedCourses = async (courseId: string, limit = 6) => {
+// ==================== RELATED & TRENDING ====================
+
+export const getRelatedCourses = async (courseId: string, limit = 6, userId?: string) => {
   const course = await prisma.course.findUnique({
     where: { id: courseId },
     select: { categoryId: true, level: true, tags: true },
   });
-
   if (!course) return [];
 
   const relatedCourses = await prisma.course.findMany({
@@ -351,273 +408,92 @@ export const getRelatedCourses = async (courseId: string, limit = 6) => {
       OR: [
         { categoryId: course.categoryId },
         { level: course.level },
-        {
-          tags: {
-            hasSome: course.tags,
-          },
-        },
+        { tags: { hasSome: course.tags } },
       ],
     },
     include: {
       trainer: {
         select: {
           id: true,
-          user: {
-            select: {
-              displayName: true,
-              profileImage: true,
-            },
-          },
+          user: { select: { displayName: true, profileImage: true } },
         },
       },
     },
     take: limit,
-    orderBy: {
-      rating: "desc",
-    },
+    orderBy: { rating: "desc" },
   });
 
-  return relatedCourses;
+  return await attachPricingToCourses(relatedCourses, userId);
 };
 
-// Get trending courses
-export const getTrendingCourses = async (limit = 10) => {
+export const getTrendingCourses = async (limit = 10, userId?: string) => {
   const courses = await prisma.course.findMany({
-    where: {
-      status: "active",
-    },
+    where: { status: "active" },
     include: {
-      category: {
-        select: {
-          name: true,
-          slug: true,
-        },
-      },
+      category: { select: { name: true, slug: true } },
       trainer: {
         select: {
           id: true,
-          user: {
-            select: {
-              displayName: true,
-              profileImage: true,
-            },
-          },
+          user: { select: { displayName: true, profileImage: true } },
         },
       },
     },
     orderBy: { rating: "desc" },
     take: limit,
   });
-
-  return courses;
+  return await attachPricingToCourses(courses, userId);
 };
 
-// Create course (Admin/Trainer)
+// ==================== MUTATIONS (ADMIN) ====================
+
 export const createCourse = async (data: Prisma.CourseCreateInput) => {
-  // Check if slug already exists
-  const existing = await prisma.course.findUnique({
-    where: { slug: data.slug },
-  });
-
-  if (existing) {
-    throw new Error("Course with this slug already exists");
-  }
-
-  // Validate category exists
-  if (
-    data.category &&
-    "connect" in data.category &&
-    data.category.connect &&
-    "id" in data.category.connect
-  ) {
-    const categoryExists = await prisma.category.findUnique({
-      where: { id: data.category.connect.id as string },
+  try {
+    return await prisma.course.create({
+      data,
+      include: {
+        category: true,
+        trainer: { select: { id: true, user: { select: { displayName: true, email: true } } } }
+      }
     });
-
-    if (!categoryExists) {
-      throw new Error("Category not found. Please select a valid category.");
-    }
+  } catch (error: any) {
+    if (error.code === "P2002") throw new Error("Course with this slug already exists");
+    throw error;
   }
-
-  const course = await prisma.course.create({
-    data,
-    include: {
-      category: true,
-      trainer: {
-        select: {
-          id: true,
-          user: {
-            select: {
-              displayName: true,
-              email: true,
-            },
-          },
-        },
-      },
-    },
-  });
-
-  return course;
 };
 
-// Validate trainer exists and return trainer ID
-export const validateTrainer = async (userId: string): Promise<string> => {
-  const trainer = await prisma.trainer.findUnique({
-    where: { userId },
-    select: { id: true, status: true },
-  });
-
-  if (!trainer) {
-    throw new Error("User does not have a trainer profile");
-  }
-
-  if (trainer.status !== "active") {
-    throw new Error("Trainer profile is not active");
-  }
-
-  return trainer.id;
-};
-
-// Validate category exists
-export const validateCategory = async (categoryId: string): Promise<boolean> => {
-  const category = await prisma.category.findUnique({
-    where: { id: categoryId },
-    select: { id: true },
-  });
-
-  if (!category) {
-    throw new Error("Category not found. Please select a valid category.");
-  }
-
-  return true;
-};
-
-// Update course (Admin/Trainer)
-export const updateCourse = async (
-  id: string,
-  trainerId: string,
-  data: Prisma.CourseUpdateInput,
-  isAdmin = false
-) => {
-  // Verify ownership if not admin
-  if (!isAdmin) {
-    const course = await prisma.course.findUnique({
+export const updateCourse = async (id: string, data: Prisma.CourseUpdateInput) => {
+  try {
+    return await prisma.course.update({
       where: { id },
-      select: { trainerId: true },
+      data,
+      include: {
+        category: true,
+        trainer: { select: { id: true, user: { select: { displayName: true } } } }
+      }
     });
-
-    if (!course) {
-      throw new Error("Course not found");
-    }
-
-    if (course.trainerId !== trainerId) {
-      throw new Error("Unauthorized: You can only update your own courses");
-    }
+  } catch (error: any) {
+    if (error.code === "P2002") throw new Error("Course title/slug conflict");
+    throw error;
   }
-
-  // If slug is being updated, check uniqueness
-  if (data.slug && typeof data.slug === "string") {
-    const existing = await prisma.course.findFirst({
-      where: {
-        slug: data.slug,
-        NOT: { id },
-      },
-    });
-
-    if (existing) {
-      throw new Error("Course with this slug already exists");
-    }
-  }
-
-  const course = await prisma.course.update({
-    where: { id },
-    data,
-    include: {
-      category: true,
-      trainer: {
-        select: {
-          id: true,
-          user: {
-            select: {
-              displayName: true,
-            },
-          },
-        },
-      },
-    },
-  });
-
-  return course;
 };
 
-// Delete course (Admin/Trainer)
-export const deleteCourse = async (id: string, trainerId: string, isAdmin = false) => {
-  // Verify ownership if not admin
-  if (!isAdmin) {
-    const course = await prisma.course.findUnique({
-      where: { id },
-      select: { trainerId: true },
-    });
-
-    if (!course) {
-      throw new Error("Course not found");
-    }
-
-    if (course.trainerId !== trainerId) {
-      throw new Error("Unauthorized: You can only delete your own courses");
-    }
-  }
-
-  await prisma.course.delete({
-    where: { id },
-  });
-
+export const deleteCourse = async (id: string) => {
+  await prisma.course.delete({ where: { id } });
   return { message: "Course deleted successfully" };
 };
 
-// Publish/Unpublish course
-export const togglePublish = async (
-  id: string,
-  trainerId: string,
-  status: CourseStatus,
-  isAdmin = false
-) => {
-  // Verify ownership if not admin
-  if (!isAdmin) {
-    const course = await prisma.course.findUnique({
-      where: { id },
-      select: { trainerId: true },
-    });
-
-    if (!course || course.trainerId !== trainerId) {
-      throw new Error("Unauthorized");
-    }
-  }
-
-  const course = await prisma.course.update({
+export const togglePublish = async (id: string, status: CourseStatus) => {
+  return await prisma.course.update({
     where: { id },
-    data: { status },
+    data: { status }
   });
-
-  return course;
 };
 
-// Get courses by trainer
-export const getCoursesByTrainer = async (trainerId: string, includeUnpublished = false) => {
-  const where: Prisma.CourseWhereInput = {
-    trainerId,
-    ...(includeUnpublished ? {} : { status: "active" }),
-  };
-
+export const getCoursesByTrainer = async (trainerId: string, userId?: string) => {
   const courses = await prisma.course.findMany({
-    where,
-    include: {
-      category: true,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
+    where: { trainerId },
+    include: { category: true },
+    orderBy: { createdAt: "desc" }
   });
-
-  return courses;
+  return await attachPricingToCourses(courses, userId);
 };

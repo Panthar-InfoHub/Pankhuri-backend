@@ -1,0 +1,188 @@
+enum PaymentGateway {
+  razorpay
+  google_play
+}
+
+// ------------------------------------------------------
+// SUBSCRIPTION PLANS (Admin-defined)
+// ------------------------------------------------------
+model SubscriptionPlan {
+  id               String           @id @default(cuid())
+  name             String
+  slug             String           @unique
+  description      String?
+  subscriptionType SubscriptionType @default(yearly)
+  duration         Int? // optional, your choice
+  price            Int
+  discountedPrice  Int?
+  currency         String           @default("INR")
+
+  // Payment gateway mapping
+  provider  PaymentGateway @default(razorpay)
+  planId    String?        @unique
+  trialDays Int            @default(0) // 0 = no trial, >0 = trial days : Only for Razorpay
+  trialFee  Int            @default(0) // 0 = free trial, >0 = paid trial in paise : Only for Razorpay
+
+  features Json?
+  isActive Boolean @default(true)
+  order    Int?
+
+  // New: Entitlement mapping
+  planType PlanType @default(WHOLE_APP)
+  targetId String? // Category ID or Course ID
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userSubscriptions UserSubscription[]
+  payments          Payment[]
+}
+
+// ------------------------------------------------------
+// USER SUBSCRIPTIONS (One record per user → active plan)
+// ------------------------------------------------------
+model UserSubscription {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  planId String?
+  plan   SubscriptionPlan? @relation(fields: [planId], references: [id])
+
+  // Paymetn gateway mapping
+  provider             PaymentGateway @default(razorpay)
+  subscriptionId       String?        @unique // Only for razorpay 
+  currentPurchaseToken String? // for Google Play
+  linkedPurchaseTokens Json? // for Google Play Renewals - skip for developer payload
+
+  status SubscriptionStatus @default(pending)
+
+  // Trial info
+  isTrial     Boolean   @default(false)
+  trialEndsAt DateTime?
+
+  // Billing cycle
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  nextBillingAt      DateTime?
+  graceUntil         DateTime?
+
+  cancelAtPeriodEnd Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payments Payment[]
+
+  @@unique([userId, planId])
+}
+
+// ------------------------------------------------------
+// PAYMENTS (Invoices from Razorpay)
+// ------------------------------------------------------
+model Payment {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  planId String?
+  plan   SubscriptionPlan? @relation(fields: [planId], references: [id])
+
+  userSubscriptionId String?
+  userSubscription   UserSubscription? @relation(fields: [userSubscriptionId], references: [id])
+
+  // Razorpay mapping
+  invoiceId             String? // Razorpay invoice
+  gatewaySubscriptionId String? // Razorpay subscription ID
+  orderId               String? // Razorpay one-time order (trial fee) | Google play order ID
+  paymentId             String? // Razorpay payment ID
+  transactionId         String? // alias if needed
+
+  amount   Int
+  currency String @default("INR")
+
+  paymentGateway String      @default("razorpay")
+  paymentMethod  String? // card, upi, wallet…
+  paymentType    PaymentType // trial | recurring | one_time
+
+  status PaymentStatus @default(pending)
+
+  metadata           Json?
+  eventType          String? // invoice.paid, subscription.activated etc.
+  isWebhookProcessed Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ------------------------------------------------------
+// ENUMS
+// ------------------------------------------------------
+
+enum SubscriptionType {
+  monthly
+  yearly
+  lifetime
+}
+
+enum SubscriptionStatus {
+  pending
+  trial
+  active
+  past_due
+  cancelled
+  halted
+  expired
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+  refunded
+}
+
+enum PaymentType {
+  trial
+  recurring
+  one_time
+}
+
+// ------------------------------------------------------
+// NEW: ENTITLEMENTS (Fast lookups for access control)
+// ------------------------------------------------------
+
+enum PlanType {
+  WHOLE_APP
+  CATEGORY
+  COURSE
+}
+
+enum EntitlementStatus {
+  active
+  revoked
+  expired
+}
+
+model UserEntitlement {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  type     PlanType
+  targetId String? // Category ID or Course ID, null for WHOLE_APP
+
+  status EntitlementStatus @default(active)
+  source String? // 'WEB' or 'APP'
+
+  validUntil DateTime? // Null for lifetime access (e.g. Courses)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, type, targetId])
+  @@index([userId])
+  @@index([userId, status])
+}

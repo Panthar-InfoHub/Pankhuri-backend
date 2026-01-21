@@ -1,14 +1,15 @@
 model Video {
-  id           String   @id @default(cuid())
-  title        String
-  thumbnailUrl String?
-  storageKey   String
-  playbackUrl  String?
-  status       String // uploading | processing | ready
-  duration     Int?
-  metadata     Json?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id               String   @id @default(cuid())
+  title            String
+  videoDescription Json?
+  thumbnailUrl     String?
+  storageKey       String
+  playbackUrl      String?
+  status           String // uploading | processing | ready
+  duration         Int?
+  metadata         Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   // Relations
   videoLessons VideoLesson[]

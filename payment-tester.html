@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Razorpay Payment Tester</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg: #0f172a;
+            --text: #f8fafc;
+            --card: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background-color: var(--card);
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 450px;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: var(--primary);
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid #334155;
+            background-color: #0f172a;
+            color: white;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 1rem;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #4f46e5;
+            transform: translateY(-2px);
+        }
+
+        .copy-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .copy-row span {
+            flex: 0 0 100px;
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        .copy-row input {
+            flex: 1;
+            margin-bottom: 0;
+            font-size: 0.8rem;
+            padding: 0.5rem;
+        }
+
+        .copy-row button {
+            flex: 0 0 80px;
+            padding: 0.5rem;
+            font-size: 0.7rem;
+        }
+
+        #result {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: #000;
+            border-radius: 0.5rem;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>Razorpay Tester</h2>
+
+        <div class="form-group">
+            <label>Razorpay Key ID (rzp_test_...)</label>
+            <div class="copy-row">
+                <input type="text" id="keyId" placeholder="Paste your Razorpay Key here"
+                    value="rzp_test_jgBUfaw8NnKx0P">
+                <button onclick="copyText('keyId')">Copy</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Order / Subscription ID (order_... / sub_...)</label>
+            <div class="copy-row">
+                <input type="text" id="orderId" placeholder="Paste order_XXX or sub_XXX here">
+                <button onclick="copyText('orderId')">Copy</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Amount (in Paise)</label>
+            <div class="copy-row">
+                <input type="number" id="amount" placeholder="49900" value="49900">
+                <button onclick="copyText('amount')">Copy</button>
+            </div>
+        </div>
+
+        <button onclick="makePayment()" style="margin-top: 10px;">Open Razorpay Popup</button>
+
+        <div id="result">
+            <div style="margin-bottom: 15px; font-weight: bold; color: #10b981; text-align: center;">✅ Payment
+                Successful!</div>
+            <div class="copy-row">
+                <span>Order ID:</span>
+                <input type="text" id="resOrderId" readonly>
+                <button onclick="copyText('resOrderId')">Copy</button>
+            </div>
+            <div class="copy-row">
+                <span>Payment ID:</span>
+                <input type="text" id="resPaymentId" readonly>
+                <button onclick="copyText('resPaymentId')">Copy</button>
+            </div>
+            <div class="copy-row">
+                <span>Signature:</span>
+                <input type="text" id="resSignature" readonly>
+                <button onclick="copyText('resSignature')">Copy</button>
+            </div>
+            <div style="margin-top: 20px; text-align: center;">
+                <button onclick="copyVerificationJson()" style="background-color: #10b981;">Copy Full Verification
+                    JSON</button>
+            </div>
+            <textarea id="hiddenJson" style="display:none;"></textarea>
+        </div>
+    </div>
+
+    <script>
+        function copyText(id) {
+            const el = document.getElementById(id);
+            el.select();
+            document.execCommand('copy');
+            const btn = el.nextElementSibling;
+            const originalText = btn.innerText;
+            btn.innerText = 'Copied!';
+            setTimeout(() => btn.innerText = originalText, 2000);
+        }
+
+        function copyVerificationJson() {
+            const json = {
+                orderId: document.getElementById('resOrderId').value,
+                paymentId: document.getElementById('resPaymentId').value,
+                signature: document.getElementById('resSignature').value
+            };
+            const textArea = document.getElementById('hiddenJson');
+            textArea.value = JSON.stringify(json, null, 2);
+            textArea.style.display = 'block';
+            textArea.select();
+            document.execCommand('copy');
+            textArea.style.display = 'none';
+
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = 'Copied JSON!';
+            setTimeout(() => btn.innerText = originalText, 2000);
+        }
+
+        function makePayment() {
+            const keyId = document.getElementById('keyId').value.trim();
+            const orderId = document.getElementById('orderId').value.trim();
+            const amount = document.getElementById('amount').value;
+            const resultDiv = document.getElementById('result');
+
+            if (!keyId.startsWith('rzp_')) {
+                alert('Error: Key ID must start with "rzp_".');
+                return;
+            }
+
+            if (!orderId.startsWith('order_') && !orderId.startsWith('sub_')) {
+                alert('Error: Order ID must start with "order_" or "sub_".');
+                return;
+            }
+
+            const options = {
+                "key": keyId,
+                "amount": amount,
+                "currency": "INR",
+                "name": "Panthar Test",
+                "description": "Test Course Purchase",
+                "handler": function (response) {
+                    resultDiv.style.display = 'block';
+                    document.getElementById('resOrderId').value = orderId;
+                    document.getElementById('resPaymentId').value = response.razorpay_payment_id;
+                    document.getElementById('resSignature').value = response.razorpay_signature;
+                },
+                "prefill": {
+                    "name": "Pankhuri User",
+                    "email": "test@pankhuri.com",
+                    "contact": "9999999999"
+                },
+                "theme": { "color": "#6366f1" }
+            };
+
+            if (orderId.startsWith('sub_')) {
+                options.subscription_id = orderId;
+            } else {
+                options.order_id = orderId;
+            }
+
+            const rzp1 = new Razorpay(options);
+            rzp1.open();
+        }
+    </script>
+
+</body>
+
+</html>

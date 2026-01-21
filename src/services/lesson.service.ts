@@ -1,11 +1,77 @@
 import { prisma } from "@/lib/db";
 import { Lesson, LessonType, LessonStatus, Prisma } from "@/prisma/generated/prisma/client";
 import { onLessonAdded, onLessonDeleted, onLessonStatusChanged } from "./progress.service";
+import { hasActiveSubscription } from "./subscription.service";
+
+// ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Check if user can access a specific lesson
+ * Returns lesson with access info, or throws error if no access
+ */
+export const checkLessonAccess = async (
+  lessonId: string,
+  userId?: string
+): Promise<{ lesson: Lesson; hasAccess: boolean; reason?: string }> => {
+  const lesson = await prisma.lesson.findUnique({
+    where: { id: lessonId },
+    include: {
+      course: {
+        select: {
+          id: true,
+          title: true,
+        },
+      },
+      videoLesson: {
+        include: {
+          video: true,
+        },
+      },
+      textLesson: true,
+      lessonDescription: true,
+      lessonAttachments: {
+        orderBy: { sequence: "asc" },
+      },
+    },
+  });
+
+  if (!lesson) {
+    throw new Error("Lesson not found");
+  }
+
+  // Free lessons are accessible to everyone
+  if (lesson.isFree) {
+    return { lesson, hasAccess: true };
+  }
+
+  // For paid lessons, check subscription
+  if (!userId) {
+    return {
+      lesson,
+      hasAccess: false,
+      reason: "This lesson requires an active subscription",
+    };
+  }
+
+  const { hasAccess: checkEntitlement } = await import("./entitlement.service");
+  const hasAccess = await checkEntitlement(userId, "COURSE", lesson.courseId);
+
+  if (!hasAccess) {
+    return {
+      lesson,
+      hasAccess: false,
+      reason: "This lesson requires an active subscription or purchase of this course.",
+    };
+  }
+
+  return { lesson, hasAccess: true };
+};
 
 // ==================== LESSON CRUD OPERATIONS ====================
 
 /**
  * Get all lessons for a course with optional filters
+ * Returns sanitized data - no sensitive video URLs or content
  */
 export const getLessonsByCourse = async (
   courseId: string,
@@ -15,7 +81,7 @@ export const getLessonsByCourse = async (
     status?: LessonStatus;
     isFree?: boolean;
   }
-): Promise<Lesson[]> => {
+): Promise<any[]> => {
   const where: Prisma.LessonWhereInput = {
     courseId,
     ...(filters?.moduleId !== undefined && { moduleId: filters.moduleId }),
@@ -24,15 +90,24 @@ export const getLessonsByCourse = async (
     ...(filters?.isFree !== undefined && { isFree: filters.isFree }),
   };
 
-  return await prisma.lesson.findMany({
+  // Only fetch safe metadata - no sensitive URLs or content
+  const lessons = await prisma.lesson.findMany({
     where,
-    include: {
-      videoLesson: {
-        include: {
-          video: true,
-        },
-      },
-      textLesson: true,
+    select: {
+      id: true,
+      courseId: true,
+      moduleId: true,
+      title: true,
+      slug: true,
+      type: true,
+      description: true,
+      sequence: true,
+      duration: true,
+      isFree: true,
+      isMandatory: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
       module: {
         select: {
           id: true,
@@ -40,35 +115,92 @@ export const getLessonsByCourse = async (
           slug: true,
         },
       },
-      lessonDescription: true,
-      lessonAttachments: {
-        orderBy: { sequence: "asc" },
+      // Video metadata only - no playback URLs
+      videoLesson: {
+        select: {
+          video: {
+            select: {
+              id: true,
+              title: true,
+              thumbnailUrl: true,
+              duration: true,
+              status: true,
+              // NO: playbackUrl, streamUrl, hlsUrl, dashUrl, downloadUrl
+            },
+          },
+        },
+      },
+      // Text lesson ID only - no content
+      textLesson: {
+        select: {
+          id: true,
+          // NO: content, htmlContent
+        },
       },
     },
     orderBy: { sequence: "asc" },
   });
+
+  // Data is already sanitized at query level
+  return lessons;
 };
 
 /**
  * Get lessons by module
+ * Returns sanitized data - no sensitive video URLs or content
  */
-export const getLessonsByModule = async (moduleId: string): Promise<Lesson[]> => {
-  return await prisma.lesson.findMany({
+export const getLessonsByModule = async (moduleId: string): Promise<any[]> => {
+  // Only fetch safe metadata - no sensitive URLs or content
+  const lessons = await prisma.lesson.findMany({
     where: { moduleId },
-    include: {
-      videoLesson: {
-        include: {
-          video: true,
+    select: {
+      id: true,
+      courseId: true,
+      moduleId: true,
+      title: true,
+      slug: true,
+      type: true,
+      description: true,
+      sequence: true,
+      duration: true,
+      isFree: true,
+      isMandatory: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      module: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
         },
       },
-      textLesson: true,
-      lessonDescription: true,
-      lessonAttachments: {
-        orderBy: { sequence: "asc" },
+      // Video metadata only - no playback URLs
+      videoLesson: {
+        select: {
+          video: {
+            select: {
+              id: true,
+              title: true,
+              thumbnailUrl: true,
+              duration: true,
+              status: true,
+            },
+          },
+        },
+      },
+      // Text lesson ID only - no content
+      textLesson: {
+        select: {
+          id: true,
+        },
       },
     },
     orderBy: { sequence: "asc" },
   });
+
+  // Data is already sanitized at query level
+  return lessons;
 };
 
 /**
@@ -299,9 +431,10 @@ export const updateLesson = async (
 
       // 2. Update type-specific data
       if (existingLesson.type === LessonType.video && data.videoId !== undefined) {
-        await tx.videoLesson.update({
+        await tx.videoLesson.upsert({
           where: { lessonId },
-          data: { videoId: data.videoId },
+          update: { videoId: data.videoId },
+          create: { lessonId, videoId: data.videoId },
         });
       } else if (existingLesson.type === LessonType.text) {
         const textUpdateData: any = {};
