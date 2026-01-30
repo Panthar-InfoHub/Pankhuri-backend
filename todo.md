@@ -36,6 +36,10 @@ done
 ----------------------
 pending
 
+- what to do if i have a pending subscription plan- some way to manage it
+- make edit flow as well inscluding plans  so they can change the pricing for the category and course
+- video clean up process - so it also delte from the bucket
+- when i delte course or category it must also deactivate the plan 
 - make edit flow as well inscluding plans  so they can change the pricing for the category and course
 - video clean up process - so it also delte from the bucket
 - when i delte course or category it must also deactivate the plan 
