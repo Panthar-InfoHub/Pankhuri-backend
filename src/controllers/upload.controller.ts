@@ -17,7 +17,7 @@ export const getPresignedUrlHandler = async (req: Request, res: Response, next: 
         }
 
         // Use BUCKET_MODE from env or default to 'dev'
-        const bucketMode = process.env.DO_BUCKET_MODE || "dev";
+        const bucketMode = process.env.DO_BUCKET_MODE!;
         const timestamp = Date.now();
 
         // Clean file name to avoid issues with special characters
