@@ -18,6 +18,7 @@ import subscriptionRoutes from "@/routes/subscription.route";
 import webhookRoutes from "@/routes/webhook.route";
 import purchaseRoutes from "@/routes/purchase.route";
 import entitlementRoutes from "@/routes/entitlement.route";
+import uploadRoutes from "@/routes/upload.route";
 import { errorHandler } from "./middleware/error.middleware";
 import streamRouter from "./routes/stream.route";
 import cors from "cors";
@@ -53,6 +54,7 @@ app.use("/api/subscriptions", subscriptionRoutes);
 app.use("/api/webhooks", webhookRoutes);
 app.use("/api/purchases", purchaseRoutes);
 app.use("/api/entitlements", entitlementRoutes);
+app.use("/api/upload", uploadRoutes);
 
 //Health check
 app.get("/ping", (_, res) => {
