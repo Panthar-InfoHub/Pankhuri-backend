@@ -92,12 +92,13 @@ export const getPlanById = async (id: string): Promise<SubscriptionPlan> => {
 /**
  * Get all active plans
  */
-export const getActivePlans = async ({ plan_type, subscription_type, is_active }: { plan_type?: PlanType, subscription_type?: SubscriptionType, is_active?: boolean }): Promise<SubscriptionPlan[]> => {
+export const getActivePlans = async ({ plan_type, subscription_type, is_active, target_id }: { plan_type?: PlanType, subscription_type?: SubscriptionType, is_active?: boolean, target_id?: string }): Promise<SubscriptionPlan[]> => {
 
     const where: Prisma.SubscriptionPlanWhereInput = {
-        ...(plan_type && { planType: plan_type }),
+        planType: plan_type, // Now mandatory in the way we call it from controller, but service stays flexible
         ...(subscription_type && { subscriptionType: subscription_type }),
-        ...(typeof is_active === "boolean" && { isActive: is_active }),
+        ...(target_id && { targetId: target_id }),
+        isActive: typeof is_active === "boolean" ? is_active : true,
     };
     return await prisma.subscriptionPlan.findMany({
         where,
