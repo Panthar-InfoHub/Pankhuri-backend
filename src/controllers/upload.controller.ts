@@ -34,6 +34,10 @@ export const getPresignedUrlHandler = async (req: Request, res: Response, next: 
                 uploadUrl,
                 publicUrl,
                 key,
+                headers: {
+                    "Content-Type": contentType,
+                    "x-amz-acl": "public-read"
+                }
             },
         });
     } catch (error: any) {
