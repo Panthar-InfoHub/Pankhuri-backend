@@ -128,14 +128,25 @@ export const getLessonByIdHandler = async (req: Request, res: Response, next: Ne
 
 /**
  * Get lesson by slug with access control
- * GET /api/lessons/course/:courseId/slug/:slug
+ * GET /api/lessons/course/:courseSlug/slug/:slug
  */
 export const getLessonBySlugHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { courseId, slug } = req.params;
+    const { courseSlug, slug } = req.params;
     const userId = req.user?.id;
 
-    const lesson = await getLessonBySlug(courseId, slug);
+    // First, get the course by slug to get the courseId
+    const { getCourseBySlug } = await import("@/services/course.service");
+    const course = await getCourseBySlug(courseSlug);
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        error: "Course not found",
+      });
+    }
+
+    const lesson = await getLessonBySlug(course.id, slug);
 
     if (!lesson) {
       return res.status(404).json({

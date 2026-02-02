@@ -115,29 +115,6 @@ export const getTrainerByIdPublic = async (req: Request, res: Response, next: Ne
   }
 };
 
-// GET /api/trainers/slug/:slug - Get trainer by slug (public view)
-export const getTrainerBySlugPublic = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { slug } = req.params;
-
-    const trainer = await trainerService.getTrainerBySlug(slug);
-
-    if (!trainer || trainer.status !== TrainerStatus.active) {
-      return res.status(404).json({
-        success: false,
-        message: "Trainer not found",
-      });
-    }
-
-    res.json({
-      success: true,
-      data: trainer,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
 // ==================== ADMIN USER MANAGEMENT ====================
 
 // GET /api/admin/users - Get all users with filters

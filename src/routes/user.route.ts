@@ -12,7 +12,6 @@ router.put("/me", authenticateWithSession, userController.updateCurrentUser);
 
 // Public trainer endpoints
 router.get("/trainers", userController.getAllTrainersPublic);
-router.get("/trainers/slug/:slug", userController.getTrainerBySlugPublic);
 router.get("/trainers/:id", userController.getTrainerByIdPublic);
 
 // ==================== ADMIN ROUTES ====================

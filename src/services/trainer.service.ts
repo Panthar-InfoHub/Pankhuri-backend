@@ -103,45 +103,6 @@ export const getTrainerByUserId = async (userId: string) => {
   return trainer;
 };
 
-// Get trainer by slug (using userId as slug)
-export const getTrainerBySlug = async (slug: string) => {
-  // First, try to find user by ID (if slug is userId)
-  let trainer = await prisma.trainer.findUnique({
-    where: { userId: slug },
-    include: {
-      user: {
-        select: {
-          id: true,
-          displayName: true,
-          email: true,
-          profileImage: true,
-          status: true,
-        },
-      },
-      courses: {
-        where: { status: "active" },
-        select: {
-          id: true,
-          title: true,
-          slug: true,
-          thumbnailImage: true,
-          level: true,
-          status: true,
-          rating: true,
-          duration: true,
-        },
-      },
-      _count: {
-        select: {
-          courses: true,
-        },
-      },
-    },
-  });
-
-  return trainer;
-};
-
 // Create trainer profile
 export const createTrainerProfile = async (data: {
   userId: string;
