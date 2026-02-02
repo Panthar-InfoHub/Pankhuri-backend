@@ -43,7 +43,7 @@ export const updateCurrentUser = async (req: Request, res: Response, next: NextF
       });
     }
 
-    const { displayName, profileImage, dateOfBirth, gender, countryCode, languagePreference,profession,metadata } =
+    const { displayName, profileImage, dateOfBirth, gender, countryCode, languagePreference, profession, metadata } =
       req.body;
 
     // Users can only update their own profile fields
@@ -98,6 +98,29 @@ export const getTrainerByIdPublic = async (req: Request, res: Response, next: Ne
     const { id } = req.params;
 
     const trainer = await trainerService.getTrainerById(id);
+
+    if (!trainer || trainer.status !== TrainerStatus.active) {
+      return res.status(404).json({
+        success: false,
+        message: "Trainer not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      data: trainer,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// GET /api/trainers/slug/:slug - Get trainer by slug (public view)
+export const getTrainerBySlugPublic = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { slug } = req.params;
+
+    const trainer = await trainerService.getTrainerBySlug(slug);
 
     if (!trainer || trainer.status !== TrainerStatus.active) {
       return res.status(404).json({

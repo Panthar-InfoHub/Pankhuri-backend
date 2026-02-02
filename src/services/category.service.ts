@@ -101,11 +101,15 @@ const attachPricingToCategories = async (categories: any[], userId?: string) => 
       // Access Logic: Admin BYPASS OR App-wide OR Direct/Parent Entitlement OR Inherited from Parent (recursive param) OR Free (no plans)
       const currentCatHasAccess = isAdmin || hasFullApp || hasDirectOrParentEntitlement || parentHasAccess || !effectivePlan;
 
+      // Find direct plan for this category only (not parent or app-wide)
+      const directPlan = allPlans.find(p => p.planType === PlanType.CATEGORY && p.targetId === cat.id);
+
       const categoryWithPricing: any = {
         ...cat,
         isPaid: !!effectivePlan,
         hasAccess: currentCatHasAccess,
-        pricing: nearestPlan ? [nearestPlan] : (wholeAppPlan ? [wholeAppPlan] : [])
+        // Only show direct category plan, not inherited or app-wide plans
+        pricing: directPlan ? [directPlan] : []
       };
 
       if (cat.children && cat.children.length > 0) {

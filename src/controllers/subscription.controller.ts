@@ -13,6 +13,7 @@ import {
   cancelImmediately,
   getUserSubscriptionStatus,
   cancelPendingSubscription,
+  cancelPendingSubscriptionById,
   verifyGooglePlayReceipt,
   acknowledgeGooglePlayPurchase,
 } from "@/services/subscription.service";
@@ -235,7 +236,29 @@ export const cancelPendingSubscriptionHandler = async (
   }
 };
 
+/**
+ * Cancel a specific pending subscription by ID
+ * DELETE /api/subscriptions/:id/pending
+ */
+export const cancelPendingSubscriptionByIdHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user!.id;
+    const { id } = req.params;
 
+    await cancelPendingSubscriptionById(userId, id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Pending subscription cancelled successfully",
+    });
+  } catch (error: any) {
+    next(error);
+  }
+};
 
 /**
  * Initiate Google Play subscription

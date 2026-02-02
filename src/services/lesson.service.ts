@@ -255,6 +255,7 @@ export const getLessonBySlug = async (courseId: string, slug: string): Promise<L
           id: true,
           title: true,
           slug: true,
+          trainerId: true,
         },
       },
       module: {

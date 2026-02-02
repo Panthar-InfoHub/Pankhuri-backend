@@ -586,6 +586,31 @@ export const cancelPendingSubscription = async (userId: string): Promise<void> =
   }
 };
 
+/**
+ * Cancel a specific pending subscription by ID
+ */
+export const cancelPendingSubscriptionById = async (userId: string, subscriptionId: string): Promise<void> => {
+  const subscription = await prisma.userSubscription.findFirst({
+    where: {
+      id: subscriptionId,
+      userId,
+      status: "pending",
+    },
+  });
+
+  if (!subscription) {
+    throw new Error("Pending subscription not found or you don't have permission to cancel it");
+  }
+
+  await prisma.userSubscription.update({
+    where: { id: subscriptionId },
+    data: {
+      status: "cancelled",
+      updatedAt: new Date(),
+    },
+  });
+};
+
 // ==================== CONTENT ACCESS CONTROL ====================
 
 /**
