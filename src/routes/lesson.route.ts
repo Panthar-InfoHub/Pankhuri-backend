@@ -45,7 +45,7 @@ router.get("/module/:moduleId", optionalAuthenticate, getLessonsByModuleHandler)
 router.get("/:id", authenticateWithSession, requireLessonAccess, getLessonByIdHandler);
 
 // Get lesson by slug (requires auth, checks subscription in controller - slug routes handle gating themselves currently)
-router.get("/course/:courseSlug/slug/:slug", authenticateWithSession, getLessonBySlugHandler);
+router.get("/course/:courseSlug/lesson/:slug", authenticateWithSession, getLessonBySlugHandler);
 
 // ==================== ADMIN/TRAINER ROUTES ====================
 
