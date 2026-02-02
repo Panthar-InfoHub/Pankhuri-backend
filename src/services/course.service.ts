@@ -302,6 +302,7 @@ export const getCourseById = async (id: string, userId?: string) => {
   rawModules.forEach((module: any) => {
     curriculum.push({
       ...module,
+      itemType: "module",
       type: "module",
       lessons: module.lessons.map((l: any) => {
         const thumbnail = l.videoLesson?.video?.thumbnailUrl || null;
@@ -320,9 +321,9 @@ export const getCourseById = async (id: string, userId?: string) => {
     const thumbnail = lesson.videoLesson?.video?.thumbnailUrl || null;
     if (!hasAccess && !lesson.isFree) {
       const { videoLesson, textLesson, metadata, description, ...safeLesson } = lesson;
-      curriculum.push({ ...safeLesson, type: "lesson", thumbnail, isLocked: true });
+      curriculum.push({ ...safeLesson, itemType: "lesson", thumbnail, isLocked: true });
     } else {
-      curriculum.push({ ...lesson, type: "lesson", thumbnail, isLocked: false });
+      curriculum.push({ ...lesson, itemType: "lesson", thumbnail, isLocked: false });
     }
   });
 
@@ -371,7 +372,7 @@ export const getCourseById = async (id: string, userId?: string) => {
     curriculum,
     certificateInfo,
     stats: {
-      totalModules: course._count.modules,
+      totalModules: rawModules.length,
       totalLessons,
       totalDuration,
     },
