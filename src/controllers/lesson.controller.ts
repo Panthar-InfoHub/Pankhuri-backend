@@ -248,10 +248,10 @@ export const createLessonHandler = async (req: Request, res: Response, next: Nex
     const type = videoId ? LessonType.video : textContent ? LessonType.text : null;
 
     // Validation
-    if (!courseId || !title || !slug || sequence === undefined) {
+    if (!courseId || !moduleId || !title || !slug || sequence === undefined) {
       return res.status(400).json({
         success: false,
-        message: "courseId, title, slug, and sequence are required",
+        message: "courseId , moduleId, title, slug, and sequence are required",
       });
     }
 
