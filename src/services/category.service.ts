@@ -284,7 +284,7 @@ export const deleteCategory = async (id: string) => {
   if (category._count.courses > 0) throw new Error("Cannot delete category with associated courses");
 
   await prisma.category.delete({ where: { id } });
-  return { message: "Category deleted successfully" };
+  return { message: "Category deleted successfully", category };
 };
 
 export const toggleStatus = async (id: string, status: CategoryStatus) => {

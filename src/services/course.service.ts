@@ -486,8 +486,8 @@ export const updateCourse = async (id: string, data: Prisma.CourseUpdateInput) =
 };
 
 export const deleteCourse = async (id: string) => {
-  await prisma.course.delete({ where: { id } });
-  return { message: "Course deleted successfully" };
+  const course = await prisma.course.delete({ where: { id } });
+  return { message: "Course deleted successfully", course };
 };
 
 export const togglePublish = async (id: string, status: CourseStatus) => {
