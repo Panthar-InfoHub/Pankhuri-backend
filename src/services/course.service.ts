@@ -48,6 +48,7 @@ const attachPricingToCourses = async (courses: any[], userId?: string) => {
         { planType: PlanType.WHOLE_APP },
       ],
     },
+    orderBy: { order: "asc" },
   });
 
   // 3. Fetch User Context (Role & Entitlements)

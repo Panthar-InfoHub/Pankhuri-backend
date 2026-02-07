@@ -47,7 +47,8 @@ const attachPricingToCategories = async (categories: any[], userId?: string) => 
         { targetId: { in: allRelevantCategoryIds }, planType: PlanType.CATEGORY },
         { planType: PlanType.WHOLE_APP }
       ]
-    }
+    },
+    orderBy: { order: "asc" }
   });
 
   const wholeAppPlan = allPlans.find(p => p.planType === PlanType.WHOLE_APP);
@@ -101,15 +102,15 @@ const attachPricingToCategories = async (categories: any[], userId?: string) => 
       // Access Logic: Admin BYPASS OR App-wide OR Direct/Parent Entitlement OR Inherited from Parent (recursive param) OR Free (no plans)
       const currentCatHasAccess = isAdmin || hasFullApp || hasDirectOrParentEntitlement || parentHasAccess || !effectivePlan;
 
-      // Find direct plan for this category only (not parent or app-wide)
-      const directPlan = allPlans.find(p => p.planType === PlanType.CATEGORY && p.targetId === cat.id);
+      // Find all direct plans for this category only (not parent or app-wide)
+      const directPlans = allPlans.filter(p => p.planType === PlanType.CATEGORY && p.targetId === cat.id);
 
       const categoryWithPricing: any = {
         ...cat,
         isPaid: !!effectivePlan,
         hasAccess: currentCatHasAccess,
         // Only show direct category plan, not inherited or app-wide plans
-        pricing: directPlan ? [directPlan] : []
+        pricing: directPlans
       };
 
       if (cat.children && cat.children.length > 0) {
