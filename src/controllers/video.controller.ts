@@ -1,14 +1,15 @@
-import { NextFunction, Request, Response } from "express";
-import {
-  createVideo,
-  getVideoById,
-  getAllVideos,
-  updateVideo,
-  deleteVideo,
-  updateVideoStatus,
-  bulkDeleteVideos,
-} from "@/services/video.service";
+import { deleteFolder, deleteFromDO, extractKeyFromUrl, extractTranscodeVideoFolderUrl } from "@/lib/cloud";
 import { VideoDescription } from "@/lib/types";
+import {
+  bulkDeleteVideos,
+  createVideo,
+  deleteVideo,
+  getAllVideos,
+  getVideoById,
+  updateVideo,
+  updateVideoStatus,
+} from "@/services/video.service";
+import { NextFunction, Request, Response } from "express";
 import { z } from "zod";
 
 /**
@@ -213,6 +214,29 @@ export const deleteVideoHandler = async (req: Request, res: Response, next: Next
     const { id } = req.params;
 
     const video = await deleteVideo(id);
+
+    // Delete video thumbnail, storageKey (original video), playback url (transcoded video) from Digital Ocean Spaces
+    const deleteKeys: { thumbnail_url?: string, storage_key?: string, playback_url?: string } = {};
+
+    if (video.thumbnailUrl) {
+      deleteKeys["thumbnail_url"] = extractKeyFromUrl(video.thumbnailUrl);
+    }
+
+    deleteKeys["storage_key"] = video.storageKey;
+
+    if (video.playbackUrl) {
+      deleteKeys["playback_url"] = extractTranscodeVideoFolderUrl(video.playbackUrl);
+    }
+
+    // [extractKeyFromUrl(video.thumbnailUrl!), video.storageKey, video.playbackUrl].filter((key): key is string => !!key);
+    console.log("Delete keys ==> ", deleteKeys)
+
+    await Promise.all([
+      deleteFromDO(deleteKeys.thumbnail_url!),
+      deleteFromDO(deleteKeys.storage_key!),
+      deleteFolder(deleteKeys.playback_url!)
+    ]);
+
 
     return res.status(200).json({
       success: true,

@@ -3,6 +3,7 @@ import * as categoryService from "../services/category.service";
 import * as planService from "../services/plan.service";
 import { CategoryStatus } from "@/prisma/generated/prisma/client";
 import { prisma } from "../lib/db";
+import { deleteFromDO, extractKeyFromUrl } from "@/lib/cloud";
 
 // GET /api/categories - Get all categories (tree structure)
 export const getAllCategories = async (req: Request, res: Response, next: NextFunction) => {
@@ -208,6 +209,10 @@ export const deleteCategory = async (req: Request, res: Response, next: NextFunc
     const { id } = req.params;
 
     const result = await categoryService.deleteCategory(id);
+
+    if (result.category.icon) {
+      await deleteFromDO(extractKeyFromUrl(result.category.icon))
+    }
 
     res.json({
       success: true,
