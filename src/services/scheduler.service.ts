@@ -49,7 +49,10 @@ export const scheduleLessonPublish = async (lessonId: string, scheduledDate: Dat
             await schedulerClient.updateJob({ job });
             console.log(`[SCHEDULER] Updated job: ${jobName} for ${schedule}`);
         } catch (error: any) {
-            if (error.code === 5) { // NOT_FOUND
+            // With fallback: true, errors might return HTTP codes (404) instead of gRPC codes (5)
+            const isNotFound = error.code === 5 || error.code === 404 || error.status === "NOT_FOUND";
+
+            if (isNotFound) {
                 // If it doesn't exist, create it
                 await schedulerClient.createJob({ parent, job });
                 console.log(`[SCHEDULER] Created job: ${jobName} for ${schedule}`);
@@ -66,15 +69,19 @@ export const scheduleLessonPublish = async (lessonId: string, scheduledDate: Dat
  * Delete a Google Cloud Scheduler job
  */
 export const deleteScheduledLessonJob = async (lessonId: string) => {
-    try {
-        if (!projectId) return;
-        const jobName = `projects/${projectId}/locations/${location}/jobs/lesson-publish-${lessonId}`;
+    if (!projectId) return;
+    const jobName = `projects/${projectId}/locations/${location}/jobs/lesson-publish-${lessonId}`;
 
+    try {
         await schedulerClient.deleteJob({ name: jobName });
-        console.log(`[SCHEDULER] Deleted job: ${jobName}`);
+        console.log(`[SCHEDULER] Successfully deleted job: ${jobName}`);
     } catch (error: any) {
-        if (error.code !== 5) { // Skip if already deleted
-            console.error(`[SCHEDULER] Failed to delete job for lesson ${lessonId}:`, error.message);
+        if (error.code === 5) {
+            console.log(`[SCHEDULER] Job already deleted or not found: ${jobName}`);
+        } else {
+            console.error(`[SCHEDULER] Failed to delete job for lesson ${lessonId}:`, error);
+            if (error.code) console.error(`[SCHEDULER] Error Code: ${error.code}`);
+            if (error.details) console.error(`[SCHEDULER] Error Details: ${error.details}`);
         }
     }
 };
