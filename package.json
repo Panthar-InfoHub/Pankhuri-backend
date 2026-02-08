@@ -23,7 +23,6 @@
     "@google-cloud/pubsub": "^5.2.0",
     "@prisma/client": "^6.19.0",
     "@sparticuz/chromium": "^143.0.4",
-    "@sparticuz/chromium-min": "^141.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
