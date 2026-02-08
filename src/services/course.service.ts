@@ -1,5 +1,6 @@
 import { Prisma, CourseStatus, CourseLevel, PlanType } from "@/prisma/generated/prisma/client";
 import { prisma } from "../lib/db";
+import { deactivatePlansByTarget } from "./plan.service";
 
 // ==================== HELPERS ====================
 
@@ -487,6 +488,9 @@ export const updateCourse = async (id: string, data: Prisma.CourseUpdateInput) =
 };
 
 export const deleteCourse = async (id: string) => {
+  // Deactivate all plans and cancel active subscriptions associated with this course
+  await deactivatePlansByTarget(id, PlanType.COURSE);
+
   const course = await prisma.course.delete({ where: { id } });
   return { message: "Course deleted successfully", course };
 };

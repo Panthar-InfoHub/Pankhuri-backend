@@ -1,5 +1,6 @@
 import { Prisma, CategoryStatus, PlanType } from "@/prisma/generated/prisma/client";
 import { prisma } from "../lib/db";
+import { deactivatePlansByTarget } from "./plan.service";
 
 // ==================== HELPERS ====================
 
@@ -274,6 +275,7 @@ export const updateCategory = async (id: string, data: Prisma.CategoryUpdateInpu
   });
 };
 
+
 export const deleteCategory = async (id: string) => {
   const category = await prisma.category.findUnique({
     where: { id },
@@ -283,6 +285,9 @@ export const deleteCategory = async (id: string) => {
   if (!category) throw new Error("Category not found");
   if (category._count.children > 0) throw new Error("Cannot delete category with child categories");
   if (category._count.courses > 0) throw new Error("Cannot delete category with associated courses");
+
+  // Deactivate all plans and cancel active subscriptions associated with this category
+  await deactivatePlansByTarget(id, PlanType.CATEGORY);
 
   await prisma.category.delete({ where: { id } });
   return { message: "Category deleted successfully", category };

@@ -4,8 +4,8 @@
  */
 
 import { prisma } from "@/lib/db";
-import { SubscriptionPlan, Prisma, PlanType, SubscriptionType } from "@/prisma/generated/prisma/client";
-import { createGatewayPlan } from "@/lib/payment-gateway";
+import { SubscriptionPlan, Prisma, PlanType, SubscriptionType, SubscriptionStatus } from "@/prisma/generated/prisma/client";
+import { createGatewayPlan, cancelGatewaySubscription } from "@/lib/payment-gateway";
 
 // ==================== CREATE PLAN ====================
 
@@ -162,3 +162,92 @@ export const deletePlan = async (id: string): Promise<SubscriptionPlan> => {
     });
 };
 
+
+// ==================== EMERGENCY DEACTIVATION ====================
+
+/**
+ * Deactivate all plans associated with a specific target (Course or Category)
+ * This is called when a course or category is deleted.
+ * 
+ * DESIGN PRINCIPLE: 
+ * 1. Mark Plans inactive immediately (prevents NEW sales).
+ * 2. Loop through users: Cancel Gateway -> Execute DB updates in Transaction.
+ * 3. If a user fails, we log it and continue (Resilience).
+ */
+export const deactivatePlansByTarget = async (targetId: string, planType: PlanType) => {
+    console.log(`[PLAN] Starting atomic deactivation for ${planType}: ${targetId}`);
+
+    // 1. Fetch all active plans for this target
+    const plans = await prisma.subscriptionPlan.findMany({
+        where: { targetId, planType, isActive: true }
+    });
+
+    if (plans.length === 0) return;
+
+    // 2. Mark all plans inactive in the database first
+    // This stops any concurrent checkouts from proceeding
+    await prisma.subscriptionPlan.updateMany({
+        where: { id: { in: plans.map(p => p.id) } },
+        data: { isActive: false, updatedAt: new Date() }
+    });
+
+    for (const plan of plans) {
+        // 3. Find all active/pending subscriptions
+        const subscriptions = await prisma.userSubscription.findMany({
+            where: {
+                planId: plan.id,
+                status: { in: ["pending", "trial", "active", "past_due"] }
+            }
+        });
+
+        console.log(`[PLAN] Processing ${subscriptions.length} subscriptions for plan: ${plan.name}`);
+
+        for (const sub of subscriptions) {
+            try {
+                // STEP A: Gateway Cancellation (External Side Effect)
+                // We do this first. If it fails, the catch block skips the DB update.
+                if (sub.subscriptionId && sub.provider === 'razorpay') {
+                    await cancelGatewaySubscription(sub.subscriptionId, false);
+                    console.log(`[PLAN] Gateway cancelled: ${sub.subscriptionId}`);
+                }
+
+                // STEP B: Transactional DB Update
+                // This ensures Subscription status and Entitlement revocation are synchronized.
+                await prisma.$transaction(async (tx) => {
+                    // Update subscription status
+                    await tx.userSubscription.update({
+                        where: { id: sub.id },
+                        data: {
+                            status: "cancelled",
+                            updatedAt: new Date()
+                        }
+                    });
+
+                    // Revoke specific entitlement for this target
+                    await tx.userEntitlement.updateMany({
+                        where: {
+                            userId: sub.userId,
+                            type: planType,
+                            targetId: targetId,
+                            status: "active"
+                        },
+                        data: {
+                            status: "revoked",
+                            updatedAt: new Date()
+                        }
+                    });
+                });
+
+                console.log(`[PLAN] DB status updated for user: ${sub.userId}`);
+
+            } catch (error: any) {
+                // If this fails, we log it for manual intervention
+                // But we don't stop the loop for other users
+                console.error(`[CRITICAL] Partial failure for sub ${sub.id}: ${error.message}`);
+                // NOTE: We could add a "failed_cleanup" record here for an admin dashboard
+            }
+        }
+    }
+
+    console.log(`[PLAN] Cleanup complete for ${planType}: ${targetId}`);
+};
