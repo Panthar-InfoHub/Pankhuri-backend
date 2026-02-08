@@ -4538,7 +4538,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n    \"courseId\": \"{{courseId}}\",\n    \"moduleId\": \"{{moduleId}}\",\n    \"videoId\": \"{{videoId}}\",\n    \"title\": \"Welcome to Yoga\",\n    \"slug\": \"welcome-to-yoga\",\n    \"description\": \"An introductory video about yoga philosophy and benefits\",\n    \"sequence\": 1,\n    \"duration\": 900,\n    \"isFree\": true,\n    \"isMandatory\": true,\n    \"status\": \"published\",\n    \"metadata\": {\n        \"difficulty\": \"beginner\",\n        \"language\": \"English\",\n        \"tags\": [\"introduction\", \"philosophy\", \"basics\"]\n    }\n}"
+                  "raw": "{\n    \"courseId\": \"{{courseId}}\",\n    \"moduleId\": \"{{moduleId}}\",\n    \"videoId\": \"{{videoId}}\",\n    \"title\": \"Welcome to Yoga\",\n    \"slug\": \"welcome-to-yoga\",\n    \"description\": \"An introductory video about yoga philosophy and benefits\",\n    \"sequence\": 1,\n    \"duration\": 900,\n    \"isFree\": true,\n    \"isMandatory\": true,\n    \"status\": \"published\",\n    \"scheduledAt\": \"2026-12-25T10:00:00Z\",\n    \"metadata\": {\n        \"difficulty\": \"beginner\",\n        \"language\": \"English\",\n        \"tags\": [\"introduction\", \"philosophy\", \"basics\"]\n    }\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/lessons",
@@ -4550,7 +4550,7 @@
                     "lessons"
                   ]
                 },
-                "description": "Create a video lesson (type auto-detected by presence of videoId). Set moduleId to null for direct course lessons. Duration in seconds."
+                "description": "Create a video lesson (type auto-detected by presence of videoId). Set moduleId to null for direct course lessons. Duration in seconds. Pass `scheduledAt` to schedule for future release."
               },
               "response": []
             },
@@ -4576,7 +4576,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n    \"courseId\": \"{{courseId}}\",\n    \"moduleId\": null,\n    \"textContent\": \"# Yoga Philosophy\\n\\nYoga is an ancient practice that combines physical postures, breathing exercises, and meditation to promote physical, mental, and spiritual well-being.\\n\\n## The Eight Limbs of Yoga\\n\\n1. **Yama** (Moral disciplines) - Non-violence, truthfulness, non-stealing, celibacy, non-possessiveness\\n2. **Niyama** (Positive duties) - Cleanliness, contentment, austerity, self-study, surrender\\n3. **Asana** (Postures) - Physical poses to prepare body for meditation\\n4. **Pranayama** (Breath control) - Breathing exercises to control life force\\n5. **Pratyahara** (Withdrawal of senses) - Directing attention inward\\n6. **Dharana** (Concentration) - Single-pointed focus\\n7. **Dhyana** (Meditation) - Uninterrupted flow of concentration\\n8. **Samadhi** (Enlightenment) - State of bliss and union\\n\\n## Benefits of Regular Practice\\n\\n- Improved flexibility and strength\\n- Better posture and balance\\n- Reduced stress and anxiety\\n- Enhanced mental clarity\\n- Better sleep quality\\n\\n> _\\\"Yoga is the journey of the self, through the self, to the self.\\\"_ - Bhagavad Gita\",\n    \"title\": \"Understanding Yoga Philosophy\",\n    \"slug\": \"understanding-yoga-philosophy\",\n    \"description\": \"A comprehensive guide to the philosophical foundations of yoga, including the Eight Limbs and core principles\",\n    \"sequence\": 2,\n    \"estimatedReadTime\": 10,\n    \"isFree\": false,\n    \"isMandatory\": true,\n    \"status\": \"published\",\n    \"metadata\": {\n        \"difficulty\": \"beginner\",\n        \"language\": \"English\",\n        \"topics\": [\"philosophy\", \"eight limbs\", \"meditation\", \"principles\"]\n    }\n}"
+                  "raw": "{\n    \"courseId\": \"{{courseId}}\",\n    \"moduleId\": null,\n    \"textContent\": \"# Yoga Philosophy\\n\\nYoga is an ancient practice that combines physical postures, breathing exercises, and meditation to promote physical, mental, and spiritual well-being.\\n\\n## The Eight Limbs of Yoga\\n\\n1. **Yama** (Moral disciplines) - Non-violence, truthfulness, non-stealing, celibacy, non-possessiveness\\n2. **Niyama** (Positive duties) - Cleanliness, contentment, austerity, self-study, surrender\\n3. **Asana** (Postures) - Physical poses to prepare body for meditation\\n4. **Pranayama** (Breath control) - Breathing exercises to control life force\\n5. **Pratyahara** (Withdrawal of senses) - Directing attention inward\\n6. **Dharana** (Concentration) - Single-pointed focus\\n7. **Dhyana** (Meditation) - Uninterrupted flow of concentration\\n8. **Samadhi** (Enlightenment) - State of bliss and union\\n\\n## Benefits of Regular Practice\\n\\n- Improved flexibility and strength\\n- Better posture and balance\\n- Reduced stress and anxiety\\n- Enhanced mental clarity\\n- Better sleep quality\\n\\n> _\\\"Yoga is the journey of the self, through the self, to the self.\\\"_ - Bhagavad Gita\",\n    \"title\": \"Understanding Yoga Philosophy\",\n    \"slug\": \"understanding-yoga-philosophy\",\n    \"description\": \"A comprehensive guide to the philosophical foundations of yoga, including the Eight Limbs and core principles\",\n    \"sequence\": 2,\n    \"estimatedReadTime\": 10,\n    \"isFree\": false,\n    \"isMandatory\": true,\n    \"status\": \"published\",\n    \"scheduledAt\": \"2026-12-25T10:00:00Z\",\n    \"metadata\": {\n        \"difficulty\": \"beginner\",\n        \"language\": \"English\",\n        \"topics\": [\"philosophy\", \"eight limbs\", \"meditation\", \"principles\"]\n    }\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/lessons",
@@ -4588,7 +4588,7 @@
                     "lessons"
                   ]
                 },
-                "description": "Create a text lesson (type auto-detected by presence of textContent). Supports Markdown formatting. estimatedReadTime in minutes."
+                "description": "Create a text lesson (type auto-detected by presence of textContent). Supports Markdown formatting. estimatedReadTime in minutes. Pass `scheduledAt` to schedule for future release."
               },
               "response": []
             },
@@ -4736,7 +4736,34 @@
                     "status"
                   ]
                 },
-                "description": "Update only the lesson status. Valid values: draft (work in progress), published (visible to users), archived (hidden but preserved)."
+                "description": "Update only the lesson status. Valid values: draft (work in progress), scheduled (future release), published (visible to users), archived (hidden but preserved). Protected: Published lessons cannot be moved back to draft/scheduled."
+              },
+              "response": []
+            },
+            {
+              "name": "Publish Lesson (Make Live)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "x-scheduler-token",
+                    "value": "{{schedulerSecret}}",
+                    "description": "Secret token for Google Cloud Scheduler"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/lessons/{{lessonId}}/publish",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "lessons",
+                    "{{lessonId}}",
+                    "publish"
+                  ]
+                },
+                "description": "Trigger the immediate publication of a scheduled lesson. This endpoint is primarily called by the Google Cloud Scheduler, but can be used for manual triggers. Requires x-scheduler-token header."
               },
               "response": []
             }
