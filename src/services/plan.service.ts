@@ -111,24 +111,62 @@ export const getActivePlans = async ({ plan_type, subscription_type, is_active, 
 // ==================== UPDATE PLAN ====================
 
 /**
- * Update plan (non-price fields only)
- * For price changes, create a new plan instead
+ * Update plan (Strict Whitelist)
+ * Only allows updating display/metadata fields.
+ * Billing & Architecture fields (price, type, targets) are IMMUTABLE.
  */
 export const updatePlan = async (
     id: string,
-    updates: Prisma.SubscriptionPlanUpdateInput
+    updates: any
 ): Promise<SubscriptionPlan> => {
-    // Don't allow price updates
-    if (updates.price || updates.discountedPrice) {
-        throw new Error(
-            "Cannot update plan price. Create a new plan instead to preserve existing subscriptions."
-        );
+    // 1. Define allowed fields for update (The Whitelist)
+    const allowedFields = [
+        "name",         // Display Name
+        "slug",         // URL Slug
+        "description",  // Marketing description
+        "duration",     // UI display duration
+        "features",     // JSON features list
+        "isActive",     // Deactivate/Active toggle (Works regardless of subscribers)
+        "order"         // Display order
+    ];
+
+    // 2. Filter updates to only allowed fields
+    const filteredUpdates: any = {};
+    for (const key of allowedFields) {
+        if (updates[key] !== undefined) {
+            filteredUpdates[key] = updates[key];
+        }
+    }
+
+    // 3. Check for forbidden fields and throw clear errors
+    // These fields are tied to Razorpay Plan Templates or Core App Architecture
+    const forbiddenFields = [
+        "price",
+        "discountedPrice",
+        "currency",
+        "subscriptionType",
+        "planType",
+        "targetId",
+        "provider",
+        "planId",
+        "trialFee",
+        "trialDays"
+    ];
+
+    for (const field of forbiddenFields) {
+        if (updates[field] !== undefined) {
+            throw new Error(`The field '${field}' is immutable. To change billing terms, pricing, or trial structure, you must create a NEW plan.`);
+        }
+    }
+
+    if (Object.keys(filteredUpdates).length === 0) {
+        throw new Error("No valid fields provided for update.");
     }
 
     return await prisma.subscriptionPlan.update({
         where: { id },
         data: {
-            ...updates,
+            ...filteredUpdates,
             updatedAt: new Date(),
         },
     });

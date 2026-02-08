@@ -39,28 +39,58 @@ export const initiateSubscription = async (userId: string, planId: string, data?
     }
   });
 
+  // Helper to get all category ancestors for hierarchy checks
+  const getCategoryAncestors = async (catId: string): Promise<string[]> => {
+    const ancestors: string[] = [catId];
+    let currentId: string | null = catId;
+    while (currentId) {
+      const cat: any = await prisma.category.findUnique({
+        where: { id: currentId },
+        select: { parentId: true }
+      });
+      if (cat?.parentId) {
+        ancestors.push(cat.parentId);
+        currentId = cat.parentId;
+      } else {
+        currentId = null;
+      }
+    }
+    return ancestors;
+  };
+
   // If user has WHOLE_APP, block all other recurring subscriptions
   if (activeEntitlements.some(e => e.type === "WHOLE_APP")) {
     throw new Error("You already have an active Full App access. No need to subscribe again.");
   }
 
-  // Hierarchical Overlap: If buying a COURSE, check if user has access via CATEGORY
+  // Hierarchical Overlap Check
   if (plan.planType === "COURSE") {
     const course = await prisma.course.findUnique({
       where: { id: plan.targetId! },
       select: { categoryId: true }
     });
 
-    if (course && activeEntitlements.some(e => e.type === "CATEGORY" && e.targetId === course.categoryId)) {
-      throw new Error("You already have access to this course through your existing category subscription.");
+    if (course) {
+      const catAncestors = await getCategoryAncestors(course.categoryId);
+      if (activeEntitlements.some(e => e.type === "CATEGORY" && catAncestors.includes(e.targetId as string))) {
+        throw new Error("You already have access to this course through your existing category subscription.");
+      }
+    }
+  }
+
+  if (plan.planType === "CATEGORY") {
+    const ancestors = await getCategoryAncestors(plan.targetId!);
+    // Check if user owns any ancestor of the category they are trying to buy
+    if (activeEntitlements.some(e => e.type === "CATEGORY" && ancestors.includes(e.targetId as string))) {
+      throw new Error("You already have access to this category (or its parent).");
     }
   }
 
   // Direct Overlap: If user already has this specific entitlement
-  if (plan.planType === "CATEGORY" || plan.planType === "COURSE") {
-    const hasExistingDirect = activeEntitlements.some(e => e.type === plan.planType && e.targetId === plan.targetId);
+  if (plan.planType === "COURSE") {
+    const hasExistingDirect = activeEntitlements.some(e => e.type === "COURSE" && e.targetId === plan.targetId);
     if (hasExistingDirect) {
-      throw new Error(`You already have active access to this ${plan.planType.toLowerCase()}`);
+      throw new Error(`You already have active access to this course.`);
     }
   }
 
