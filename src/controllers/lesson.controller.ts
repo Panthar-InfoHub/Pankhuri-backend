@@ -12,6 +12,7 @@ import {
   getNextLesson,
   getPreviousLesson,
   checkLessonAccess,
+  publishLesson,
 } from "@services/lesson.service";
 import { LessonType, LessonStatus } from "@/prisma/generated/prisma/client";
 
@@ -241,6 +242,7 @@ export const createLessonHandler = async (req: Request, res: Response, next: Nex
       estimatedReadTime,
       isFree,
       isMandatory,
+      scheduledAt,
       metadata,
     } = req.body;
 
@@ -290,6 +292,7 @@ export const createLessonHandler = async (req: Request, res: Response, next: Nex
       estimatedReadTime,
       isFree: isFree || false,
       isMandatory: isMandatory !== undefined ? isMandatory : true,
+      scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
       metadata,
     };
 
@@ -297,7 +300,7 @@ export const createLessonHandler = async (req: Request, res: Response, next: Nex
 
     return res.status(201).json({
       success: true,
-      message: `${type === LessonType.video ? "Video" : "Text"} lesson created successfully`,
+      message: lesson.status === "scheduled" ? "Lesson scheduled successfully" : "Lesson created successfully",
       data: lesson,
     });
   } catch (error: any) {
@@ -394,10 +397,10 @@ export const updateLessonStatusHandler = async (
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!status || !["draft", "published", "archived"].includes(status)) {
+    if (!status || !["draft", "scheduled", "published", "archived"].includes(status)) {
       return res.status(400).json({
         success: false,
-        message: "Valid status is required (draft, published, or archived)",
+        message: "Valid status is required (draft, scheduled, published, or archived)",
       });
     }
 
@@ -410,6 +413,43 @@ export const updateLessonStatusHandler = async (
     });
   } catch (error: any) {
     console.error("Error updating lesson status:", error);
+    next(error);
+  }
+};
+
+/**
+ * Publish lesson (Make Live) - Called by Scheduler
+ * POST /api/lessons/:id/publish
+ */
+export const publishLessonHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    // Security check: Only allow authorized requests from Google Cloud Scheduler
+    const schedulerToken = req.headers["x-scheduler-token"];
+    const secret = process.env.SCHEDULER_SECRET || "default_secret";
+
+    if (schedulerToken !== secret) {
+      console.warn(`[SECURITY] Unauthorized publish attempt for lesson ${id}`);
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: Invalid or missing scheduler token",
+      });
+    }
+
+    const lesson = await publishLesson(id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Lesson is now live",
+      data: lesson,
+    });
+  } catch (error: any) {
+    console.error("Error publishing lesson:", error);
     next(error);
   }
 };

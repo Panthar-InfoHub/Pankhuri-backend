@@ -17,19 +17,19 @@ done
 - categroy is not creating plan in razorpay
 - video clean up process - so it also delte from the bucket
 - when i delte course or category it must also deactivate the plan 
+- make edit flow as well inscluding plans  so they can change the pricing for the category and course
+- scheduling the videos
 
 ----------------------
 pending
 
-- make edit flow as well inscluding plans  so they can change the pricing for the category and course
 - trial logic 
-- backlinks
+- deeplinks
 
 
 ----------------------
 future
 
-4. scheduling the videos
 3. app notifications - like new video etc
 1. analytics only add google scripts
 - sharing using deeplinks
