@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { Lesson, LessonType, LessonStatus, Prisma } from "@/prisma/generated/prisma/client";
 import { onLessonAdded, onLessonDeleted, onLessonStatusChanged } from "./progress.service";
 import { hasActiveSubscription } from "./subscription.service";
+import { scheduleLessonPublish, deleteScheduledLessonJob } from "./scheduler.service";
 
 // ==================== HELPER FUNCTIONS ====================
 
@@ -296,6 +297,7 @@ export const createLesson = async (data: {
   isFree?: boolean;
   isMandatory?: boolean;
   status?: LessonStatus;
+  scheduledAt?: Date;
   metadata?: any;
   // Type-specific fields
   videoId?: string;
@@ -327,7 +329,8 @@ export const createLesson = async (data: {
           duration: data.duration,
           isFree: data.isFree ?? false,
           isMandatory: data.isMandatory ?? true,
-          status: data.status ?? LessonStatus.published,
+          status: data.status ?? (data.scheduledAt ? LessonStatus.scheduled : LessonStatus.published),
+          scheduledAt: data.scheduledAt,
           metadata: data.metadata,
         },
       });
@@ -373,9 +376,15 @@ export const createLesson = async (data: {
     .then(async (lesson) => {
       // Hook: Recalculate progress for all users when a lesson is added
       await onLessonAdded(lesson.courseId);
+
+      // Hook: Schedule with Google Cloud Scheduler if scheduledAt is provided
+      if (lesson.status === LessonStatus.scheduled && lesson.scheduledAt) {
+        await scheduleLessonPublish(lesson.id, lesson.scheduledAt);
+      }
       return lesson;
     });
 };
+
 
 /**
  * Update lesson (with transaction for type-specific data)
@@ -391,6 +400,7 @@ export const updateLesson = async (
     isFree?: boolean;
     isMandatory?: boolean;
     status?: LessonStatus;
+    scheduledAt?: Date | null;
     metadata?: any;
     // Type-specific fields
     videoId?: string;
@@ -413,7 +423,14 @@ export const updateLesson = async (
         throw new Error("Lesson not found");
       }
 
-      // 1. Update main lesson
+      // 1. Validation: Published lessons cannot go back to Draft or Scheduled
+      if (existingLesson.status === LessonStatus.published && data.status) {
+        if (data.status === LessonStatus.draft || data.status === LessonStatus.scheduled) {
+          throw new Error("Already published lessons cannot be moved back to Draft or Scheduled status. They can only be Archived.");
+        }
+      }
+
+      // 2. Prepare update data
       const updateData: Prisma.LessonUpdateInput = {};
       if (data.title !== undefined) updateData.title = data.title;
       if (data.slug !== undefined) updateData.slug = data.slug;
@@ -423,6 +440,7 @@ export const updateLesson = async (
       if (data.isFree !== undefined) updateData.isFree = data.isFree;
       if (data.isMandatory !== undefined) updateData.isMandatory = data.isMandatory;
       if (data.status !== undefined) updateData.status = data.status;
+      if (data.scheduledAt !== undefined) updateData.scheduledAt = data.scheduledAt;
       if (data.metadata !== undefined) updateData.metadata = data.metadata;
 
       await tx.lesson.update({
@@ -472,15 +490,38 @@ export const updateLesson = async (
       return {
         updatedLesson,
         statusChanged: data.status !== undefined && data.status !== existingLesson.status,
+        previousStatus: existingLesson.status,
       };
     })
-    .then(async ({ updatedLesson, statusChanged }) => {
+    .then(async ({ updatedLesson, statusChanged, previousStatus }) => {
       // Hook: Recalculate progress if status changed (affects which lessons count toward progress)
       if (statusChanged) {
         await onLessonStatusChanged(lessonId, updatedLesson.courseId);
       }
+
+      // Hook: Sync with Google Cloud Scheduler
+      if (updatedLesson.status === LessonStatus.scheduled && updatedLesson.scheduledAt) {
+        // Create or update job
+        await scheduleLessonPublish(updatedLesson.id, updatedLesson.scheduledAt);
+      } else if (previousStatus === LessonStatus.scheduled && updatedLesson.status !== LessonStatus.scheduled) {
+        // Delete job if status changed away from scheduled
+        await deleteScheduledLessonJob(updatedLesson.id);
+      }
+
       return updatedLesson;
     });
+};
+
+/**
+ * Publish a lesson (Make it live)
+ */
+export const publishLesson = async (lessonId: string): Promise<Lesson> => {
+  const updatedLesson = await updateLesson(lessonId, {
+    status: LessonStatus.published,
+    scheduledAt: null, // Clear scheduled date once live
+  });
+
+  return updatedLesson;
 };
 
 /**
@@ -490,11 +531,16 @@ export const deleteLesson = async (lessonId: string): Promise<void> => {
   // Get lesson info before deletion
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },
-    select: { id: true, courseId: true },
+    select: { id: true, courseId: true, status: true },
   });
 
   if (!lesson) {
     throw new Error("Lesson not found");
+  }
+
+  // Hook: Delete scheduled job if it exists
+  if (lesson.status === LessonStatus.scheduled) {
+    await deleteScheduledLessonJob(lessonId);
   }
 
   await prisma.lesson.delete({
