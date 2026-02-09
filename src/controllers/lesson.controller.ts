@@ -96,7 +96,19 @@ export const getLessonByIdHandler = async (req: Request, res: Response, next: Ne
       if (!hasAccess)
         return res
           .status(403)
-          .json({ success: false, error: reason || "Access denied", code: "SUBSCRIPTION_REQUIRED" });
+          .json({
+            success: false,
+            error: reason || "Access denied",
+            code: "SUBSCRIPTION_REQUIRED",
+            data: {
+              id: (fetchedLesson as any).id,
+              title: (fetchedLesson as any).title,
+              slug: (fetchedLesson as any).slug,
+              course: (fetchedLesson as any).course,
+              isFree: (fetchedLesson as any).isFree,
+              requiresSubscription: !(fetchedLesson as any).isFree,
+            }
+          });
 
       lesson = fetchedLesson;
     }
@@ -168,6 +180,8 @@ export const getLessonBySlugHandler = async (req: Request, res: Response, next: 
         data: {
           id: lesson.id,
           title: lesson.title,
+          slug: lesson.slug,
+          course: (lesson as any).course,
           isFree: lesson.isFree,
           requiresSubscription: !lesson.isFree,
         },

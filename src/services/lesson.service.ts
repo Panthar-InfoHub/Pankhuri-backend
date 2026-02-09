@@ -21,6 +21,7 @@ export const checkLessonAccess = async (
         select: {
           id: true,
           title: true,
+          slug: true,
         },
       },
       videoLesson: {
@@ -109,6 +110,11 @@ export const getLessonsByCourse = async (
       status: true,
       createdAt: true,
       updatedAt: true,
+      course: {
+        select: {
+          slug: true,
+        },
+      },
       module: {
         select: {
           id: true,
@@ -169,6 +175,11 @@ export const getLessonsByModule = async (moduleId: string): Promise<any[]> => {
       status: true,
       createdAt: true,
       updatedAt: true,
+      course: {
+        select: {
+          slug: true,
+        },
+      },
       module: {
         select: {
           id: true,
@@ -580,6 +591,11 @@ export const getFreeLessons = async (courseId: string): Promise<Lesson[]> => {
       status: LessonStatus.published,
     },
     include: {
+      course: {
+        select: {
+          slug: true,
+        },
+      },
       videoLesson: {
         include: {
           video: true,
