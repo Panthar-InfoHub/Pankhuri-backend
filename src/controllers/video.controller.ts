@@ -62,15 +62,25 @@ const VideoDescriptionSchema = z.object({
 
 export const createVideoHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { title, thumbnailUrl, storageKey, playbackUrl, status, duration, metadata, quality, videoDescription } = req.body;
+    const { title, externalUrl, thumbnailUrl, storageKey, playbackUrl, status, duration, metadata, quality, videoDescription } = req.body;
 
     // Validation
-    if (!title || !storageKey) {
+    const isExternal = !!externalUrl;
+    if (!title) {
       return res.status(400).json({
         success: false,
-        error: "Title and storageKey are required",
+        error: "Title is required",
       });
     }
+
+    if (!isExternal && !storageKey) {
+      return res.status(400).json({
+        success: false,
+        error: "storageKey is required for uploaded videos",
+      });
+    }
+
+
 
     let parsedVideoDescription: VideoDescription | undefined;
 
@@ -90,6 +100,7 @@ export const createVideoHandler = async (req: Request, res: Response, next: Next
 
     const video = await createVideo({
       title,
+      externalUrl,
       thumbnailUrl,
       storageKey,
       playbackUrl,
@@ -98,6 +109,8 @@ export const createVideoHandler = async (req: Request, res: Response, next: Next
       metadata,
       videoDescription: parsedVideoDescription,
     }, parseInt(quality) || 1080);
+
+
 
     return res.status(201).json({
       success: true,
@@ -174,10 +187,11 @@ export const getAllVideosHandler = async (req: Request, res: Response, next: Nex
 export const updateVideoHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const { title, thumbnailUrl, storageKey, playbackUrl, status, duration, metadata } = req.body;
+    const { title, externalUrl, thumbnailUrl, storageKey, playbackUrl, status, duration, metadata } = req.body;
 
     const video = await updateVideo(id, {
       title,
+      externalUrl,
       thumbnailUrl,
       storageKey,
       playbackUrl,
@@ -185,6 +199,9 @@ export const updateVideoHandler = async (req: Request, res: Response, next: Next
       duration,
       metadata,
     });
+
+
+
 
     return res.status(200).json({
       success: true,
@@ -222,20 +239,25 @@ export const deleteVideoHandler = async (req: Request, res: Response, next: Next
       deleteKeys["thumbnail_url"] = extractKeyFromUrl(video.thumbnailUrl);
     }
 
-    deleteKeys["storage_key"] = video.storageKey;
+    if (video.storageKey) {
+      deleteKeys["storage_key"] = video.storageKey;
+    }
 
     if (video.playbackUrl) {
       deleteKeys["playback_url"] = extractTranscodeVideoFolderUrl(video.playbackUrl);
     }
 
+
+
     // [extractKeyFromUrl(video.thumbnailUrl!), video.storageKey, video.playbackUrl].filter((key): key is string => !!key);
     console.log("Delete keys ==> ", deleteKeys)
 
     await Promise.all([
-      deleteFromDO(deleteKeys.thumbnail_url!),
-      deleteFromDO(deleteKeys.storage_key!),
-      deleteFolder(deleteKeys.playback_url!)
-    ]);
+      deleteKeys.thumbnail_url && deleteFromDO(deleteKeys.thumbnail_url),
+      deleteKeys.storage_key && deleteFromDO(deleteKeys.storage_key),
+      deleteKeys.playback_url && deleteFolder(deleteKeys.playback_url)
+    ].filter(Boolean));
+
 
 
     return res.status(200).json({
