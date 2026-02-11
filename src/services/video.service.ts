@@ -123,6 +123,7 @@ export const updateVideo = async (id: string, data: Prisma.VideoUpdateInput) => 
         ...(data.status && { status: data.status }),
         ...(data.duration !== undefined && { duration: data.duration }),
         ...(data.metadata !== undefined && { metadata: data.metadata }),
+        ...(data.videoDescription !== undefined && { videoDescription: data.videoDescription }),
       },
     });
 

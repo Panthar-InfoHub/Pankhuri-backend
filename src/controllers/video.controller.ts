@@ -187,7 +187,7 @@ export const getAllVideosHandler = async (req: Request, res: Response, next: Nex
 export const updateVideoHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const { title, externalUrl, thumbnailUrl, storageKey, playbackUrl, status, duration, metadata } = req.body;
+    const { title, externalUrl, thumbnailUrl, storageKey, playbackUrl, status, duration, metadata ,videoDescription} = req.body;
 
     const video = await updateVideo(id, {
       title,
@@ -198,6 +198,7 @@ export const updateVideoHandler = async (req: Request, res: Response, next: Next
       status,
       duration,
       metadata,
+      videoDescription,
     });
 
 
