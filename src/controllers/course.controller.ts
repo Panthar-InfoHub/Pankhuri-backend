@@ -252,7 +252,13 @@ export const updateCourse = async (req: Request, res: Response, next: NextFuncti
     if (hasCertificate !== undefined) updateData.hasCertificate = hasCertificate;
     if (tags !== undefined) updateData.tags = tags;
     if (metadata !== undefined) updateData.metadata = metadata;
-    if (demoVideoId !== undefined) updateData.demoVideoId = demoVideoId;
+
+
+    if (demoVideoId !== undefined) {
+      updateData.demoVideo = demoVideoId
+        ? { connect: { id: demoVideoId } }
+        : { disconnect: true };
+    }
 
     if (categoryId !== undefined) {
       updateData.category = { connect: { id: categoryId } };
