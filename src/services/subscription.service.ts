@@ -177,17 +177,35 @@ export const initiateSubscription = async (userId: string, planId: string, data?
     }
 
     if (existingSubscription.status === "pending") {
-      const pendingAge = Date.now() - existingSubscription.createdAt.getTime();
-      const STALE_TIMEOUT = 48 * 60 * 60 * 1000;
+      // Auto-cancel previous pending attempt to allow a fresh start (Better UX)
+      console.log(`[Subscription] Cancelling old pending subscription ${existingSubscription.id} for user ${userId}`);
 
-      if (pendingAge > STALE_TIMEOUT) {
-        await prisma.userSubscription.update({
-          where: { id: existingSubscription.id },
-          data: { status: "cancelled" },
-        });
-      } else {
-        throw new Error("You have a pending subscription for this plan. Please complete or cancel it.");
+      // 1. Cancel in Gateway if it exists (Recurring Razorpay)
+      if (existingSubscription.subscriptionId) {
+        try {
+          await cancelGatewaySubscription(existingSubscription.subscriptionId, false);
+        } catch (err) {
+          console.warn(`[Subscription] Gateway cancellation failed (may already be invalid):`, err);
+        }
       }
+
+      // 2. Mark old subscription and its pending payments as cancelled/failed
+      await prisma.$transaction([
+        prisma.userSubscription.update({
+          where: { id: existingSubscription.id },
+          data: { status: "cancelled", updatedAt: new Date() },
+        }),
+        prisma.payment.updateMany({
+          where: {
+            userSubscriptionId: existingSubscription.id,
+            status: "pending"
+          },
+          data: {
+            status: "failed",
+            metadata: { cancellationReason: "Replaced by new subscription attempt" }
+          }
+        })
+      ]);
     }
   }
 
