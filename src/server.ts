@@ -1,26 +1,28 @@
+import { connectDB, disconnectDB } from "@/lib/db";
+import authRoutes from "@/routes/auth.route";
+import categoryRoutes from "@/routes/category.route";
+import certificateRoutes from "@/routes/certificate.route";
+import courseRoutes from "@/routes/course.route";
+import entitlementRoutes from "@/routes/entitlement.route";
+import lessonRoutes from "@/routes/lesson.route";
+import moduleRoutes from "@/routes/module.route";
+import planRoutes from "@/routes/plan.route";
+import progressRoutes from "@/routes/progress.route";
+import purchaseRoutes from "@/routes/purchase.route";
+import reviewRoutes from "@/routes/review.route";
+import sessionRoutes from "@/routes/session.route";
+import subscriptionRoutes from "@/routes/subscription.route";
+import uploadRoutes from "@/routes/upload.route";
+import userRoutes from "@/routes/user.route";
+import videoRoutes from "@/routes/video.route";
+import webhookRoutes from "@/routes/webhook.route";
+import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import morgan from "morgan";
-import { connectDB, disconnectDB } from "@/lib/db";
-import authRoutes from "@/routes/auth.route";
-import userRoutes from "@/routes/user.route";
-import certificateRoutes from "@/routes/certificate.route";
-import videoRoutes from "@/routes/video.route";
-import categoryRoutes from "@/routes/category.route";
-import courseRoutes from "@/routes/course.route";
-import moduleRoutes from "@/routes/module.route";
-import lessonRoutes from "@/routes/lesson.route";
-import sessionRoutes from "@/routes/session.route";
-import progressRoutes from "@/routes/progress.route";
-import reviewRoutes from "@/routes/review.route";
-import planRoutes from "@/routes/plan.route";
-import subscriptionRoutes from "@/routes/subscription.route";
-import webhookRoutes from "@/routes/webhook.route";
-import purchaseRoutes from "@/routes/purchase.route";
-import entitlementRoutes from "@/routes/entitlement.route";
+import { deleteFolder, extractTranscodeVideoFolderUrl } from "./lib/cloud";
 import { errorHandler } from "./middleware/error.middleware";
 import streamRouter from "./routes/stream.route";
-import cors from "cors";
 
 //Configurations
 dotenv.config({
@@ -53,6 +55,7 @@ app.use("/api/subscriptions", subscriptionRoutes);
 app.use("/api/webhooks", webhookRoutes);
 app.use("/api/purchases", purchaseRoutes);
 app.use("/api/entitlements", entitlementRoutes);
+app.use("/api/upload", uploadRoutes);
 
 //Health check
 app.get("/ping", (_, res) => {

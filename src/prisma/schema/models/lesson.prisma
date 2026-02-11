@@ -5,6 +5,7 @@ enum LessonType {
 
 enum LessonStatus {
   draft
+  scheduled
   published
   archived
 }
@@ -22,6 +23,7 @@ model Lesson {
   isFree      Boolean      @default(false) // Preview/free lessons
   isMandatory Boolean      @default(true)
   status      LessonStatus @default(published)
+  scheduledAt DateTime? // For scheduled lessons
   metadata    Json?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt

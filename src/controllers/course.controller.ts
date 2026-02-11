@@ -3,6 +3,7 @@ import { Request, Response, NextFunction } from "express";
 import * as courseService from "../services/course.service";
 import * as planService from "../services/plan.service";
 import { CourseLevel, CourseStatus } from "@/prisma/generated/prisma/client";
+import { deleteFromDO, extractKeyFromUrl } from "@/lib/cloud";
 
 // GET /api/courses - Get all courses with filters
 export const getAllCourses = async (req: Request, res: Response, next: NextFunction) => {
@@ -279,6 +280,28 @@ export const deleteCourse = async (req: Request, res: Response, next: NextFuncti
   try {
     const { id } = req.params;
     const result = await courseService.deleteCourse(id);
+    result.course.thumbnailImage
+    result.course.coverImage
+
+    const deleteKeys: { thumbnail_url?: string, cover_url?: string } = {};
+
+    if (result.course.thumbnailImage) {
+      deleteKeys["thumbnail_url"] = extractKeyFromUrl(result.course.thumbnailImage);
+    }
+
+    if (result.course.coverImage) {
+      deleteKeys["cover_url"] = extractKeyFromUrl(result.course.coverImage);
+    }
+
+    console.log("Delete keys ==> ", deleteKeys)
+
+    await Promise.all([
+      deleteFromDO(deleteKeys.thumbnail_url!),
+      deleteFromDO(deleteKeys.cover_url!),
+    ]);
+
+
+
 
     res.json({
       success: true,

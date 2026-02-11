@@ -12,6 +12,7 @@ import {
   getNextLesson,
   getPreviousLesson,
   checkLessonAccess,
+  publishLesson,
 } from "@services/lesson.service";
 import { LessonType, LessonStatus } from "@/prisma/generated/prisma/client";
 
@@ -95,7 +96,19 @@ export const getLessonByIdHandler = async (req: Request, res: Response, next: Ne
       if (!hasAccess)
         return res
           .status(403)
-          .json({ success: false, error: reason || "Access denied", code: "SUBSCRIPTION_REQUIRED" });
+          .json({
+            success: false,
+            error: reason || "Access denied",
+            code: "SUBSCRIPTION_REQUIRED",
+            data: {
+              id: (fetchedLesson as any).id,
+              title: (fetchedLesson as any).title,
+              slug: (fetchedLesson as any).slug,
+              course: (fetchedLesson as any).course,
+              isFree: (fetchedLesson as any).isFree,
+              requiresSubscription: !(fetchedLesson as any).isFree,
+            }
+          });
 
       lesson = fetchedLesson;
     }
@@ -128,14 +141,25 @@ export const getLessonByIdHandler = async (req: Request, res: Response, next: Ne
 
 /**
  * Get lesson by slug with access control
- * GET /api/lessons/course/:courseId/slug/:slug
+ * GET /api/lessons/course/:courseSlug/slug/:slug
  */
 export const getLessonBySlugHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { courseId, slug } = req.params;
+    const { courseSlug, slug } = req.params;
     const userId = req.user?.id;
 
-    const lesson = await getLessonBySlug(courseId, slug);
+    // First, get the course by slug to get the courseId
+    const { getCourseBySlug } = await import("@/services/course.service");
+    const course = await getCourseBySlug(courseSlug);
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        error: "Course not found",
+      });
+    }
+
+    const lesson = await getLessonBySlug(course.id, slug);
 
     if (!lesson) {
       return res.status(404).json({
@@ -156,6 +180,8 @@ export const getLessonBySlugHandler = async (req: Request, res: Response, next: 
         data: {
           id: lesson.id,
           title: lesson.title,
+          slug: lesson.slug,
+          course: (lesson as any).course,
           isFree: lesson.isFree,
           requiresSubscription: !lesson.isFree,
         },
@@ -230,6 +256,7 @@ export const createLessonHandler = async (req: Request, res: Response, next: Nex
       estimatedReadTime,
       isFree,
       isMandatory,
+      scheduledAt,
       metadata,
     } = req.body;
 
@@ -237,10 +264,10 @@ export const createLessonHandler = async (req: Request, res: Response, next: Nex
     const type = videoId ? LessonType.video : textContent ? LessonType.text : null;
 
     // Validation
-    if (!courseId || !title || !slug || sequence === undefined) {
+    if (!courseId || !moduleId || !title || !slug || sequence === undefined) {
       return res.status(400).json({
         success: false,
-        message: "courseId, title, slug, and sequence are required",
+        message: "courseId , moduleId, title, slug, and sequence are required",
       });
     }
 
@@ -279,6 +306,7 @@ export const createLessonHandler = async (req: Request, res: Response, next: Nex
       estimatedReadTime,
       isFree: isFree || false,
       isMandatory: isMandatory !== undefined ? isMandatory : true,
+      scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
       metadata,
     };
 
@@ -286,7 +314,7 @@ export const createLessonHandler = async (req: Request, res: Response, next: Nex
 
     return res.status(201).json({
       success: true,
-      message: `${type === LessonType.video ? "Video" : "Text"} lesson created successfully`,
+      message: lesson.status === "scheduled" ? "Lesson scheduled successfully" : "Lesson created successfully",
       data: lesson,
     });
   } catch (error: any) {
@@ -383,10 +411,10 @@ export const updateLessonStatusHandler = async (
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!status || !["draft", "published", "archived"].includes(status)) {
+    if (!status || !["draft", "scheduled", "published", "archived"].includes(status)) {
       return res.status(400).json({
         success: false,
-        message: "Valid status is required (draft, published, or archived)",
+        message: "Valid status is required (draft, scheduled, published, or archived)",
       });
     }
 
@@ -399,6 +427,43 @@ export const updateLessonStatusHandler = async (
     });
   } catch (error: any) {
     console.error("Error updating lesson status:", error);
+    next(error);
+  }
+};
+
+/**
+ * Publish lesson (Make Live) - Called by Scheduler
+ * POST /api/lessons/:id/publish
+ */
+export const publishLessonHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    // Security check: Only allow authorized requests from Google Cloud Scheduler
+    const schedulerToken = req.headers["x-scheduler-token"];
+    const secret = process.env.SCHEDULER_SECRET || "default_secret";
+
+    if (schedulerToken !== secret) {
+      console.warn(`[SECURITY] Unauthorized publish attempt for lesson ${id}`);
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: Invalid or missing scheduler token",
+      });
+    }
+
+    const lesson = await publishLesson(id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Lesson is now live",
+      data: lesson,
+    });
+  } catch (error: any) {
+    console.error("Error publishing lesson:", error);
     next(error);
   }
 };

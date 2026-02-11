@@ -109,6 +109,7 @@ export const getUserCourseLessonProgress = async (
           id: true,
           title: true,
           slug: true,
+          type: true,
           sequence: true,
           moduleId: true,
         },

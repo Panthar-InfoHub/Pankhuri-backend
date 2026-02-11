@@ -156,18 +156,20 @@ export const createCertificate = async (req: Request, res: Response, next: NextF
         } else {
             // Linux (Cloud Run) - use puppeteer-core with sparticuz chromium
             console.debug("Running on Linux - using Sparticuz Chromium")
-            const chromium: any = (await import('@sparticuz/chromium-min')).default;
+            const chromium: any = (await import('@sparticuz/chromium')).default;
             puppeteer = (await import('puppeteer-core')).default;
 
 
             browser = await puppeteer.launch({
-                args: chromium.args,
+                args: [
+                    ...chromium.args,
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                ],
                 defaultViewport: chromium.defaultViewport,
-                executablePath: await chromium.executablePath(
-                    'https://github.com/Sparticuz/chromium/releases/download/v140.0.0/chromium-v140.0.0-pack.x64.tar'
-                ),
+                executablePath: await chromium.executablePath(),
                 headless: chromium.headless,
-                ignoreHTTPSErrors: true,
+                // ignoreHTTPSErrors: true,
             });
 
 

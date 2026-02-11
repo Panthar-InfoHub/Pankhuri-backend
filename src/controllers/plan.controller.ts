@@ -154,10 +154,25 @@ export const createPlanHandler = async (req: Request, res: Response, next: NextF
  */
 export const getActivePlansHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { plan_type, subscription_type } = req.query;
+    const { type, subscription_type, targetId } = req.query;
+
+    let planType: PlanType = "WHOLE_APP"; // Default
+
+    if (type) {
+      const typeStr = (type as string).toLowerCase();
+      if (typeStr === 'category') {
+        planType = "CATEGORY";
+      } else if (typeStr === 'courses' || typeStr === 'course') {
+        planType = "COURSE";
+      } else if (typeStr === 'whole_app' || typeStr === 'whole app') {
+        planType = "WHOLE_APP";
+      }
+    }
+
     const plans = await getActivePlans({
-      plan_type: plan_type as PlanType | undefined,
+      plan_type: planType,
       subscription_type: subscription_type as SubscriptionType | undefined,
+      target_id: targetId as string | undefined,
     });
 
     return res.status(200).json({

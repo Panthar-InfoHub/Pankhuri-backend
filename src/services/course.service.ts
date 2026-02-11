@@ -1,5 +1,6 @@
 import { Prisma, CourseStatus, CourseLevel, PlanType } from "@/prisma/generated/prisma/client";
 import { prisma } from "../lib/db";
+import { deactivatePlansByTarget } from "./plan.service";
 
 // ==================== HELPERS ====================
 
@@ -10,12 +11,12 @@ import { prisma } from "../lib/db";
 const attachPricingToCourses = async (courses: any[], userId?: string) => {
   if (courses.length === 0) return courses;
 
-  const courseIds = courses.map(c => c.id).filter(Boolean);
-  const directCategoryIds = [...new Set(courses.map(c => c.categoryId).filter(Boolean))];
+  const courseIds = courses.map((c) => c.id).filter(Boolean);
+  const directCategoryIds = [...new Set(courses.map((c) => c.categoryId).filter(Boolean))];
 
   // 1. Fetch category hierarchy to support recursive access and pricing
   const allCategories = await prisma.category.findMany({
-    select: { id: true, parentId: true }
+    select: { id: true, parentId: true },
   });
 
   const getCategoryAndAncestors = (catId: string): string[] => {
@@ -23,7 +24,7 @@ const attachPricingToCourses = async (courses: any[], userId?: string) => {
     let currentId: string | null = catId;
     while (currentId) {
       ancestors.push(currentId);
-      const cat = allCategories.find(c => c.id === currentId);
+      const cat = allCategories.find((c) => c.id === currentId);
       currentId = cat?.parentId || null;
     }
     return ancestors;
@@ -31,7 +32,7 @@ const attachPricingToCourses = async (courses: any[], userId?: string) => {
 
   // Map each category to its full ancestor chain (including itself)
   const categoryHierarchyMap = new Map<string, string[]>();
-  directCategoryIds.forEach(id => {
+  directCategoryIds.forEach((id) => {
     categoryHierarchyMap.set(id as string, getCategoryAndAncestors(id as string));
   });
 
@@ -45,9 +46,10 @@ const attachPricingToCourses = async (courses: any[], userId?: string) => {
       OR: [
         { targetId: { in: courseIds as string[] }, planType: PlanType.COURSE },
         { targetId: { in: allRelevantCategoryIds }, planType: PlanType.CATEGORY },
-        { planType: PlanType.WHOLE_APP }
-      ]
-    }
+        { planType: PlanType.WHOLE_APP },
+      ],
+    },
+    orderBy: { order: "asc" },
   });
 
   // 3. Fetch User Context (Role & Entitlements)
@@ -64,38 +66,39 @@ const attachPricingToCourses = async (courses: any[], userId?: string) => {
         entitlements: {
           where: {
             status: "active",
-            OR: [
-              { validUntil: null },
-              { validUntil: { gt: new Date() } }
-            ]
-          }
-        }
-      }
+            OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+          },
+        },
+      },
     });
 
     if (user) {
       isAdmin = user.role === "admin";
       const entitlements = user.entitlements;
-      hasFullApp = entitlements.some(e => e.type === "WHOLE_APP");
+      hasFullApp = entitlements.some((e) => e.type === "WHOLE_APP");
       activeCourseEntitlements = entitlements
-        .filter(e => e.type === "COURSE")
-        .map(e => e.targetId as string);
+        .filter((e) => e.type === "COURSE")
+        .map((e) => e.targetId as string);
       activeCategoryEntitlements = entitlements
-        .filter(e => e.type === "CATEGORY")
-        .map(e => e.targetId as string);
+        .filter((e) => e.type === "CATEGORY")
+        .map((e) => e.targetId as string);
     }
   }
 
-  const wholeAppPlan = allPlans.find(p => p.planType === "WHOLE_APP");
+  const wholeAppPlan = allPlans.find((p) => p.planType === "WHOLE_APP");
 
   // 4. Map everything back to the courses with optimized logic
-  return courses.map(course => {
+  return courses.map((course) => {
     const ancestors = categoryHierarchyMap.get(course.categoryId) || [course.categoryId];
 
     // Find relevant plans, prioritizing specificity (Course > Category > App)
-    const coursePlan = allPlans.find(p => p.planType === PlanType.COURSE && p.targetId === course.id);
+    const coursePlan = allPlans.find(
+      (p) => p.planType === PlanType.COURSE && p.targetId === course.id,
+    );
     // For category plans, find the nearest one (first in the ancestor chain)
-    const categoryPlan = allPlans.find(p => p.planType === PlanType.CATEGORY && ancestors.includes(p.targetId as string));
+    const categoryPlan = allPlans.find(
+      (p) => p.planType === PlanType.CATEGORY && ancestors.includes(p.targetId as string),
+    );
 
     const plan = coursePlan || categoryPlan || wholeAppPlan;
 
@@ -104,13 +107,13 @@ const attachPricingToCourses = async (courses: any[], userId?: string) => {
       isAdmin ||
       hasFullApp ||
       activeCourseEntitlements.includes(course.id) ||
-      ancestors.some(id => activeCategoryEntitlements.includes(id));
+      ancestors.some((id) => activeCategoryEntitlements.includes(id));
 
     return {
       ...course,
       isPaid: !!plan,
       hasAccess: isOwned || !plan,
-      pricing: plan || null
+      pricing: coursePlan || null,
     };
   });
 };
@@ -156,7 +159,7 @@ export const getAllCourses = async (filters?: {
     sort = "newest",
     page = 1,
     limit = 20,
-    userId
+    userId,
   } = filters || {};
 
   const where: Prisma.CourseWhereInput = {
@@ -171,7 +174,7 @@ export const getAllCourses = async (filters?: {
       OR: [
         { title: { contains: search, mode: "insensitive" } },
         { description: { contains: search, mode: "insensitive" } },
-        { tags: { has: search } }
+        { tags: { has: search } },
       ],
     }),
   };
@@ -240,7 +243,7 @@ export const getCourseById = async (id: string, userId?: string) => {
   if (userId) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { role: true }
+      select: { role: true },
     });
     isAdmin = user?.role === "admin";
   }
@@ -268,8 +271,8 @@ export const getCourseById = async (id: string, userId?: string) => {
             include: {
               videoLesson: {
                 include: {
-                  video: { select: { id: true, title: true, thumbnailUrl: true, duration: true } }
-                }
+                  video: { select: { id: true, title: true, thumbnailUrl: true, duration: true } },
+                },
               },
               textLesson: true,
             },
@@ -282,16 +285,19 @@ export const getCourseById = async (id: string, userId?: string) => {
         include: {
           videoLesson: {
             include: {
-              video: { select: { id: true, title: true, thumbnailUrl: true, duration: true } }
-            }
+              video: { select: { id: true, title: true, thumbnailUrl: true, duration: true } },
+            },
           },
           textLesson: true,
         },
       },
-    }
+    },
   });
 
-  const { modules: rawModules, lessons: rawLessons } = fullCurriculum || { modules: [], lessons: [] };
+  const { modules: rawModules, lessons: rawLessons } = fullCurriculum || {
+    modules: [],
+    lessons: [],
+  };
   const courseWithPricing = await attachPricingToCourse(course, userId);
   const hasAccess = courseWithPricing.hasAccess;
 
@@ -302,6 +308,7 @@ export const getCourseById = async (id: string, userId?: string) => {
   rawModules.forEach((module: any) => {
     curriculum.push({
       ...module,
+      itemType: "module",
       type: "module",
       lessons: module.lessons.map((l: any) => {
         const thumbnail = l.videoLesson?.video?.thumbnailUrl || null;
@@ -311,7 +318,7 @@ export const getCourseById = async (id: string, userId?: string) => {
           return { ...safeLesson, thumbnail, isLocked: true };
         }
         return { ...l, thumbnail, isLocked: false };
-      })
+      }),
     });
   });
 
@@ -320,9 +327,9 @@ export const getCourseById = async (id: string, userId?: string) => {
     const thumbnail = lesson.videoLesson?.video?.thumbnailUrl || null;
     if (!hasAccess && !lesson.isFree) {
       const { videoLesson, textLesson, metadata, description, ...safeLesson } = lesson;
-      curriculum.push({ ...safeLesson, type: "lesson", thumbnail, isLocked: true });
+      curriculum.push({ ...safeLesson, itemType: "lesson", thumbnail, isLocked: true });
     } else {
-      curriculum.push({ ...lesson, type: "lesson", thumbnail, isLocked: false });
+      curriculum.push({ ...lesson, itemType: "lesson", thumbnail, isLocked: false });
     }
   });
 
@@ -333,9 +340,13 @@ export const getCourseById = async (id: string, userId?: string) => {
   let totalDuration = 0;
   rawModules.forEach((m: any) => {
     totalLessons += m.lessons.length;
-    m.lessons.forEach((l: any) => { totalDuration += l.duration || 0; });
+    m.lessons.forEach((l: any) => {
+      totalDuration += l.duration || 0;
+    });
   });
-  rawLessons.forEach((l: any) => { totalDuration += l.duration || 0; });
+  rawLessons.forEach((l: any) => {
+    totalDuration += l.duration || 0;
+  });
 
   // 4. Certificate and Progress Info
   let certificateInfo = {
@@ -349,21 +360,20 @@ export const getCourseById = async (id: string, userId?: string) => {
     const [progress, certificate] = await Promise.all([
       prisma.userCourseProgress.findUnique({
         where: { userId_courseId: { userId, courseId: id } },
-        select: { isCompleted: true }
+        select: { isCompleted: true },
       }),
       prisma.certificate.findFirst({
         where: { userId, courseId: id },
-        select: { certificateUrl: true }
-      })
+        select: { certificateUrl: true },
+      }),
     ]);
 
     certificateInfo.isCompleted = progress?.isCompleted || false;
     certificateInfo.certificateUrl = certificate?.certificateUrl || null;
 
     // Claimable if course has cert, user completed it, and user has access
-    certificateInfo.isClaimable = course.hasCertificate &&
-      hasAccess &&
-      (progress?.isCompleted || false);
+    certificateInfo.isClaimable =
+      course.hasCertificate && hasAccess && (progress?.isCompleted || false);
   }
 
   return {
@@ -371,7 +381,7 @@ export const getCourseById = async (id: string, userId?: string) => {
     curriculum,
     certificateInfo,
     stats: {
-      totalModules: course._count.modules,
+      totalModules: rawModules.length,
       totalLessons,
       totalDuration,
     },
@@ -386,7 +396,7 @@ export const getCourseBySlug = async (slug: string, userId?: string) => {
   // This avoids maintain duality between ID and Slug curriculum logic.
   const courseMeta = await prisma.course.findUnique({
     where: { slug },
-    select: { id: true }
+    select: { id: true },
   });
   if (!courseMeta) return null;
   return getCourseById(courseMeta.id, userId);
@@ -452,8 +462,8 @@ export const createCourse = async (data: Prisma.CourseCreateInput) => {
       data,
       include: {
         category: true,
-        trainer: { select: { id: true, user: { select: { displayName: true, email: true } } } }
-      }
+        trainer: { select: { id: true, user: { select: { displayName: true, email: true } } } },
+      },
     });
   } catch (error: any) {
     if (error.code === "P2002") throw new Error("Course with this slug already exists");
@@ -468,8 +478,8 @@ export const updateCourse = async (id: string, data: Prisma.CourseUpdateInput) =
       data,
       include: {
         category: true,
-        trainer: { select: { id: true, user: { select: { displayName: true } } } }
-      }
+        trainer: { select: { id: true, user: { select: { displayName: true } } } },
+      },
     });
   } catch (error: any) {
     if (error.code === "P2002") throw new Error("Course title/slug conflict");
@@ -478,14 +488,17 @@ export const updateCourse = async (id: string, data: Prisma.CourseUpdateInput) =
 };
 
 export const deleteCourse = async (id: string) => {
-  await prisma.course.delete({ where: { id } });
-  return { message: "Course deleted successfully" };
+  // Deactivate all plans and cancel active subscriptions associated with this course
+  await deactivatePlansByTarget(id, PlanType.COURSE);
+
+  const course = await prisma.course.delete({ where: { id } });
+  return { message: "Course deleted successfully", course };
 };
 
 export const togglePublish = async (id: string, status: CourseStatus) => {
   return await prisma.course.update({
     where: { id },
-    data: { status }
+    data: { status },
   });
 };
 
@@ -493,7 +506,7 @@ export const getCoursesByTrainer = async (trainerId: string, userId?: string) =>
   const courses = await prisma.course.findMany({
     where: { trainerId },
     include: { category: true },
-    orderBy: { createdAt: "desc" }
+    orderBy: { createdAt: "desc" },
   });
   return await attachPricingToCourses(courses, userId);
 };

@@ -22,6 +22,7 @@ import {
   deleteLessonAttachmentHandler,
   bulkUpdateAttachmentSequencesHandler,
   deleteAllLessonAttachmentsHandler,
+  publishLessonHandler,
 } from "@/controllers/lesson.controller";
 
 const router = express.Router();
@@ -45,7 +46,7 @@ router.get("/module/:moduleId", optionalAuthenticate, getLessonsByModuleHandler)
 router.get("/:id", authenticateWithSession, requireLessonAccess, getLessonByIdHandler);
 
 // Get lesson by slug (requires auth, checks subscription in controller - slug routes handle gating themselves currently)
-router.get("/course/:courseId/slug/:slug", authenticateWithSession, getLessonBySlugHandler);
+router.get("/course/:courseSlug/lesson/:slug", authenticateWithSession, getLessonBySlugHandler);
 
 // ==================== ADMIN/TRAINER ROUTES ====================
 
@@ -61,8 +62,11 @@ router.delete("/:id", authenticateWithSession, requireAdmin, deleteLessonHandler
 // Bulk update sequences
 router.patch("/sequences", authenticateWithSession, requireAdmin, bulkUpdateSequencesHandler);
 
-// Update lesson status (draft/published/archived)
+// Update lesson status (draft/scheduled/published/archived)
 router.patch("/:id/status", authenticateWithSession, requireAdmin, updateLessonStatusHandler);
+
+// Make lesson live (called by scheduler or manual)
+router.post("/:id/publish", publishLessonHandler);
 
 // ==================== LESSON DESCRIPTIONS ====================
 

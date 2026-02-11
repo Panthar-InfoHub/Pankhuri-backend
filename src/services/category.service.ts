@@ -1,5 +1,6 @@
 import { Prisma, CategoryStatus, PlanType } from "@/prisma/generated/prisma/client";
 import { prisma } from "../lib/db";
+import { deactivatePlansByTarget } from "./plan.service";
 
 // ==================== HELPERS ====================
 
@@ -47,7 +48,8 @@ const attachPricingToCategories = async (categories: any[], userId?: string) => 
         { targetId: { in: allRelevantCategoryIds }, planType: PlanType.CATEGORY },
         { planType: PlanType.WHOLE_APP }
       ]
-    }
+    },
+    orderBy: { order: "asc" }
   });
 
   const wholeAppPlan = allPlans.find(p => p.planType === PlanType.WHOLE_APP);
@@ -101,11 +103,15 @@ const attachPricingToCategories = async (categories: any[], userId?: string) => 
       // Access Logic: Admin BYPASS OR App-wide OR Direct/Parent Entitlement OR Inherited from Parent (recursive param) OR Free (no plans)
       const currentCatHasAccess = isAdmin || hasFullApp || hasDirectOrParentEntitlement || parentHasAccess || !effectivePlan;
 
+      // Find all direct plans for this category only (not parent or app-wide)
+      const directPlans = allPlans.filter(p => p.planType === PlanType.CATEGORY && p.targetId === cat.id);
+
       const categoryWithPricing: any = {
         ...cat,
         isPaid: !!effectivePlan,
         hasAccess: currentCatHasAccess,
-        pricing: nearestPlan ? [nearestPlan] : (wholeAppPlan ? [wholeAppPlan] : [])
+        // Only show direct category plan, not inherited or app-wide plans
+        pricing: directPlans
       };
 
       if (cat.children && cat.children.length > 0) {
@@ -269,6 +275,7 @@ export const updateCategory = async (id: string, data: Prisma.CategoryUpdateInpu
   });
 };
 
+
 export const deleteCategory = async (id: string) => {
   const category = await prisma.category.findUnique({
     where: { id },
@@ -279,8 +286,11 @@ export const deleteCategory = async (id: string) => {
   if (category._count.children > 0) throw new Error("Cannot delete category with child categories");
   if (category._count.courses > 0) throw new Error("Cannot delete category with associated courses");
 
+  // Deactivate all plans and cancel active subscriptions associated with this category
+  await deactivatePlansByTarget(id, PlanType.CATEGORY);
+
   await prisma.category.delete({ where: { id } });
-  return { message: "Category deleted successfully" };
+  return { message: "Category deleted successfully", category };
 };
 
 export const toggleStatus = async (id: string, status: CategoryStatus) => {

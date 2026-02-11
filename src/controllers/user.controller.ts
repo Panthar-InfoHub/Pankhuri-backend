@@ -43,7 +43,7 @@ export const updateCurrentUser = async (req: Request, res: Response, next: NextF
       });
     }
 
-    const { displayName, profileImage, dateOfBirth, gender, countryCode, languagePreference,profession,metadata } =
+    const { displayName, profileImage, dateOfBirth, gender, countryCode, languagePreference, profession, metadata } =
       req.body;
 
     // Users can only update their own profile fields
