@@ -4,26 +4,31 @@ import { Prisma } from "@/prisma/generated/prisma/client";
 
 export const createVideo = async (data: Prisma.VideoCreateInput, quality: number) => {
   try {
+    const isExternal = !!data.externalUrl;
     const video = await prisma.video.create({
       data: {
         title: data.title,
+        externalUrl: data.externalUrl,
         thumbnailUrl: data.thumbnailUrl,
         storageKey: data.storageKey,
         playbackUrl: data.playbackUrl,
-        status: data.status || "uploading",
+        status: isExternal ? "ready" : (data.status || "uploading"),
         duration: data.duration,
         metadata: data.metadata,
         videoDescription: data.videoDescription
       },
     });
 
-    console.debug("\nPublishing video processing message to Pub/Sub...");
-    const { success, messageId, error } = await publishMessage(video.storageKey, quality, video.id);
+    if (video.storageKey) {
+      console.debug("\nPublishing video processing message to Pub/Sub...");
+      const { success, messageId, error } = await publishMessage(video.storageKey, quality, video.id);
 
-    // if (!success) {
-    //   console.error(`Failed to publish video processing message: ${error}`);
-    //   throw new Error("Failed to initiate video processing. Please try again.");
-    // }
+      // if (!success) {
+      //   console.error(`Failed to publish video processing message: ${error}`);
+      //   throw new Error("Failed to initiate video processing. Please try again.");
+      // }
+    }
+
 
     return { video };
   } catch (error: any) {
@@ -32,13 +37,20 @@ export const createVideo = async (data: Prisma.VideoCreateInput, quality: number
   }
 };
 
+
+
 export const getVideoById = async (id: string) => {
   try {
     const video = await prisma.video.findUnique({
       where: { id },
     });
     let streamUrl = ""
-    if (video?.playbackUrl) streamUrl = `${process.env.BACKEND_URL}/api/stream${video.playbackUrl}`;
+    if (video?.playbackUrl) {
+      streamUrl = `${process.env.BACKEND_URL}/api/stream${video.playbackUrl}`;
+    } else if (video?.externalUrl) {
+      streamUrl = video.externalUrl;
+    }
+
 
 
     return { video, streamUrl };
@@ -47,6 +59,8 @@ export const getVideoById = async (id: string) => {
     throw new Error("Failed to fetch video. Please try again.");
   }
 };
+
+
 
 export const getAllVideos = async (filters?: {
   status?: string;
@@ -102,14 +116,17 @@ export const updateVideo = async (id: string, data: Prisma.VideoUpdateInput) => 
       where: { id },
       data: {
         ...(data.title && { title: data.title }),
+        ...(data.externalUrl !== undefined && { externalUrl: data.externalUrl }),
         ...(data.thumbnailUrl !== undefined && { thumbnailUrl: data.thumbnailUrl }),
-        ...(data.storageKey && { storageKey: data.storageKey }),
+        ...(data.storageKey !== undefined && { storageKey: data.storageKey }),
         ...(data.playbackUrl !== undefined && { playbackUrl: data.playbackUrl }),
         ...(data.status && { status: data.status }),
         ...(data.duration !== undefined && { duration: data.duration }),
         ...(data.metadata !== undefined && { metadata: data.metadata }),
       },
     });
+
+
 
     return video;
   } catch (error: any) {
