@@ -141,9 +141,11 @@ export const createCertificate = async (req: Request, res: Response, next: NextF
 
 
         const puppeteer = await import("puppeteer");
-        const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable';
 
-        console.debug("Launching official Google Chrome...");
+        // Force the path to the official Chrome we installed in the Dockerfile
+        const executablePath = '/usr/bin/google-chrome-stable';
+
+        console.debug("Launching official Google Chrome from Docker...");
 
         const browser = await puppeteer.launch({
             executablePath,
@@ -156,7 +158,7 @@ export const createCertificate = async (req: Request, res: Response, next: NextF
             ],
         });
 
-        console.debug("\n Browser launched successfully")
+        console.debug("Browser launched successfully!");
 
         const page = await browser.newPage();
         await page.setViewport({
