@@ -139,43 +139,22 @@ export const createCertificate = async (req: Request, res: Response, next: NextF
 
         console.debug("\n Launching browser using puppeteer...")
 
-        let puppeteer: any;
-        let browser: any;
 
-        if (process.platform === 'darwin') {
-            // macOS local dev - use regular puppeteer with its bundled Chrome
-            console.debug("Running on macOS - using bundled Puppeteer")
-            puppeteer = (await import('puppeteer')).default;
+        const puppeteer = await import("puppeteer");
+        const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable';
 
-            browser = await puppeteer.launch({
-                headless: true,
-                // Don't use chromium args/executablePath on Mac!
-                // Puppeteer will use its own bundled Chrome
-            });
+        console.debug("Launching official Google Chrome...");
 
-        } else {
-            // Linux (Cloud Run) - use puppeteer-core with sparticuz chromium
-            console.debug("Running on Linux - using Sparticuz Chromium")
-            process.env.LD_LIBRARY_PATH = '/usr/lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu:/tmp/chromium/lib';
-
-            const chromium: any = (await import('@sparticuz/chromium')).default;
-            puppeteer = (await import('puppeteer-core')).default;
-
-            browser = await puppeteer.launch({
-                args: [
-                    ...chromium.args,
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage',
-                ],
-                defaultViewport: chromium.defaultViewport,
-                executablePath: await chromium.executablePath(),
-                headless: chromium.headless,
-                // ignoreHTTPSErrors: true,
-            });
-
-
-        }
+        const browser = await puppeteer.launch({
+            executablePath,
+            headless: true,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+            ],
+        });
 
         console.debug("\n Browser launched successfully")
 
