@@ -9,7 +9,8 @@ import { UserRole } from "@/prisma/generated/prisma/client";
  */
 export const requireLessonAccess = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const lessonId = req.params.id || req.params.lessonId;
+        // Fix: Cast param to string to avoid string[] type error
+        const lessonId = (req.params.id || req.params.lessonId) as string;
         const userId = req.user?.id;
         const userRole = req.user?.role;
 
@@ -59,7 +60,8 @@ export const requireLessonAccess = async (req: Request, res: Response, next: Nex
  */
 export const requireVideoAccess = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const videoId = req.params.id || req.params.videoId;
+        // Fix: Cast param to string
+        const videoId = (req.params.id || req.params.videoId) as string;
         const userId = req.user?.id;
         const userRole = req.user?.role;
 
@@ -84,25 +86,28 @@ export const requireVideoAccess = async (req: Request, res: Response, next: Next
 
         if (!video) return res.status(404).json({ success: false, message: "Video not found" });
 
+        // Fix: Cast to any to access relations if strict types are missing them
+        const videoWithRelations = video as any;
+
         // 2. If it's a demo video for any course, it's public
-        if (video.demoCourses.length > 0) return next();
+        if (videoWithRelations.demoCourses && videoWithRelations.demoCourses.length > 0) return next();
 
         // 3. For lesson videos, check if user has access to at least ONE associated lesson
-        const associatedLessons = video.videoLessons;
+        const associatedLessons = videoWithRelations.videoLessons || [];
 
         // If any associated lesson is free, video is public
-        if (associatedLessons.some(vl => vl.lesson.isFree)) return next();
+        if (associatedLessons.some((vl: any) => vl.lesson.isFree)) return next();
 
         // If no user, and video is not free/demo, deny
         if (!userId) return res.status(403).json({ success: false, message: "Authentication required", code: "AUTH_REQUIRED" });
 
         // Check entitlements for associated courses
-        const courseIds = [...new Set(associatedLessons.map(vl => vl.lesson.courseId))];
+        const courseIds = [...new Set(associatedLessons.map((vl: any) => vl.lesson.courseId))];
 
         const { hasAccess: checkEntitlement } = await import("../services/entitlement.service");
 
         for (const courseId of courseIds) {
-            if (await checkEntitlement(userId, "COURSE", courseId)) {
+            if (await checkEntitlement(userId, "COURSE", courseId as string)) {
                 return next();
             }
         }
@@ -123,7 +128,8 @@ export const requireVideoAccess = async (req: Request, res: Response, next: Next
  */
 export const requireAttachmentAccess = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const attachmentId = req.params.id || req.params.attachmentId;
+        // Fix: Cast param to string
+        const attachmentId = (req.params.id || req.params.attachmentId) as string;
         const userId = req.user?.id;
         const userRole = req.user?.role;
 
