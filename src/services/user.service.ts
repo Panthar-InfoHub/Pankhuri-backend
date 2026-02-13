@@ -48,20 +48,20 @@ const extractCountryCode = (phoneNumber: string): string | undefined => {
 // ==================== BASIC USER OPERATIONS ====================
 
 export const findUserByPhone = async (phone: string): Promise<User | null> => {
-  return await prisma.user.findUnique({
-    where: { phone },
+  return await prisma.user.findFirst({
+    where: { phone, status: { not: UserStatus.deleted } },
   });
 };
 
 export const findAdminByEmail = async (email: string): Promise<User | null> => {
-  return await prisma.user.findUnique({
-    where: { email, role: UserRole.admin },
+  return await prisma.user.findFirst({
+    where: { email, role: UserRole.admin, status: { not: UserStatus.deleted } },
   });
 };
 
 export const findUserByEmail = async (email: string): Promise<User | null> => {
-  return await prisma.user.findUnique({
-    where: { email },
+  return await prisma.user.findFirst({
+    where: { email, status: { not: UserStatus.deleted } },
   });
 };
 
@@ -115,6 +115,7 @@ export const updateUser = async (
     const existingEmail = await prisma.user.findFirst({
       where: {
         email: updates.email,
+        status: { not: UserStatus.deleted },
         NOT: { id: userId },
       },
     });
@@ -128,6 +129,7 @@ export const updateUser = async (
     const existingPhone = await prisma.user.findFirst({
       where: {
         phone: updates.phone,
+        status: { not: UserStatus.deleted },
         NOT: { id: userId },
       },
     });
@@ -156,7 +158,7 @@ export const getAllUsers = async (filters?: {
 
   const where: Prisma.UserWhereInput = {
     ...(role && { role }),
-    ...(status && { status }),
+    status: status || { not: UserStatus.deleted },
     ...(search && {
       OR: [
         { displayName: { contains: search, mode: "insensitive" } },
@@ -208,8 +210,8 @@ export const getAllUsers = async (filters?: {
 
 // Get user by ID with full details
 export const getUserById = async (id: string) => {
-  const user = await prisma.user.findUnique({
-    where: { id },
+  const user = await prisma.user.findFirst({
+    where: { id, status: { not: UserStatus.deleted } },
     include: {
       trainerProfile: {
         include: {
@@ -286,6 +288,7 @@ export const updateUserAdmin = async (id: string, data: Partial<User>) => {
     const existing = await prisma.user.findFirst({
       where: {
         email: data.email,
+        status: { not: UserStatus.deleted },
         NOT: { id },
       },
     });
@@ -299,6 +302,7 @@ export const updateUserAdmin = async (id: string, data: Partial<User>) => {
     const existing = await prisma.user.findFirst({
       where: {
         phone: data.phone,
+        status: { not: UserStatus.deleted },
         NOT: { id },
       },
     });
@@ -310,44 +314,38 @@ export const updateUserAdmin = async (id: string, data: Partial<User>) => {
   return await updateUser(id, data);
 };
 
-// Delete user (Admin) - soft delete by setting status to inactive
+// Delete user (Soft delete)
 export const deleteUser = async (id: string) => {
   // Check if user exists
   const user = await prisma.user.findUnique({
     where: { id },
-    include: {
-      trainerProfile: {
-        select: {
-          _count: {
-            select: {
-              courses: true,
-            },
-          },
-        },
-      },
-    },
   });
 
-  if (!user) {
+  if (!user || user.status === UserStatus.deleted) {
     throw new Error("User not found");
   }
 
-  // Don't allow deletion of users with active courses (as trainer)
-  if (user.trainerProfile?._count.courses && user.trainerProfile._count.courses > 0) {
-    // Soft delete - just deactivate
-    await prisma.user.update({
-      where: { id },
-      data: { status: UserStatus.suspended },
-    });
-    return { message: "User deactivated (has courses as trainer)" };
-  }
-
-  // Can safely delete regular users
-  await prisma.user.delete({
+  // Soft delete - mark as deleted and hide personally identifiable info
+  await prisma.user.update({
     where: { id },
+    data: {
+      status: UserStatus.deleted,
+      deletedAt: new Date(),
+      // Append a suffix to email/phone to allow reuse of these fields for new accounts
+      // while keeping the old record unique but "forgotten"
+      email: user.email ? `${user.email}_deleted_${Date.now()}` : null,
+      phone: user.phone ? `${user.phone}_deleted_${Date.now()}` : null,
+      displayName: "Deleted User",
+      profileImage: null,
+    },
   });
 
-  return { message: "User deleted successfully" };
+  // Terminate all active sessions for this user
+  await prisma.session.deleteMany({
+    where: { userId: id },
+  });
+
+  return { message: "User account has been successfully deleted" };
 };
 
 // Update user status
