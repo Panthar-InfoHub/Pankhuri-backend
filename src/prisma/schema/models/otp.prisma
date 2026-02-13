@@ -1,0 +1,10 @@
+model Otp {
+    id          String   @id @default(uuid())
+    phoneNumber String   @unique
+    otpCode     String
+    expiresAt   DateTime
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    @@index([phoneNumber])
+}
