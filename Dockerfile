@@ -1,13 +1,11 @@
-# Use a slim version to keep it light, but we need the build-essential tools
 FROM node:20-slim
 
-# Install the necessary system dependencies for Puppeteer/Chromium
+# Step 1: Install the actual system dependencies
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
     ca-certificates \
     apt-transport-https \
-    # The missing library from your error
     libnspr4 \
     libnss3 \
     libatk1.0-0 \
@@ -19,28 +17,31 @@ RUN apt-get update && apt-get install -y \
     libxdamage1 \
     libxext6 \
     libxfixes3 \
-    librandr2 \
+    libxrandr2 \
     libgbm1 \
     libpango-1.0-0 \
     libcairo2 \
     libasound2 \
+    libxss1 \
+    libxtst6 \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Chromium directly from the debian repo - it's more stable for Cloud Run
-RUN apt-get update && apt-get install -y chromium --no-install-recommends
+# Step 2: Install Chromium
+RUN apt-get update && apt-get install -y chromium --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
 
-# Generate Prisma and Build
-RUN DATABASE_URL="postgresql://dummy@localhost/dummy" npx prisma generate
-RUN npm run build
-
-# Crucial: Set the path to the system-installed Chromium
+# Step 3: Env vars for Puppeteer
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
+# Standard build steps
+RUN DATABASE_URL="postgresql://dummy@localhost/dummy" npx prisma generate
+RUN npm run build
 
 CMD ["npm", "start"]
