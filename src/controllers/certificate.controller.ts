@@ -156,15 +156,17 @@ export const createCertificate = async (req: Request, res: Response, next: NextF
         } else {
             // Linux (Cloud Run) - use puppeteer-core with sparticuz chromium
             console.debug("Running on Linux - using Sparticuz Chromium")
+            process.env.LD_LIBRARY_PATH = '/usr/lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu:/tmp/chromium/lib';
+
             const chromium: any = (await import('@sparticuz/chromium')).default;
             puppeteer = (await import('puppeteer-core')).default;
-
 
             browser = await puppeteer.launch({
                 args: [
                     ...chromium.args,
                     '--no-sandbox',
                     '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
                 ],
                 defaultViewport: chromium.defaultViewport,
                 executablePath: await chromium.executablePath(),
