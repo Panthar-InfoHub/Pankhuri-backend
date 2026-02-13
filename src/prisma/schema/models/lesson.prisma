@@ -30,7 +30,7 @@ model Lesson {
 
   // Relations
   course            Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  module            Module?              @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  module            Module?              @relation(fields: [moduleId], references: [id], onDelete: SetNull)
   textLesson        TextLesson?
   videoLesson       VideoLesson?
   lessonDescription LessonDescription?
