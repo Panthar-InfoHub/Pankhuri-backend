@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc && tsc-alias",
     "dev": "ts-node-dev -r tsconfig-paths/register --respawn --transpile-only src/server.ts",
-    "gcp-build": "DATABASE_URL=\"postgresql://dummy:dummy@localhost:5432/dummy\" DIRECT_URL=\"postgresql://dummy:dummy@localhost:5432/dummy\" npx prisma generate && npm run build",
+    "gcp-build": "apt-get update && apt-get install -y libnss3 libnspr4 libgbm1 libasound2 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxext6 libxfixes3 librandr2 pango1.0-common && DATABASE_URL=\"postgresql://dummy:dummy@localhost:5432/dummy\" npx prisma generate && npm run build",
     "start": "npx prisma migrate deploy && node dist/server.js",
     "seed": "ts-node -r tsconfig-paths/register src/prisma/seed.ts"
   },
