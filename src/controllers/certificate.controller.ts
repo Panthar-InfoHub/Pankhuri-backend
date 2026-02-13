@@ -142,11 +142,32 @@ export const createCertificate = async (req: Request, res: Response, next: NextF
 
         const puppeteer = await import("puppeteer");
 
-        // Force the path to the official Chrome we installed in the Dockerfile
+        // Log everything to see what's happening
+        console.log("===== PUPPETEER DEBUG INFO =====");
+        console.log("Env PUPPETEER_EXECUTABLE_PATH:", process.env.PUPPETEER_EXECUTABLE_PATH);
+        console.log("Env PUPPETEER_SKIP_CHROMIUM_DOWNLOAD:", process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD);
+
+        // Check if any Chromium-related packages are in the require cache
+        console.log("Checking for sparticuz in require cache:",
+            Object.keys(require.cache).filter(key => key.includes('sparticuz')));
+
         const executablePath = '/usr/bin/google-chrome-stable';
+        console.log("Using executable path:", executablePath);
 
-        console.debug("Launching official Google Chrome from Docker...");
+        // Check if file exists
+        let fs_1 = await import('fs');
+        try {
+            await fs_1.promises.access(executablePath, fs_1.constants.F_OK);
+            console.log("Chrome binary exists at path");
 
+            const stat = await fs_1.promises.stat(executablePath);
+            console.log("File permissions:", stat.mode.toString(8));
+            console.log("Is executable?:", !!(stat.mode & 0o111));
+        } catch (err: any) {
+            console.error("Chrome binary NOT found at path:", err.message);
+        }
+
+        console.log("Launching browser...");
         const browser = await puppeteer.launch({
             executablePath,
             headless: true,
@@ -157,6 +178,7 @@ export const createCertificate = async (req: Request, res: Response, next: NextF
                 '--disable-gpu',
             ],
         });
+
 
         console.debug("Browser launched successfully!");
 
