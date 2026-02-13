@@ -8,6 +8,7 @@ import {
   findOrCreateUserByPhone,
 } from "../services/user.service";
 import { manageUserSessions, updateSessionFcmToken } from "../services/session.service";
+import { requestPhoneOtp, verifyPhoneOtp } from "../services/otp.service";
 
 /**
  * Google OAuth login via Firebase
@@ -293,6 +294,108 @@ export const testerLogin = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       error: error.message || "Tester login failed",
+    });
+  }
+};
+
+/**
+ * Request OTP for phone login
+ * POST /api/auth/otp/request
+ */
+export const requestOtp = async (req: Request, res: Response) => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        error: "Phone number is required",
+      });
+    }
+
+    const result = await requestPhoneOtp(phone);
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        error: result.error,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: result.message,
+    });
+  } catch (error: any) {
+    console.error("Request OTP error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Failed to request OTP",
+    });
+  }
+};
+
+/**
+ * Verify OTP and login/signup
+ * POST /api/auth/otp/verify
+ */
+export const verifyOtp = async (req: Request, res: Response) => {
+  try {
+    const { phone, otp, fcmToken } = req.body;
+
+    if (!phone || !otp) {
+      return res.status(400).json({
+        success: false,
+        error: "Phone and OTP are required",
+      });
+    }
+
+    // 1. Verify OTP
+    try {
+      await verifyPhoneOtp(phone, otp);
+    } catch (otpError: any) {
+      return res.status(400).json({
+        success: false,
+        error: otpError.message,
+      });
+    }
+
+    // 2. OTP is valid, proceed to login/signup
+    // The phone passed to findOrCreateUserByPhone should be formatted by the service itself
+    // but for consistency we use the same formatting logic.
+    // However, verifyPhoneOtp already uses formatPhoneNumber, so we'll just use the raw phone
+    // as findOrCreateUserByPhone also handles it via sub-services.
+    // Actually, to be safe and avoid double country codes, we'll let the service handle it.
+
+    // We already know phone is valid from verifyPhoneOtp.
+    // Re-importing formatPhoneNumber to ensure we pass the same ID to user service if needed
+    // or just let userService handle it.
+    const user = await findOrCreateUserByPhone(phone);
+
+    // 3. Create session
+    const session = await manageUserSessions(user.id, fcmToken);
+
+    // 4. Generate JWT
+    const token = generateJWT(user, session.id);
+
+    // 5. Check onboarding
+    const isOnboardingCompleted = !!(user.displayName && user.dateOfBirth && user.gender);
+
+    return res.status(200).json({
+      success: true,
+      message: "Authentication successful",
+      data: {
+        token,
+        sessionId: session.id,
+        user,
+        isOnboardingCompleted,
+      },
+    });
+  } catch (error: any) {
+    console.error("Verify OTP error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Authentication failed",
     });
   }
 };
