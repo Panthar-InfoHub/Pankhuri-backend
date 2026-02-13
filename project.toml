@@ -1,3 +1,7 @@
 [[build.env]]
-name = "GOOGLE_BUILD_ARGS"
-value = "--system-packages=libnss3,libnspr4,libgbm1,libasound2,libatk1.0-0,libatk-bridge2.0-0,libcups2,libdrm2,libxkbcommon0,libxcomposite1,libxdamage1,libxext6,libxfixes3,librandr2,pango1.0-common"
+  name = "GOOGLE_BUILD_ARGS"
+  value = "--system-packages=libnss3,libnspr4,libgbm1,libasound2,libatk1.0-0,libatk-bridge2.0-0,libcups2,libdrm2,libxkbcommon0,libxcomposite1,libxdamage1,libxext6,libxfixes3,librandr2,pango1.0-common"
+
+# Force the builder to use the newest version that supports system packages
+[build]
+  builder = "gcr.io/buildpacks/builder:google-24"
