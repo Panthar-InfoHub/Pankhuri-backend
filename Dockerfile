@@ -1,7 +1,6 @@
-# Use the official Node.js image
 FROM node:20-slim
 
-# Install the exact libraries Chromium needs
+# Install the dependencies correctly
 RUN apt-get update && apt-get install -y \
     libnss3 \
     libnspr4 \
@@ -16,23 +15,17 @@ RUN apt-get update && apt-get install -y \
     libxdamage1 \
     libxext6 \
     libxfixes3 \
-    librandr2 \
-    pango1.0-common \
+    libxrandr2 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
 WORKDIR /app
-
-# Copy package files and install dependencies
 COPY package*.json ./
 RUN npm install
-
-# Copy the rest of your code
 COPY . .
-
-# Generate Prisma client and build TypeScript
 RUN DATABASE_URL="postgresql://dummy@localhost/dummy" npx prisma generate
 RUN npm run build
 
-# Start the server
 CMD ["npm", "start"]
