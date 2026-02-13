@@ -32,25 +32,29 @@ export const sendOtpSMS = async (phoneNumber: string, otp: string): Promise<bool
 
         const payload = {
             template_id: MSG91_TEMPLATE_ID,
+            realTimeResponse: 1,
             recipients: [
                 {
                     mobiles: formattedPhone,
-                    VAR1: otp, // Assuming VAR1 is the placeholder for OTP in the MSG91 template
+                    OTP: otp, // Assuming VAR1 is the placeholder for OTP in the MSG91 template
                 },
             ],
         };
+
 
         const response = await fetch(MSG91_BASE_URL, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "authkey": MSG91_AUTH_KEY,
+                "accept": "application/json",
             },
             body: JSON.stringify(payload),
         });
-
         const result = await response.json();
-        console.log(`[SMS] OTP sent to ${formattedPhone}:`, result);
+        if (result.type === "error") {
+            throw new Error(result.message);
+        }
 
         return response.ok;
     } catch (error) {
