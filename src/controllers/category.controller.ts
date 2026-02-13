@@ -117,7 +117,7 @@ export const createCategory = async (req: Request, res: Response, next: NextFunc
   try {
     const {
       name, slug, description, parentId, icon, status, sequence,
-      price, discountedPrice, subscriptionType, currency = "INR"
+      pricing, discountedPrice, subscriptionType, currency = "INR"
     } = req.body;
 
     // Validation
@@ -143,20 +143,25 @@ export const createCategory = async (req: Request, res: Response, next: NextFunc
 
     // If price is provided, create a subscription plan for this category
     let plan = null;
-    if (price !== undefined && price > 0) {
-      plan = await planService.createPlan({
-        name: `${name} - ${subscriptionType || 'Monthly'} Subscription`,
-        slug: `${slug}-${subscriptionType || 'monthly'}`,
-        description: `Subscription access to ${name} category`,
-        subscriptionType: (subscriptionType as any) || "monthly",
-        planType: "CATEGORY",
-        targetId: category.id,
-        price: price,
-        discountedPrice: discountedPrice,
-        currency: currency,
-        isActive: true,
-        provider: "razorpay"
-      });
+    if (pricing && pricing !== undefined) {
+
+      plan = pricing.map(async (priceData: { type: "monthly" | "yearly", price: number, discountedPrice: number }) => {
+
+        await planService.createPlan({
+          name: `${name} - ${priceData.type || 'Monthly'} Subscription`,
+          slug: `${slug}-${priceData.type || 'monthly'}`,
+          description: `Subscription access to ${name} category`,
+          subscriptionType: priceData.type,
+          planType: "CATEGORY",
+          targetId: category.id,
+          price: priceData.price,
+          discountedPrice: priceData.discountedPrice,
+          currency: currency,
+          isActive: true,
+          provider: "razorpay"
+        });
+
+      })
     }
 
     res.status(201).json({
