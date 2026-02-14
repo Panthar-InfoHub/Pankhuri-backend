@@ -67,13 +67,11 @@ export const revokeEntitlement = async (
     type: PlanType,
     targetId: string | null = null
 ) => {
-    return await prisma.userEntitlement.update({
+    return await prisma.userEntitlement.updateMany({
         where: {
-            userId_type_targetId: {
-                userId,
-                type,
-                targetId: targetId || "",
-            },
+            userId,
+            type,
+            targetId: targetId || "",
         },
         data: {
             status: "revoked",
@@ -243,17 +241,25 @@ export const syncSubscriptionToEntitlement = async (subscriptionId: string) => {
         include: { plan: true }
     });
 
-    if (!sub || !sub.plan || (sub.status !== "active" && sub.status !== "trial")) return;
+    if (!sub || !sub.plan) return;
 
-    await grantEntitlement(
-        sub.userId,
-        sub.plan.planType,
-        sub.plan.targetId,
-        {
-            source: sub.provider === 'google_play' ? 'APP' : 'WEB',
-            validUntil: sub.currentPeriodEnd || undefined
-        }
-    );
+    if (sub.status === "active" || sub.status === "trial" || sub.status === "past_due") {
+        await grantEntitlement(
+            sub.userId,
+            sub.plan.planType,
+            sub.plan.targetId,
+            {
+                source: sub.provider === 'google_play' ? 'APP' : 'WEB',
+                validUntil: sub.currentPeriodEnd || undefined
+            }
+        );
+    } else if (sub.status === "cancelled" || sub.status === "halted" || sub.status === "expired") {
+        await revokeEntitlement(
+            sub.userId,
+            sub.plan.planType,
+            sub.plan.targetId
+        );
+    }
 };
 
 /**

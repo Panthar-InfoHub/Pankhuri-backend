@@ -404,7 +404,7 @@ export const handleSubscriptionCancelled = async (payload: any): Promise<void> =
 
   if (!subscription) return;
 
-  await prisma.userSubscription.update({
+  const updatedSub = await prisma.userSubscription.update({
     where: { id: subscription.id },
     data: {
       status: "cancelled",
@@ -413,6 +413,9 @@ export const handleSubscriptionCancelled = async (payload: any): Promise<void> =
         : new Date(),
     },
   });
+
+  // Sync Entitlement (This will revoke access if status is cancelled)
+  await syncSubscriptionToEntitlement(updatedSub.id);
 
   console.log(`[WEBHOOK] Subscription cancelled: ${subscriptionEntity.id}`);
 };
@@ -429,15 +432,13 @@ export const handleSubscriptionHalted = async (payload: any): Promise<void> => {
 
   if (!subscription) return;
 
-  await prisma.userSubscription.update({
+  const updatedSub = await prisma.userSubscription.update({
     where: { id: subscription.id },
     data: { status: "halted" },
   });
 
-  // Revoke Entitlement
-  if (subscription.plan) {
-    await revokeEntitlement(subscription.userId, subscription.plan.planType, subscription.plan.targetId);
-  }
+  // Sync Entitlement (This will revoke access if status is halted)
+  await syncSubscriptionToEntitlement(updatedSub.id);
 
   console.log(`[WEBHOOK] Subscription halted: ${subscriptionEntity.id}`);
 };
