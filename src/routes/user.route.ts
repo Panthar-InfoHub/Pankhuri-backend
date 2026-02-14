@@ -9,6 +9,7 @@ const router = express.Router();
 // Current user profile (requires authentication)
 router.get("/me", authenticateWithSession, userController.getCurrentUser);
 router.put("/me", authenticateWithSession, userController.updateCurrentUser);
+router.delete("/me", authenticateWithSession, userController.deleteMe);
 
 // Public trainer endpoints
 router.get("/trainers", userController.getAllTrainersPublic);

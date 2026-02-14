@@ -69,6 +69,30 @@ export const updateCurrentUser = async (req: Request, res: Response, next: NextF
   }
 };
 
+/**
+ * DELETE /api/users/me - Close own account (Soft Delete)
+ * Complies with Google Play policy for user-initiated account deletion
+ */
+export const deleteMe = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Not authenticated",
+      });
+    }
+
+    const result = await userService.deleteUser(req.user.id);
+
+    res.json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // ==================== PUBLIC TRAINER ENDPOINTS ====================
 
 // GET /api/trainers - Get all trainers (public view)

@@ -527,7 +527,7 @@ export const cancelImmediately = async (
   await cancelGatewaySubscription(subscription.subscriptionId, false);
 
   // Update subscription
-  return await prisma.userSubscription.update({
+  const updatedSub = await prisma.userSubscription.update({
     where: { id: subscriptionId },
     data: {
       status: "cancelled",
@@ -537,6 +537,11 @@ export const cancelImmediately = async (
       plan: true,
     },
   });
+
+  // Sync to entitlement (This will revoke access)
+  await syncSubscriptionToEntitlement(updatedSub.id);
+
+  return updatedSub;
 };
 
 // ==================== BACKGROUND JOBS ====================
