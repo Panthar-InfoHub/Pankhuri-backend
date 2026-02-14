@@ -79,9 +79,9 @@ const attachPricingToCategories = async (categories: any[], userId?: string) => 
     if (user) {
       isAdmin = user.role === "admin";
       const entitlements = user.entitlements;
-      hasFullApp = entitlements.some(e => e.type === "WHOLE_APP");
+      hasFullApp = entitlements.some(e => e.type === PlanType.WHOLE_APP);
       userEntitlementIds = entitlements
-        .filter(e => e.type === "CATEGORY")
+        .filter(e => e.type === PlanType.CATEGORY)
         .map(e => e.targetId as string);
     }
   }
@@ -248,14 +248,16 @@ export const getCategoryBySlug = async (slug: string, showNestedCourses: boolean
   return getCategoryById(cat.id, showNestedCourses, userId);
 };
 
-export const getChildCategories = async (parentId: string) => {
-  return await prisma.category.findMany({
+export const getChildCategories = async (parentId: string, userId?: string) => {
+  const categories = await prisma.category.findMany({
     where: { parentId },
     orderBy: { sequence: "asc" },
     include: {
       _count: { select: { courses: true, children: true } }
     }
   });
+
+  return await attachPricingToCategories(categories, userId);
 };
 
 // ==================== MUTATIONS (ADMIN) ====================

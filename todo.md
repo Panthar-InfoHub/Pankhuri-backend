@@ -11,6 +11,8 @@ testing
 - if i have purchsed the paren categroy then what hapepen if i try to buy child categroy
 - properly chcek the trial flow also , cours will not have trial , category hwhole app trail , no of trial , trial duration , trial end date etc
 - updating the price and other details of the plans
+
+
 ----------------------
 done
 
@@ -22,6 +24,8 @@ done
 
 ----------------------
 pending
+
+- bulk update - course video modules lessons , duration auto calculate  for modules and course ,cron job for subscription cancle,
 
 - trial logic 
 - deeplinks

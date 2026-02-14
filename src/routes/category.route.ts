@@ -1,15 +1,15 @@
 import { Router } from "express";
 import * as categoryController from "../controllers/category.controller";
-import { authenticateWithSession, requireAdmin } from "../middleware/session.middleware";
+import { authenticateWithSession, requireAdmin, optionalAuthenticate } from "../middleware/session.middleware";
 
 const router = Router();
 
 // Public routes
-router.get("/", categoryController.getAllCategories);
-router.get("/flat", categoryController.getFlatCategories);
-router.get("/:id", categoryController.getCategoryById);
-router.get("/slug/:slug", categoryController.getCategoryBySlug);
-router.get("/:id/children", categoryController.getChildCategories);
+router.get("/", optionalAuthenticate, categoryController.getAllCategories);
+router.get("/flat", optionalAuthenticate, categoryController.getFlatCategories);
+router.get("/:id", optionalAuthenticate, categoryController.getCategoryById);
+router.get("/slug/:slug", optionalAuthenticate, categoryController.getCategoryBySlug);
+router.get("/:id/children", optionalAuthenticate, categoryController.getChildCategories);
 
 // Admin routes (protected)
 router.post("/", authenticateWithSession, requireAdmin, categoryController.createCategory);
