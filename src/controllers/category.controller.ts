@@ -98,8 +98,10 @@ export const getCategoryBySlug = async (req: Request, res: Response, next: NextF
 export const getChildCategories = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
+    const { userId: queryUserId } = req.query;
+    const userId = (req as any).user?.id || (queryUserId as string);
 
-    const children = await categoryService.getChildCategories(id);
+    const children = await categoryService.getChildCategories(id, userId);
 
     res.json({
       success: true,
