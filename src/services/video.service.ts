@@ -75,10 +75,14 @@ export const getAllVideos = async (filters?: {
       status: filters.status,
       ...(search && {
         OR: [
-          { title: { contains: search, mode: "insensitive" } },
+          { title: { contains: search, mode: Prisma.QueryMode.insensitive } },
         ],
       }),
-    } : {};
+    } : (search ? {
+      OR: [
+        { title: { contains: search, mode: Prisma.QueryMode.insensitive } },
+      ],
+    } : {});
 
     const videos = await prisma.video.findMany({
       where,

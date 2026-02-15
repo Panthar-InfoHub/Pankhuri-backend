@@ -163,6 +163,8 @@ export const getAllVideosHandler = async (req: Request, res: Response, next: Nex
       offset: offset ? parseInt(offset as string) : undefined,
     };
 
+    console.log("Filter for video controller ==> ", filters)
+
     const result = await getAllVideos(filters);
 
     return res.status(200).json({
