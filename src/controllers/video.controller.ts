@@ -3,6 +3,7 @@ import { VideoDescription } from "@/lib/types";
 import {
   bulkDeleteVideos,
   createVideo,
+  createVideosBulk,
   deleteVideo,
   getAllVideos,
   getVideoById,
@@ -122,6 +123,32 @@ export const createVideoHandler = async (req: Request, res: Response, next: Next
   }
 };
 
+
+
+export const createBulkVideoHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { data } = req.body;
+    console.log("Bulk video creation request body ==> ", data)
+
+    const video = await createVideosBulk(data);
+
+    return res.status(201).json({
+      success: true,
+      message: "Video created successfully",
+      data: video,
+    });
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+
+
+
+
+
+
+
 /**
  * Get video by ID
  * GET /api/videos/:id
@@ -163,6 +190,8 @@ export const getAllVideosHandler = async (req: Request, res: Response, next: Nex
       offset: offset ? parseInt(offset as string) : undefined,
     };
 
+    console.log("Filter for video controller ==> ", filters)
+
     const result = await getAllVideos(filters);
 
     return res.status(200).json({
@@ -187,7 +216,7 @@ export const getAllVideosHandler = async (req: Request, res: Response, next: Nex
 export const updateVideoHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const { title, externalUrl, thumbnailUrl, storageKey, playbackUrl, status, duration, metadata ,videoDescription} = req.body;
+    const { title, externalUrl, thumbnailUrl, storageKey, playbackUrl, status, duration, metadata, videoDescription } = req.body;
 
     const video = await updateVideo(id, {
       title,

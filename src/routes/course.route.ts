@@ -14,6 +14,7 @@ router.get("/trainer/:trainerId", optionalAuthenticate, courseController.getCour
 
 // Admin routes (protected) - For now only admin can manage courses
 router.post("/", authenticateWithSession, requireAdmin, courseController.createCourse);
+router.post("/bulk", authenticateWithSession, requireAdmin, courseController.bulkCreateCourses);
 router.put("/:id", authenticateWithSession, requireAdmin, courseController.updateCourse);
 router.delete("/:id", authenticateWithSession, requireAdmin, courseController.deleteCourse);
 router.patch("/:id/publish", authenticateWithSession, requireAdmin, courseController.togglePublish);

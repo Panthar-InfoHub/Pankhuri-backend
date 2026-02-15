@@ -38,6 +38,27 @@ export const createVideo = async (data: Prisma.VideoCreateInput, quality: number
 };
 
 
+export const createVideosBulk = async (
+  videos: Prisma.VideoCreateManyInput[],
+) => {
+  try {
+    const result = await prisma.video.createMany({
+      data: videos,
+      skipDuplicates: true,
+    });
+
+    return {
+      count: result.count,
+    };
+  } catch (error) {
+    console.error("Bulk video creation error:", error);
+    throw new Error("Failed to create videos in bulk.");
+  }
+};
+
+
+
+
 
 export const getVideoById = async (id: string) => {
   try {
@@ -75,10 +96,14 @@ export const getAllVideos = async (filters?: {
       status: filters.status,
       ...(search && {
         OR: [
-          { title: { contains: search, mode: "insensitive" } },
+          { title: { contains: search, mode: Prisma.QueryMode.insensitive } },
         ],
       }),
-    } : {};
+    } : (search ? {
+      OR: [
+        { title: { contains: search, mode: Prisma.QueryMode.insensitive } },
+      ],
+    } : {});
 
     const videos = await prisma.video.findMany({
       where,
