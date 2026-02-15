@@ -216,6 +216,166 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
+
+// POST /api/admin/courses - Create course
+
+export const bulkCreateCourses = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { courses } = req.body;
+
+    console.log("Allbulk course --> ", courses)
+    if (!Array.isArray(courses) || courses.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Courses array is required",
+      });
+    }
+
+    // Validate all courses first
+    const validationErrors = [];
+    for (const course of courses) {
+      if (!course.title || !course.slug || !course.categoryId) {
+        validationErrors.push({
+          slug: course.slug,
+          error: "Missing required fields (title, slug, categoryId, trainerId)",
+        });
+      }
+    }
+
+    if (validationErrors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors: validationErrors,
+      });
+    }
+
+    // Step 1: Bulk insert courses
+    const coursesData = courses.map(course => ({
+      title: course.title,
+      slug: course.slug,
+      description: course.description,
+      thumbnailImage: course.thumbnailImage,
+      coverImage: course.coverImage,
+      language: course.language || "en",
+      level: course.level,
+      duration: course.duration,
+      status: course.status || "active",
+      hasCertificate: course.hasCertificate || false,
+      tags: course.tags || [],
+      metadata: course.metadata || {},
+      categoryId: course.categoryId,
+      trainerId: course.trainerId,
+      demoVideoId: course.demoVideoId,
+    }));
+
+    await courseService.createCoursesBulk(coursesData);
+
+    // Step 2: Fetch created courses
+    const createdCourses = await prisma.course.findMany({
+      where: {
+        slug: { in: courses.map(c => c.slug) },
+      },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+      },
+    });
+
+    // Step 3: Parallel plan creation with error handling
+    const planPromises = courses
+      .filter(course => course.price && course.price > 0)
+      .map(async (course) => {
+        const createdCourse = createdCourses.find(c => c.slug === course.slug);
+        if (!createdCourse) return null;
+
+        try {
+          // This will create both DB plan AND Razorpay plan
+          const plan = await planService.createPlan({
+            name: `${course.title} - Lifetime Access`,
+            slug: `${course.slug}-lifetime`,
+            description: `Lifetime access to ${course.title}`,
+            subscriptionType: "lifetime",
+            planType: "COURSE",
+            targetId: createdCourse.id,
+            price: course.price,
+            discountedPrice: course.discountedPrice,
+            currency: "INR",
+            isActive: true,
+            provider: "razorpay",
+            trialDays: 0,
+            trialFee: 0,
+          });
+
+          return {
+            success: true,
+            courseSlug: course.slug,
+            planId: plan.id,
+          };
+        } catch (error: any) {
+          console.error(`Failed to create plan for ${course.slug}:`, error);
+          return {
+            success: false,
+            courseSlug: course.slug,
+            error: error.message,
+          };
+        }
+      });
+
+    const planResults = await Promise.allSettled(planPromises);
+
+    const successfulPlans = planResults
+      .filter(result => result.status === 'fulfilled' && result.value?.success)
+      .map(result => (result as PromiseFulfilledResult<any>).value);
+
+    const failedPlans = planResults
+      .filter(result => result.status === 'rejected' ||
+        (result.status === 'fulfilled' && !result.value?.success))
+      .map(result =>
+        result.status === 'rejected'
+          ? { error: result.reason }
+          : (result as PromiseFulfilledResult<any>).value
+      );
+
+    res.status(201).json({
+      success: true,
+      message: `Successfully created ${createdCourses.length} courses and ${successfulPlans.length} plans`,
+      data: {
+        courses: createdCourses,
+        plans: successfulPlans,
+        failedPlans: failedPlans.length > 0 ? failedPlans : undefined,
+      },
+    });
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      return res.status(409).json({
+        success: false,
+        message: "One or more courses already exist (duplicate slug)",
+      });
+    }
+    next(error);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // PUT /api/admin/courses/:id - Update course
 export const updateCourse = async (req: Request, res: Response, next: NextFunction) => {
   try {
