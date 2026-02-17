@@ -132,6 +132,17 @@ export const createModule = async (moduleData: Prisma.ModuleCreateInput): Promis
 };
 
 /**
+ * Create bulk modules
+ */
+export const createBulkModules = async (data: Prisma.ModuleCreateManyInput[]) => {
+  return await prisma.module.createMany({
+    data,
+    skipDuplicates: true,
+  });
+  // Returns: { count: number }
+};
+
+/**
  * Update module
  */
 export const updateModule = async (

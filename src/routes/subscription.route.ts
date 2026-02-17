@@ -15,10 +15,14 @@ import {
   cancelPendingSubscriptionHandler,
   cancelPendingSubscriptionByIdHandler,
   handleGooglePlaySubscriptionCreate,
+  getAllSubscriptionsHandler,
 } from "@/controllers/subscription.controller";
 import { authenticateWithSession, requireAdmin } from "@/middleware/session.middleware";
 
 const router = express.Router();
+
+// Admin routes
+router.get("/admin/all", authenticateWithSession, requireAdmin, getAllSubscriptionsHandler);
 
 // User routes
 router.get("/status", authenticateWithSession, getSubscriptionStatusHandler);

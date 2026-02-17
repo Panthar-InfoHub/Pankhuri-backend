@@ -431,6 +431,15 @@ export const getSubscriptionById = async (id: string): Promise<UserSubscription>
           createdAt: "desc",
         },
       },
+      user: {
+        select: {
+          id: true,
+          displayName: true,
+          email: true,
+          phone: true,
+          profileImage: true,
+        },
+      },
     },
   });
 
@@ -828,4 +837,61 @@ export const cleanupRedundantSubscriptions = async (userId: string, newPlanType:
       }
     }
   }
+};
+
+// ==================== ADMIN: GET ALL SUBSCRIPTIONS ====================
+
+/**
+ * Get all user subscriptions (admin) with pagination and optional status filter
+ */
+export const getAllSubscriptions = async (
+  page: number = 1,
+  limit: number = 20,
+  status?: SubscriptionStatus,
+  search?: string
+) => {
+  const where: any = {};
+
+  if (status) {
+    where.status = status;
+  }
+
+  if (search) {
+    where.OR = [
+      { user: { email: { contains: search, mode: "insensitive" } } },
+      { user: { displayName: { contains: search, mode: "insensitive" } } }
+    ];
+  }
+
+  const [subscriptions, total] = await Promise.all([
+    prisma.userSubscription.findMany({
+      where,
+      include: {
+        plan: true,
+        user: {
+          select: {
+            id: true,
+            displayName: true,
+            email: true,
+            phone: true,
+            profileImage: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.userSubscription.count({ where }),
+  ]);
+
+  return {
+    data: subscriptions,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 };

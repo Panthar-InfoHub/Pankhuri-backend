@@ -10,6 +10,7 @@ import {
   bulkUpdateSequencesHandler,
   updateModuleStatusHandler,
   updateModuleDurationHandler,
+  bulkCreateModuleHandler,
 } from "@/controllers/module.controller";
 
 const router = express.Router();
@@ -29,6 +30,9 @@ router.get("/course/:courseId/slug/:slug", authenticateWithSession, getModuleByS
 
 // Create module
 router.post("/", authenticateWithSession, requireAdmin, createModuleHandler);
+
+// Create Bulk module
+router.post("/bulk", authenticateWithSession, requireAdmin, bulkCreateModuleHandler);
 
 // Update module
 router.put("/:id", authenticateWithSession, requireAdmin, updateModuleHandler);
