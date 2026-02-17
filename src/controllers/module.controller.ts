@@ -10,6 +10,7 @@ import {
   updateModuleDuration,
   getNextModule,
   getPreviousModule,
+  createBulkModules,
 } from "@services/module.service";
 import { ModuleStatus } from "@/prisma/generated/prisma/client";
 import { prisma } from "@/lib/db";
@@ -173,6 +174,43 @@ export const createModuleHandler = async (req: Request, res: Response, next: Nex
     next(error);
   }
 };
+
+
+
+
+
+export const bulkCreateModuleHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { data } = req.body;
+
+    // Validation
+    if (!data || !Array.isArray(data)) {
+      return res.status(400).json({
+        success: false,
+        error: "Data must be an array of module objects",
+      });
+    }
+
+    const module = await createBulkModules(data);
+
+    return res.status(201).json({
+      success: true,
+      message: `(${module.count} modules created)`,
+      data: module.count,
+    });
+  } catch (error: any) {
+    console.error("Error creating bulk module:", error);
+    next(error);
+  }
+};
+
+
+
+
+
+
+
+
 
 /**
  * Update module
