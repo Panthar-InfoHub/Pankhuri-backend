@@ -16,8 +16,10 @@ import {
   cancelPendingSubscriptionById,
   verifyGooglePlayReceipt,
   acknowledgeGooglePlayPurchase,
+  getAllSubscriptions,
 } from "@/services/subscription.service";
 import { GooglePlayReceipt } from "@/lib/types";
+import { SubscriptionStatus } from "@/prisma/generated/prisma/client";
 
 // ==================== INITIATE SUBSCRIPTION ====================
 
@@ -291,6 +293,52 @@ export const handleGooglePlaySubscriptionCreate = async (req: Request, res: Resp
       success: true,
       message: "Subscription initiated. Complete payment to activate.",
       data: paymentInfo,
+    });
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+// ==================== ADMIN: GET ALL SUBSCRIPTIONS ====================
+
+const VALID_STATUSES: SubscriptionStatus[] = [
+  "pending", "trial", "active", "past_due", "cancelled", "halted", "expired",
+];
+
+/**
+ * Get all user subscriptions (admin)
+ * GET /api/subscriptions/admin/all?page=1&limit=20&status=active
+ * Authenticated + Admin
+ */
+export const getAllSubscriptionsHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
+    const status = req.query.status as string | undefined;
+    const search = req.query.search as string | undefined;
+
+    // Validate status if provided
+    if (status && !VALID_STATUSES.includes(status as SubscriptionStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status. Must be one of: ${VALID_STATUSES.join(", ")}`,
+      });
+    }
+
+    const result = await getAllSubscriptions(
+      page,
+      limit,
+      status as SubscriptionStatus | undefined,
+      search
+    );
+
+    return res.status(200).json({
+      success: true,
+      ...result,
     });
   } catch (error: any) {
     next(error);

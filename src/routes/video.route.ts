@@ -8,6 +8,7 @@ import {
   updateVideoStatusHandler,
   bulkDeleteVideosHandler,
   transcodeCompleteHandler,
+  createBulkVideoHandler,
 } from "@/controllers/video.controller";
 import { authenticateWithSession, requireAdmin, optionalAuthenticate } from "../middleware/session.middleware";
 
@@ -17,6 +18,7 @@ const router = express.Router();
 
 // Admin routes - all video operations require admin access
 router.post("/", authenticateWithSession, requireAdmin, createVideoHandler);
+router.post("/bulk", authenticateWithSession, requireAdmin, createBulkVideoHandler);
 router.get("/", authenticateWithSession, requireAdmin, getAllVideosHandler);
 router.get("/:id", optionalAuthenticate, requireVideoAccess, getVideoHandler);
 router.put("/:id", authenticateWithSession, requireAdmin, updateVideoHandler);

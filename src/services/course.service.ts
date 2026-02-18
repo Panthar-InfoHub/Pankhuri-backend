@@ -471,6 +471,18 @@ export const createCourse = async (data: Prisma.CourseCreateInput) => {
   }
 };
 
+export const createCoursesBulk = async (data: Prisma.CourseCreateManyInput[]) => {
+  try {
+    return await prisma.course.createMany({
+      data,
+    });
+  } catch (error: any) {
+    if (error.code === "P2002") throw new Error("Course with this slug already exists");
+    throw error;
+  }
+};
+
+
 export const updateCourse = async (id: string, data: Prisma.CourseUpdateInput) => {
   try {
     return await prisma.course.update({
