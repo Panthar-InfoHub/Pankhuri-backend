@@ -19,8 +19,8 @@ const s3Client = new S3Client({
     },
 });
 
-const OUTPUT_BUCKET = process.env.DO_PROCESSED_BUCKET;
-const BACKEND_API_URL = process.env.BACKEND_API_URL;
+const OUTPUT_BUCKET = process.env.DO_BUCKET;
+const BACKEND_API_URL = process.env.BACKEND_URL;
 const BACKEND_API_KEY = process.env.BACKEND_API_KEY;
 
 async function main() {
@@ -127,7 +127,7 @@ async function processVideo(bucket, filename, quality, tempDir) {
 
     // Upload all generated files to DigitalOcean
     console.log('Uploading transcoded files to DigitalOcean...');
-    const uploadDir = `transcoded/${path.parse(filename).name}`;
+    const uploadDir = `${process.env.DO_BUCKET_MODE}/transcoded/${path.parse(filename).name}`;
     async function uploadRecursive(dir) {
         const items = await fs.readdir(dir, { withFileTypes: true });
         for (const item of items) {
