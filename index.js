@@ -2,16 +2,12 @@ import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import axios from 'axios';
 import { spawn } from 'child_process';
-import cors from 'cors';
 import dotenv from 'dotenv';
-import express from 'express';
 import { createReadStream, promises as fs } from 'fs';
 import path from 'path';
 
 dotenv.config();
-const app = express();
-app.use(express.json());
-app.use(cors());
+
 
 
 const s3Client = new S3Client({
@@ -24,77 +20,38 @@ const s3Client = new S3Client({
 });
 
 const OUTPUT_BUCKET = process.env.DO_PROCESSED_BUCKET;
-const BACKEND_API_URL = process.env.BACKEND_API_URL; // Your main backend's update endpoint
-const BACKEND_API_KEY = process.env.BACKEND_API_KEY; // A secret key to secure your backend endpoint
+const BACKEND_API_URL = process.env.BACKEND_API_URL;
+const BACKEND_API_KEY = process.env.BACKEND_API_KEY;
 
-/**
- * This endpoint receives the event from Eventarc of Google cloud.
- * It expects a JSON body like: { "bucket": "my-raw-videos", "filename": "new-video.mp4" }
- */
-app.post('/transcode', async (req, res) => {
-    console.log('Received a dispatch request.');
+async function main() {
+    // These inputs are passed from the Cloud Function dispatcher
+    const filename = process.env.INPUT_VIDEO_PATH;
+    const quality = parseInt(process.env.INPUT_QUALITY || '720');
+    const videoId = process.env.INPUT_VIDEO_ID;
 
-
-    const message = req.body.message;
-    console.log('Eventarc message received:', message);
-    if (!message) {
-        console.error('Invalid Eventarc request:', req.body);
-        return res.status(400).send('Bad Request: Invalid message format.');
+    if (!filename) {
+        console.error("No filename provided. Exiting.");
+        process.exit(1);
     }
 
-    const payload = JSON.parse(Buffer.from(message.data, 'base64').toString('utf-8'));
-    const { filePath: filename, quality, videoId } = payload;
-    console.log("Payload decoded ==> ", payload)
-
-    if (!filename || !quality) {
-        return res.status(400).send('Bad Request: Missing filename or quality.');
-    }
-
-    console.log(`Processing for transcode: ${filename} at ${quality}p`);
+    console.log(`[JOB_START] Processing: ${filename} at ${quality}p`);
     const tempDir = `/tmp/${path.parse(filename).name}-${Date.now()}`;
 
     try {
         await fs.mkdir(tempDir, { recursive: true });
+        // processVideo and updateBackend remain the same as your original service code
+        const hlsPath = await processVideo(OUTPUT_BUCKET, filename, quality, tempDir);
+        await updateBackend(filename, hlsPath, videoId);
 
-        const hlsPath = await processVideo(OUTPUT_BUCKET, filename, quality, tempDir); //Transcode video and get manifest URL
-
-        await updateBackend(filename, hlsPath, videoId); //Update main backend with manifest URL
-
-        res.status(200).send(`Successfully processed ${filename}`);
-
+        console.log(`[JOB_SUCCESS] Completed ${filename}`);
+        process.exit(0);
     } catch (error) {
         console.error(`[JOB_FAILED] for ${filename}:`, error.message);
-        res.status(500).send('Job processing failed.');
+        process.exit(1); // Exit with 1 so Google Cloud knows the task failed
     } finally {
-        if (tempDir) {
-            await fs.rm(tempDir, { recursive: true, force: true });
-        }
+        await fs.rm(tempDir, { recursive: true, force: true });
     }
-});
-
-
-//Health check endpoint
-app.get('/health', (req, res) => {
-    console.log("\n Transoding service is running...")
-    res.status(200).send('Transcoding service is running...');
-})
-
-const PORT = process.env.PORT || 8080;
-const server = app.listen(PORT, () => {
-    console.log(`Transcoding service listening on port ${PORT}`);
-});
-
-const gracefulShutdown = async (signal) => {
-    console.log(`\n${signal} received, shutting down gracefully...`);
-    server.close(async () => {
-        console.log("HTTP server closed");
-        process.exit(0);
-    });
-};
-
-process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-process.on("SIGINT", () => gracefulShutdown("SIGINT"));
-
+}
 
 
 
@@ -201,10 +158,6 @@ async function processVideo(bucket, filename, quality, tempDir) {
     await uploadRecursive(outputDir);
     console.log('Uploading complete....');
 
-    // Clean up the original raw video file
-    // await s3Client.send(new DeleteObjectCommand({ Bucket: bucket, Key: filename }));
-    // console.log(`Deleted original file: s3://${bucket}/${filename}`);
-
     return `/${uploadDir}/master.m3u8`;
 }
 
@@ -227,3 +180,6 @@ async function updateBackend(originalFilename, hlsPath, videoId) {
         throw new Error('Could not update the backend application.');
     }
 }
+
+
+main();
