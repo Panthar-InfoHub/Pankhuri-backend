@@ -33,7 +33,7 @@ export const createPlan = async (
         // Step 2: Create plan in payment gateway for RECURRING billing
         const gatewayPlan = await createGatewayPlan({
             name: plan.name,
-            amount: plan.price,
+            amount: plan.discountedPrice ?? plan.price,
             currency: plan.currency,
             // period needs to be 'monthly' or 'yearly' for Razorpay
             period: plan.subscriptionType as "monthly" | "yearly",

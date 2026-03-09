@@ -56,11 +56,11 @@ export const initiateCoursePurchase = async (userId: string, courseId: string) =
         throw new Error("No active purchase plan found for this course. Access cannot be granted.");
     }
 
-    const price = plan.price;
+    const price = plan.discountedPrice ?? plan.price;
 
     // 4. Create Razorpay Order
     const gatewayOrder = await razorpay.orders.create({
-        amount: plan.price, // already in paise
+        amount: plan.discountedPrice ?? plan.price, // already in paise
         currency: plan.currency,
         notes: {
             userId,
@@ -109,14 +109,14 @@ export const initiateCoursePurchase = async (userId: string, courseId: string) =
 
     return {
         orderId: gatewayOrder.id,
-        amount: plan.price,
-        amountInRupees: plan.price / 100,
+        amount: plan.discountedPrice ?? plan.price,
+        amountInRupees: (plan.discountedPrice ?? plan.price) / 100,
         currency: plan.currency,
         keyId: process.env.RAZORPAY_KEY_ID!,
         planName: plan.name,
         subscriptionType: "lifetime",
         userSubscriptionId: subscription.id,
-        message: `Direct purchase: ₹${plan.price / 100} for lifetime access`,
+        message: `Direct purchase: ₹${(plan.discountedPrice ?? plan.price) / 100} for lifetime access`,
     };
 };
 
