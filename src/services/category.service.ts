@@ -111,7 +111,8 @@ const attachPricingToCategories = async (categories: any[], userId?: string) => 
         isPaid: !!effectivePlan,
         hasAccess: currentCatHasAccess,
         // Only show direct category plan, not inherited or app-wide plans
-        pricing: directPlans
+        pricing: directPlans,
+        wholeAppPlans: allPlans.filter(p => p.planType === PlanType.WHOLE_APP)
       };
 
       if (cat.children && cat.children.length > 0) {

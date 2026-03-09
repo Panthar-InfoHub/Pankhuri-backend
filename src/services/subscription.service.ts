@@ -95,7 +95,7 @@ export const initiateSubscription = async (userId: string, planId: string, data?
   }
 
   // Prevent paying for free plans
-  if (plan.price <= 0) {
+  if ((plan.discountedPrice ?? plan.price) <= 0) {
     throw new Error("This plan is free. You don't need to initiate a purchase.");
   }
 
@@ -144,7 +144,7 @@ export const initiateSubscription = async (userId: string, planId: string, data?
         planId: plan.id,
         userSubscriptionId: sub.id,
         orderId: receipt.orderId,
-        amount: plan.price,
+        amount: plan.discountedPrice ?? plan.price,
         currency: plan.currency,
         paymentGateway: 'google_play',
         status: 'paid',
@@ -221,7 +221,7 @@ export const initiateSubscription = async (userId: string, planId: string, data?
   if (plan.subscriptionType === "lifetime") {
     // 1. Create order in gateway
     const gatewayOrder = await createGatewayOrder({
-      amount: plan.price, // already in paise
+      amount: plan.discountedPrice ?? plan.price, // already in paise
       currency: plan.currency,
       notes: {
         userId,
@@ -257,7 +257,7 @@ export const initiateSubscription = async (userId: string, planId: string, data?
         planId: plan.id,
         userSubscriptionId: subscription.id,
         orderId: gatewayOrder.id,
-        amount: plan.price,
+        amount: plan.discountedPrice ?? plan.price,
         currency: plan.currency,
         paymentType: "one_time",
         status: "pending",
@@ -271,13 +271,13 @@ export const initiateSubscription = async (userId: string, planId: string, data?
 
     return {
       orderId: gatewayOrder.id,
-      amount: plan.price,
+      amount: plan.discountedPrice ?? plan.price,
       currency: plan.currency,
       keyId: process.env.RAZORPAY_KEY_ID!,
       planName: plan.name,
       subscriptionType: "lifetime",
       userSubscriptionId: subscription.id,
-      message: `Direct purchase: ₹${plan.price / 100} for lifetime access`,
+      message: `Direct purchase: ₹${(plan.discountedPrice ?? plan.price) / 100} for lifetime access`,
     };
   }
 
@@ -379,7 +379,7 @@ export const initiateSubscription = async (userId: string, planId: string, data?
   return {
     subscriptionId: gatewaySubscription.id,
     shortUrl: gatewaySubscription.shortUrl!,
-    amount: hasTrialFee ? plan.trialFee : plan.price,
+    amount: hasTrialFee ? plan.trialFee : (plan.discountedPrice ?? plan.price),
     currency: plan.currency,
     keyId: process.env.RAZORPAY_KEY_ID!,
     trialDays: hasTrial ? plan.trialDays : 0,
@@ -388,9 +388,9 @@ export const initiateSubscription = async (userId: string, planId: string, data?
     hasTrialFee,
     message: hasTrial
       ? hasTrialFee
-        ? `Pay ₹${plan.trialFee} trial fee for ${plan.trialDays} days trial`
-        : `Free ${plan.trialDays} days trial, then ₹${plan.price}/${plan.subscriptionType}`
-      : `Direct subscription: ₹${plan.price}/${plan.subscriptionType}`,
+        ? `Pay ₹${plan.trialFee / 100} trial fee for ${plan.trialDays} days trial`
+        : `Free ${plan.trialDays} days trial, then ₹${(plan.discountedPrice ?? plan.price) / 100}/${plan.subscriptionType}`
+      : `Direct subscription: ₹${(plan.discountedPrice ?? plan.price) / 100}/${plan.subscriptionType}`,
   };
 };
 
