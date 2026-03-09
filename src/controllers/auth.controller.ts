@@ -4,6 +4,7 @@ import { Request, Response } from "express";
 import { generateJWT } from "../lib/jwt";
 import {
   findAdminByEmail,
+  findUserByEmail,
   findOrCreateUserByEmail,
   findOrCreateUserByPhone,
 } from "../services/user.service";
@@ -264,8 +265,8 @@ export const testerLogin = async (req: Request, res: Response) => {
       });
     }
 
-    // Find user by email
-    const user = await findOrCreateUserByEmail(email);
+    // Find user by email (don't create if not exists for security)
+    const user = await findUserByEmail(email);
 
     if (!user) {
       return res.status(404).json({
