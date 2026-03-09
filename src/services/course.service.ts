@@ -114,6 +114,7 @@ const attachPricingToCourses = async (courses: any[], userId?: string) => {
       isPaid: !!plan,
       hasAccess: isOwned || !plan,
       pricing: coursePlan || null,
+      wholeAppPlans: allPlans.filter(p => p.planType === PlanType.WHOLE_APP)
     };
   });
 };
