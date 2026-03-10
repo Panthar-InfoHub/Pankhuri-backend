@@ -1,28 +1,26 @@
-enum ModuleStatus {
-  draft
-  published
-  archived
-}
-
 model Module {
   id          String       @id @default(cuid())
   courseId    String
   title       String
   slug        String
-  description String?      @db.Text
-  sequence    Int // Order within course
-  duration    Int? // Total duration in minutes (calculated from lessons)
+  description String?
+  sequence    Int
+  duration    Int?
   status      ModuleStatus @default(published)
   metadata    Json?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
-
-  // Relations
-  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lessons Lesson[]
+  lessons     Lesson[]
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([courseId, slug])
   @@index([courseId])
   @@index([sequence])
   @@index([status])
+}
+
+enum ModuleStatus {
+  draft
+  published
+  archived
 }

@@ -1,3 +1,37 @@
+model User {
+  id                 String               @id @default(uuid())
+  email              String?              @unique
+  phone              String?              @unique
+  displayName        String?
+  profileImage       String?
+  dateOfBirth        DateTime?
+  gender             Gender?
+  countryCode        String?
+  languagePreference String?              @default("en")
+  isEmailVerified    Boolean              @default(false)
+  isPhoneVerified    Boolean              @default(false)
+  status             UserStatus           @default(active)
+  role               UserRole             @default(user)
+  hasUsedTrial       Boolean              @default(false)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  metadata           Json?
+  profession         String?
+  deletedAt          DateTime?
+  certificates       Certificate[]
+  payments           Payment[]
+  sessions           Session[]
+  trainerProfile     Trainer?             @relation("TrainerProfile")
+  courseProgress     UserCourseProgress[]
+  entitlements       UserEntitlement[]
+  lessonProgress     UserLessonProgress[]
+  subscriptions      UserSubscription[]
+  reviews            CourseReview[]
+
+  @@index([email])
+  @@index([phone])
+}
+
 enum Gender {
   male
   female
@@ -15,40 +49,4 @@ enum UserStatus {
 enum UserRole {
   user
   admin
-}
-
-model User {
-  id                 String     @id @default(uuid())
-  email              String?    @unique
-  phone              String?    @unique
-  displayName        String?
-  profileImage       String?
-  dateOfBirth        DateTime?
-  gender             Gender?
-  countryCode        String?
-  languagePreference String?    @default("en")
-  isEmailVerified    Boolean    @default(false)
-  isPhoneVerified    Boolean    @default(false)
-  status             UserStatus @default(active)
-  role               UserRole   @default(user)
-  hasUsedTrial       Boolean    @default(false)
-  profession         String?
-  metadata           Json? // Store additional info like referral source, hobbies, etc.
-  deletedAt          DateTime?
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
-
-  // Relations
-  trainerProfile Trainer?             @relation("TrainerProfile")
-  sessions       Session[]
-  lessonProgress UserLessonProgress[]
-  courseProgress UserCourseProgress[]
-  reviews        CourseReview[]
-  subscriptions  UserSubscription[]
-  payments       Payment[]
-  certificates   Certificate[]
-  entitlements   UserEntitlement[]
-
-  @@index([email])
-  @@index([phone])
 }

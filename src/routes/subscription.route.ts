@@ -16,6 +16,7 @@ import {
   cancelPendingSubscriptionByIdHandler,
   handleGooglePlaySubscriptionCreate,
   getAllSubscriptionsHandler,
+  grantManualSubscriptionHandler,
 } from "@/controllers/subscription.controller";
 import { authenticateWithSession, requireAdmin } from "@/middleware/session.middleware";
 
@@ -23,6 +24,7 @@ const router = express.Router();
 
 // Admin routes
 router.get("/admin/all", authenticateWithSession, requireAdmin, getAllSubscriptionsHandler);
+router.post("/admin/grant-manual", authenticateWithSession, requireAdmin, grantManualSubscriptionHandler);
 
 // User routes
 router.get("/status", authenticateWithSession, getSubscriptionStatusHandler);

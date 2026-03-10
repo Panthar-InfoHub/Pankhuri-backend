@@ -1,41 +1,27 @@
-enum LessonType {
-  video
-  text
-}
-
-enum LessonStatus {
-  draft
-  scheduled
-  published
-  archived
-}
-
 model Lesson {
-  id          String       @id @default(cuid())
-  courseId    String
-  moduleId    String? // Optional - lesson can be directly under course or inside a module
-  title       String
-  slug        String
-  type        LessonType   @default(video)
-  description String?      @db.Text
-  sequence    Int // Order within course or module
-  duration    Int? // in minutes (calculated/cached)
-  isFree      Boolean      @default(false) // Preview/free lessons
-  isMandatory Boolean      @default(true)
-  status      LessonStatus @default(published)
-  scheduledAt DateTime? // For scheduled lessons
-  metadata    Json?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-
-  // Relations
+  id                String               @id @default(cuid())
+  courseId          String
+  moduleId          String?
+  title             String
+  slug              String
+  type              LessonType           @default(video)
+  description       String?
+  sequence          Int
+  duration          Int?
+  isFree            Boolean              @default(false)
+  isMandatory       Boolean              @default(true)
+  status            LessonStatus         @default(published)
+  metadata          Json?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  scheduledAt       DateTime?
   course            Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  module            Module?              @relation(fields: [moduleId], references: [id], onDelete: SetNull)
-  textLesson        TextLesson?
-  videoLesson       VideoLesson?
-  lessonDescription LessonDescription?
+  module            Module?              @relation(fields: [moduleId], references: [id])
   lessonAttachments LessonAttachment[]
+  lessonDescription LessonDescription?
+  textLesson        TextLesson?
   lessonProgress    UserLessonProgress[]
+  videoLesson       VideoLesson?
 
   @@unique([courseId, slug])
   @@index([courseId])
@@ -43,4 +29,16 @@ model Lesson {
   @@index([sequence])
   @@index([status])
   @@index([type])
+}
+
+enum LessonType {
+  video
+  text
+}
+
+enum LessonStatus {
+  draft
+  published
+  archived
+  scheduled
 }

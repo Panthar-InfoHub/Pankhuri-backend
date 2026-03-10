@@ -17,6 +17,7 @@ import {
   verifyGooglePlayReceipt,
   acknowledgeGooglePlayPurchase,
   getAllSubscriptions,
+  grantManualSubscription,
 } from "@/services/subscription.service";
 import { GooglePlayReceipt } from "@/lib/types";
 import { SubscriptionStatus } from "@/prisma/generated/prisma/client";
@@ -339,6 +340,42 @@ export const getAllSubscriptionsHandler = async (
     return res.status(200).json({
       success: true,
       ...result,
+    });
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+/**
+ * Admin: Grant manual subscription (Cash/Offline payment)
+ * POST /api/subscriptions/admin/grant-manual
+ * Authenticated + Admin
+ */
+export const grantManualSubscriptionHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { userId, planId, amount, expiryDate, notes } = req.body;
+
+    if (!userId || !planId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID and Plan ID are required",
+      });
+    }
+
+    const subscription = await grantManualSubscription(userId, planId, {
+      amount,
+      expiryDate: expiryDate ? new Date(expiryDate) : undefined,
+      notes,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Subscription granted manually",
+      data: subscription,
     });
   } catch (error: any) {
     next(error);

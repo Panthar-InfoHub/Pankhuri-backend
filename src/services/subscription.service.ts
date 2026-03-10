@@ -900,3 +900,110 @@ export const getAllSubscriptions = async (
     },
   };
 };
+
+/**
+ * Admin: Grant manual subscription (Cash/Offline payment)
+ */
+export const grantManualSubscription = async (
+  userId: string,
+  planId: string,
+  options: {
+    amount?: number;
+    expiryDate?: Date;
+    notes?: string;
+  } = {}
+) => {
+  const plan = await prisma.subscriptionPlan.findUnique({
+    where: { id: planId, isActive: true },
+  });
+
+  if (!plan) {
+    throw new Error("Plan not found or inactive");
+  }
+
+  // 1. Calculate Period
+  const now = new Date();
+  let currentPeriodEnd: Date | null = null;
+
+  if (options.expiryDate) {
+    currentPeriodEnd = options.expiryDate;
+  } else if (plan.subscriptionType === "lifetime") {
+    currentPeriodEnd = null; // No expiry for lifetime
+  } else if (plan.subscriptionType === "monthly") {
+    currentPeriodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  } else if (plan.subscriptionType === "yearly") {
+    currentPeriodEnd = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+  }
+
+  // 2. Atomic Transaction: Subscription, Payment, and Entitlement
+  return await prisma.$transaction(async (tx) => {
+    // A. Create/Update Subscription
+    const subscription = await tx.userSubscription.upsert({
+      where: {
+        userId_planId: { userId, planId },
+      },
+      update: {
+        status: "active",
+        provider: "manual",
+        currentPeriodStart: now,
+        currentPeriodEnd: currentPeriodEnd,
+        isTrial: false,
+        updatedAt: now,
+      },
+      create: {
+        userId,
+        planId,
+        status: "active",
+        provider: "manual",
+        currentPeriodStart: now,
+        currentPeriodEnd: currentPeriodEnd,
+        isTrial: false,
+      },
+    });
+
+    // B. Create Payment Record (Mark as Paid since it's manual/cash)
+    await tx.payment.create({
+      data: {
+        userId,
+        planId,
+        userSubscriptionId: subscription.id,
+        amount: options.amount ?? (plan.discountedPrice ?? plan.price),
+        currency: plan.currency,
+        paymentGateway: "manual",
+        paymentType: plan.subscriptionType === "lifetime" ? "one_time" : "recurring",
+        status: "paid",
+        metadata: {
+          grantReason: "Admin Manual Grant",
+          notes: options.notes,
+        },
+      },
+    });
+
+    // C. Grant Entitlement
+    await tx.userEntitlement.upsert({
+      where: {
+        userId_type_targetId: {
+          userId,
+          type: plan.planType,
+          targetId: plan.targetId || "",
+        },
+      },
+      update: {
+        status: "active",
+        source: "ADMIN_MANUAL",
+        validUntil: currentPeriodEnd,
+        updatedAt: now,
+      },
+      create: {
+        userId,
+        type: plan.planType,
+        targetId: plan.targetId || "",
+        status: "active",
+        source: "ADMIN_MANUAL",
+        validUntil: currentPeriodEnd,
+      },
+    });
+
+    return subscription;
+  });
+};

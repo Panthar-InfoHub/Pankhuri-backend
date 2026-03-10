@@ -1,3 +1,42 @@
+model Course {
+  id             String               @id @default(cuid())
+  categoryId     String
+  trainerId      String?
+  title          String
+  slug           String               @unique
+  description    String?
+  thumbnailImage String?
+  coverImage     String?
+  level          CourseLevel          @default(beginner)
+  duration       Int?
+  language       String               @default("en")
+  status         CourseStatus         @default(active)
+  hasCertificate Boolean              @default(false)
+  rating         Float                @default(0)
+  averageRating  Float                @default(0)
+  totalReviews   Int                  @default(0)
+  tags           String[]             @default([])
+  metadata       Json?
+  demoVideoId    String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  certificates   Certificate[]
+  category       Category             @relation(fields: [categoryId], references: [id])
+  demoVideo      Video?               @relation("DemoVideos", fields: [demoVideoId], references: [id])
+  trainer        Trainer?             @relation("TrainerCourses", fields: [trainerId], references: [id])
+  lessons        Lesson[]
+  modules        Module[]
+  courseProgress UserCourseProgress[]
+  reviews        CourseReview[]
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([trainerId])
+  @@index([status])
+  @@index([level])
+  @@index([language])
+}
+
 enum CourseLevel {
   beginner
   intermediate
@@ -9,46 +48,4 @@ enum CourseStatus {
   active
   inactive
   archived
-}
-
-model Course {
-  id             String       @id @default(cuid())
-  categoryId     String
-  trainerId      String?
-  title          String
-  slug           String       @unique
-  description    String?      @db.Text
-  thumbnailImage String?
-  coverImage     String?
-  level          CourseLevel  @default(beginner)
-  duration       Int? // in minutes
-  language       String       @default("en")
-  status         CourseStatus @default(active)
-  hasCertificate Boolean      @default(false)
-  rating         Float        @default(0)
-  averageRating  Float        @default(0) // Cached rating from reviews
-  totalReviews   Int          @default(0) // Cached review count
-  tags           String[]     @default([])
-  metadata       Json?
-  demoVideoId    String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  // Relations
-  category  Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  trainer   Trainer? @relation("TrainerCourses", fields: [trainerId], references: [id], onDelete: SetNull)
-  demoVideo Video?   @relation("DemoVideos", fields: [demoVideoId], references: [id], onDelete: SetNull)
-
-  modules        Module[]
-  lessons        Lesson[] // Direct lessons (not inside modules)
-  courseProgress UserCourseProgress[]
-  reviews        CourseReview[]
-  certificates   Certificate[]
-
-  @@index([slug])
-  @@index([categoryId])
-  @@index([trainerId])
-  @@index([status])
-  @@index([level])
-  @@index([language])
 }
