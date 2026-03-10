@@ -962,19 +962,24 @@ export const grantManualSubscription = async (
     });
 
     // B. Create Payment Record (Mark as Paid since it's manual/cash)
+    const officialPrice = plan.discountedPrice ?? plan.price;
+    const isCustomPrice = options.amount !== undefined && options.amount !== officialPrice;
+
     await tx.payment.create({
       data: {
         userId,
         planId,
         userSubscriptionId: subscription.id,
-        amount: options.amount ?? (plan.discountedPrice ?? plan.price),
+        amount: options.amount ?? officialPrice,
         currency: plan.currency,
         paymentGateway: "manual",
-        paymentType: plan.subscriptionType === "lifetime" ? "one_time" : "recurring",
+        paymentType: "one_time", // Manual grants NEVER auto-renew, so mark as one_time
         status: "paid",
         metadata: {
           grantReason: "Admin Manual Grant",
           notes: options.notes,
+          isCustomPrice,
+          originalPlanPrice: officialPrice
         },
       },
     });
