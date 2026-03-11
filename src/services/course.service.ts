@@ -508,6 +508,22 @@ export const deleteCourse = async (id: string) => {
   return { message: "Course deleted successfully", course };
 };
 
+/**
+ * Update course duration based on all its lessons
+ */
+export const updateCourseDuration = async (courseId: string, tx?: any): Promise<void> => {
+  const db = tx || prisma;
+  const result = await db.lesson.aggregate({
+    where: { courseId },
+    _sum: { duration: true },
+  });
+
+  await db.course.update({
+    where: { id: courseId },
+    data: { duration: result._sum.duration || 0 },
+  });
+};
+
 export const togglePublish = async (id: string, status: CourseStatus) => {
   return await prisma.course.update({
     where: { id },
