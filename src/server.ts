@@ -16,6 +16,7 @@ import uploadRoutes from "@/routes/upload.route";
 import userRoutes from "@/routes/user.route";
 import videoRoutes from "@/routes/video.route";
 import webhookRoutes from "@/routes/webhook.route";
+import schedulerRoutes from "@/routes/scheduler.route";
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
@@ -56,6 +57,7 @@ app.use("/api/webhooks", webhookRoutes);
 app.use("/api/purchases", purchaseRoutes);
 app.use("/api/entitlements", entitlementRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/scheduler", schedulerRoutes);
 
 //Health check
 app.get("/ping", (_, res) => {

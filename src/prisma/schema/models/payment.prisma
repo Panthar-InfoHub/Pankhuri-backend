@@ -46,6 +46,8 @@ model UserSubscription {
   user                 User               @relation(fields: [userId], references: [id])
 
   @@unique([userId, planId])
+  @@index([status])
+  @@index([currentPeriodEnd])
 }
 
 model Payment {
@@ -89,6 +91,8 @@ model UserEntitlement {
   @@unique([userId, type, targetId])
   @@index([userId])
   @@index([userId, status])
+  @@index([status])
+  @@index([validUntil])
 }
 
 enum PaymentGateway {
