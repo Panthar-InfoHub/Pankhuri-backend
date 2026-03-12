@@ -9487,6 +9487,42 @@
         }
       ],
       "description": "FAQ management endpoints.\n\n**Two types of FAQs:**\n1. **Global FAQs** - Brand-level FAQs shown on the landing page (public, no restrictions)\n2. **Course FAQs** - Course-specific FAQs embedded in the course detail API response\n   - First 3 FAQs are always free/visible\n   - FAQs 4+ require course access (entitlement)\n   - Returned in `faqData` field of course detail response\n\n**Admin endpoints use strict validation:**\n- Global create/update will error if courseId is present\n- Course create/update will error if courseId is missing\n- This prevents accidental cross-contamination"
+    },
+    {
+      "name": "Admin Orders",
+      "item": [
+        {
+          "name": "Get All Orders",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{authToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/orders?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "orders"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number (default: 1)" },
+                { "key": "limit", "value": "20", "description": "Items per page (default: 20, max: 100)" },
+                { "key": "status", "value": "paid", "description": "Filter: pending | paid | failed | refunded", "disabled": true },
+                { "key": "paymentType", "value": "one_time", "description": "Filter: trial | recurring | one_time", "disabled": true },
+                { "key": "paymentGateway", "value": "razorpay", "description": "Filter: razorpay | google_play | manual", "disabled": true },
+                { "key": "planType", "value": "COURSE", "description": "Filter: WHOLE_APP | CATEGORY | COURSE", "disabled": true },
+                { "key": "search", "value": "", "description": "Search by user name, email, phone, orderId, paymentId", "disabled": true },
+                { "key": "dateFrom", "value": "2026-01-01", "description": "Filter: start date (YYYY-MM-DD)", "disabled": true },
+                { "key": "dateTo", "value": "2026-12-31", "description": "Filter: end date (YYYY-MM-DD)", "disabled": true },
+                { "key": "sort", "value": "newest", "description": "Sort: newest | oldest | amount_high | amount_low", "disabled": true }
+              ]
+            },
+            "description": "**Admin only** - Get all orders (payment records) with comprehensive filtering, search, pagination, and revenue summary.\n\n**Response includes:**\n- `data` - Array of order objects with user info, plan info, amounts\n- `pagination` - Page info with total count\n- `summary` - Revenue totals and status breakdown counts\n\n**Filters (all optional):**\n- `status` - Payment status filter\n- `paymentType` - Payment type filter\n- `paymentGateway` - Gateway filter (razorpay, google_play, manual)\n- `planType` - Plan type filter (WHOLE_APP, CATEGORY, COURSE)\n- `search` - Full-text search across user name, email, phone, orderId, paymentId\n- `dateFrom` / `dateTo` - Date range filter (YYYY-MM-DD)\n- `sort` - Sort order\n\n**Amount note:** `amount` is in paise, `amountInRupees` is the human-readable value."
+          },
+          "response": []
+        }
+      ],
+      "description": "Admin dashboard order management. Queries the Payment table with user and plan details for the orders page."
     }
   ],
   "auth": {
