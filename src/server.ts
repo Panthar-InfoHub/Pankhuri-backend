@@ -4,6 +4,7 @@ import brandSettingRoutes from "@/routes/brandSetting.route";
 import categoryRoutes from "@/routes/category.route";
 import certificateRoutes from "@/routes/certificate.route";
 import courseRoutes from "@/routes/course.route";
+import faqRoutes from "@/routes/faq.route";
 import entitlementRoutes from "@/routes/entitlement.route";
 import lessonRoutes from "@/routes/lesson.route";
 import moduleRoutes from "@/routes/module.route";
@@ -60,6 +61,7 @@ app.use("/api/purchases", purchaseRoutes);
 app.use("/api/entitlements", entitlementRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/scheduler", schedulerRoutes);
+app.use("/api/faqs", faqRoutes);
 
 //Health check
 app.get("/ping", (_, res) => {

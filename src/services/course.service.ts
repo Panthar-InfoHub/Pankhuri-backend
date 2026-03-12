@@ -1,6 +1,7 @@
 import { Prisma, CourseStatus, CourseLevel, PlanType } from "@/prisma/generated/prisma/client";
 import { prisma } from "../lib/db";
 import { deactivatePlansByTarget } from "./plan.service";
+import { getCourseFaqData } from "./faq.service";
 
 // ==================== HELPERS ====================
 
@@ -377,10 +378,14 @@ export const getCourseById = async (id: string, userId?: string) => {
       course.hasCertificate && hasAccess && (progress?.isCompleted || false);
   }
 
+  // --- FAQ Section ---
+  const faqData = await getCourseFaqData(id, hasAccess);
+
   return {
     ...courseWithPricing,
     curriculum,
     certificateInfo,
+    faqData,
     stats: {
       totalModules: rawModules.length,
       totalLessons,
