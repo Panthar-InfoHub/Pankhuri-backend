@@ -1,5 +1,6 @@
 import { connectDB, disconnectDB } from "@/lib/db";
 import authRoutes from "@/routes/auth.route";
+import brandSettingRoutes from "@/routes/brandSetting.route";
 import categoryRoutes from "@/routes/category.route";
 import certificateRoutes from "@/routes/certificate.route";
 import courseRoutes from "@/routes/course.route";
@@ -40,6 +41,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/brand-settings", brandSettingRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/videos", videoRoutes);
 app.use("/api/stream", streamRouter);
