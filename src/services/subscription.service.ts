@@ -556,25 +556,6 @@ export const cancelImmediately = async (
 // ==================== BACKGROUND JOBS ====================
 
 /**
- * Expire trial subscriptions (background job)
- */
-export const expireTrialSubscriptions = async (): Promise<number> => {
-  const result = await prisma.userSubscription.updateMany({
-    where: {
-      status: "trial",
-      isTrial: true,
-      trialEndsAt: { lte: new Date() },
-    },
-    data: {
-      status: "active",
-      isTrial: false,
-    },
-  });
-
-  return result.count;
-};
-
-/**
  * Expire grace periods (background job)
  */
 export const expireGracePeriods = async (): Promise<number> => {
