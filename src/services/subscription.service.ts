@@ -3,12 +3,14 @@
  * Flexible subscription with optional trial (free or paid)
  */
 
+import crypto from "crypto";
 import { prisma } from "@/lib/db";
 import { UserSubscription, SubscriptionStatus } from "@/prisma/generated/prisma/client";
 import { createGatewaySubscription, cancelGatewaySubscription, createGatewayOrder } from "@/lib/payment-gateway";
 import { GooglePlayReceipt } from "@/lib/types";
 import { google_auth } from "@/lib/pub_sub";
 import { syncSubscriptionToEntitlement } from "./entitlement.service";
+import { sendFbPurchaseEvent } from "./facebook.service";
 
 // ==================== INITIATE SUBSCRIPTION ====================
 
@@ -392,6 +394,125 @@ export const initiateSubscription = async (userId: string, planId: string, data?
         : `Free ${plan.trialDays} days trial, then ₹${(plan.discountedPrice ?? plan.price) / 100}/${plan.subscriptionType}`
       : `Direct subscription: ₹${(plan.discountedPrice ?? plan.price) / 100}/${plan.subscriptionType}`,
   };
+};
+
+// ==================== VERIFY SUBSCRIPTION ====================
+
+/**
+ * Verify subscription payment signature and activate (from Frontend Modal)
+ */
+export const verifySubscription = async (
+  userId: string,
+  subscriptionId: string,
+  paymentId: string,
+  signature: string
+) => {
+  // 1. Verify signature
+  const expectedSignature = crypto
+    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
+    .update(paymentId + "|" + subscriptionId)
+    .digest("hex");
+
+  if (expectedSignature !== signature) {
+    throw new Error("Invalid payment signature. Fraudulent transaction detected.");
+  }
+
+  // 2. Find internal subscription record
+  const subscription = await prisma.userSubscription.findUnique({
+    where: { subscriptionId },
+    include: {
+      plan: true,
+      user: {
+        select: { email: true, phone: true }
+      }
+    },
+  });
+
+  if (!subscription || !subscription.plan) {
+    throw new Error("Subscription record or associated plan not found.");
+  }
+
+  if (subscription.userId !== userId) {
+    throw new Error("Unauthorized: Subscription does not belong to this user.");
+  }
+
+  // 3. Skip if already active/trial (avoid redundant heavy processing)
+  if (subscription.status === "active" || subscription.status === "trial") {
+    console.log(`[Verify] Subscription ${subscriptionId} already processed (status: ${subscription.status})`);
+    return subscription;
+  }
+
+  // 4. Determine status and trial dates
+  const hasTrial = subscription.plan.trialDays > 0;
+
+  let trialEndsAt: Date | null = null;
+  if (hasTrial) {
+    trialEndsAt = new Date();
+    trialEndsAt.setDate(trialEndsAt.getDate() + (subscription.plan.trialDays || 0));
+  }
+
+  const finalStatus: SubscriptionStatus = hasTrial ? "trial" : "active";
+
+  console.log(`[Verify] Manually activating subscription ${subscriptionId} to ${finalStatus}`);
+
+  // 5. Atomic Update
+  const updatedSub = await prisma.$transaction(async (tx) => {
+    // A. Update Payment Record
+    await tx.payment.updateMany({
+      where: {
+        gatewaySubscriptionId: subscriptionId,
+        status: "pending",
+      },
+      data: {
+        status: "paid",
+        paymentId,
+        updatedAt: new Date(),
+        isWebhookProcessed: true,
+      },
+    });
+
+    // B. Update Subscription
+    const sub = await tx.userSubscription.update({
+      where: { id: subscription.id },
+      data: {
+        status: finalStatus,
+        trialEndsAt,
+        updatedAt: new Date(),
+      },
+      include: { plan: true }
+    });
+
+    // C. Update User
+    if (hasTrial) {
+      await tx.user.update({
+        where: { id: userId },
+        data: { hasUsedTrial: true },
+      });
+    }
+
+    return sub;
+  });
+
+  // 6. Post-transaction tasks
+  try {
+    sendFbPurchaseEvent({
+      email: subscription.user?.email,
+      phone: subscription.user?.phone,
+      amount: subscription.plan.trialFee || 0,
+      currency: subscription.plan.currency,
+      paymentId: paymentId,
+      itemName: subscription.plan.name,
+      itemType: subscription.plan.planType,
+    });
+
+    await syncSubscriptionToEntitlement(updatedSub.id);
+    await cleanupRedundantSubscriptions(userId, subscription.plan.planType, subscription.plan.targetId || undefined);
+
+  } catch (err) {
+    console.error(`[Verify] Post-verification tasks failed:`, err);
+  }
+
+  return updatedSub;
 };
 
 // ==================== GET SUBSCRIPTIONS ====================
