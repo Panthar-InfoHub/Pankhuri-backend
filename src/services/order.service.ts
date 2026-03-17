@@ -82,6 +82,7 @@ export const getAdminOrders = async (filters: OrderFilters) => {
       { user: { phone: { contains: search } } },
       { orderId: { contains: search, mode: "insensitive" } },
       { paymentId: { contains: search, mode: "insensitive" } },
+      { plan: { name: { contains: search, mode: "insensitive" } } },
     ];
   }
 
