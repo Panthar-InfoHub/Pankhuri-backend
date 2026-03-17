@@ -210,3 +210,32 @@ export const getAdminOrders = async (filters: OrderFilters) => {
     },
   };
 };
+
+// ==================== ADMIN: GET ORDER BY ID ====================
+export const getAdminOrderById = async (id: string) => {
+  const order = await prisma.payment.findUnique({
+    where: { id },
+    include: {
+      user: {
+        select: {
+          id: true,
+          displayName: true,
+          email: true,
+          phone: true,
+          profileImage: true,
+          createdAt: true,
+        }
+      },
+      plan: true,
+      userSubscription: {
+        include: {
+          payments: {
+            take: 5,
+            orderBy: { createdAt: "desc" }
+          }
+        }
+      }
+    }
+  });
+  return order;
+};

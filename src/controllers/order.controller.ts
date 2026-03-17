@@ -107,3 +107,33 @@ export const getAdminOrdersHandler = async (
     next(error);
   }
 };
+
+/**
+ * GET /api/admin/orders/:id
+ * Admin: Get order details by ID
+ */
+export const getAdminOrderByIdHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    const order = await orderService.getAdminOrderById(id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: order,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
