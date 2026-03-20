@@ -74,6 +74,12 @@ model Payment {
   plan                  SubscriptionPlan? @relation(fields: [planId], references: [id])
   user                  User              @relation(fields: [userId], references: [id])
   userSubscription      UserSubscription? @relation(fields: [userSubscriptionId], references: [id])
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId])
+  @@index([paymentType])
+  @@index([paymentGateway])
 }
 
 model UserEntitlement {

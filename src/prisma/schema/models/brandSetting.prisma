@@ -1,0 +1,12 @@
+model BrandSetting {
+  id                 String   @id @default("active_settings")
+  globalWhatsappLink String?
+  
+  /** 
+   * announcements: Array of JSON objects
+   * [{ "id": "...", "text": "...", "link": "...", "isActive": true, "styles": { "bgColor": "...", "textColor": "..." } }, ...]
+   */
+  announcements      Json     @default("[]")
+  
+  updatedAt          DateTime @updatedAt
+}

@@ -17,6 +17,7 @@ import {
   handleGooglePlaySubscriptionCreate,
   getAllSubscriptionsHandler,
   grantManualSubscriptionHandler,
+  verifySubscriptionHandler,
 } from "@/controllers/subscription.controller";
 import { authenticateWithSession, requireAdmin } from "@/middleware/session.middleware";
 
@@ -30,6 +31,7 @@ router.post("/admin/grant-manual", authenticateWithSession, requireAdmin, grantM
 router.get("/status", authenticateWithSession, getSubscriptionStatusHandler);
 router.delete("/pending", authenticateWithSession, cancelPendingSubscriptionHandler);
 router.post("/", authenticateWithSession, initiateSubscriptionHandler);
+router.post("/verify", authenticateWithSession, verifySubscriptionHandler);
 router.get("/active", authenticateWithSession, getActiveSubscriptionHandler);
 router.get("/", authenticateWithSession, getUserSubscriptionsHandler);
 router.get("/:id", authenticateWithSession, getSubscriptionByIdHandler);

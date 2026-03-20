@@ -1,8 +1,11 @@
 import { connectDB, disconnectDB } from "@/lib/db";
 import authRoutes from "@/routes/auth.route";
+import brandSettingRoutes from "@/routes/brandSetting.route";
 import categoryRoutes from "@/routes/category.route";
 import certificateRoutes from "@/routes/certificate.route";
 import courseRoutes from "@/routes/course.route";
+import faqRoutes from "@/routes/faq.route";
+import orderRoutes from "@/routes/order.route";
 import entitlementRoutes from "@/routes/entitlement.route";
 import lessonRoutes from "@/routes/lesson.route";
 import moduleRoutes from "@/routes/module.route";
@@ -40,6 +43,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/brand-settings", brandSettingRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/videos", videoRoutes);
 app.use("/api/stream", streamRouter);
@@ -58,6 +62,8 @@ app.use("/api/purchases", purchaseRoutes);
 app.use("/api/entitlements", entitlementRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/scheduler", schedulerRoutes);
+app.use("/api/faqs", faqRoutes);
+app.use("/api/admin/orders", orderRoutes);
 
 //Health check
 app.get("/ping", (_, res) => {
