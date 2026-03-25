@@ -17,6 +17,8 @@ import {
   verifyGooglePlayReceipt,
   acknowledgeGooglePlayPurchase,
   getAllSubscriptions,
+  grantManualSubscription,
+  verifySubscription,
 } from "@/services/subscription.service";
 import { GooglePlayReceipt } from "@/lib/types";
 import { SubscriptionStatus } from "@/prisma/generated/prisma/client";
@@ -50,6 +52,39 @@ export const initiateSubscriptionHandler = async (
       success: true,
       message: "Subscription initiated. Complete payment to activate.",
       data: paymentInfo,
+    });
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+/**
+ * Verify paid trial subscription
+ * POST /api/subscriptions/verify
+ * Authenticated
+ */
+export const verifySubscriptionHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { subscriptionId, paymentId, signature } = req.body;
+    const userId = req.user!.id;
+
+    if (!subscriptionId || !paymentId || !signature) {
+      return res.status(400).json({
+        success: false,
+        message: "subscriptionId, paymentId, and signature are required",
+      });
+    }
+
+    const subscription = await verifySubscription(userId, subscriptionId, paymentId, signature);
+
+    return res.status(200).json({
+      success: true,
+      message: "Subscription verified and activated successfully.",
+      data: subscription,
     });
   } catch (error: any) {
     next(error);
@@ -339,6 +374,42 @@ export const getAllSubscriptionsHandler = async (
     return res.status(200).json({
       success: true,
       ...result,
+    });
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+/**
+ * Admin: Grant manual subscription (Cash/Offline payment)
+ * POST /api/subscriptions/admin/grant-manual
+ * Authenticated + Admin
+ */
+export const grantManualSubscriptionHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { userId, planId, amount, expiryDate, notes } = req.body;
+
+    if (!userId || !planId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID and Plan ID are required",
+      });
+    }
+
+    const subscription = await grantManualSubscription(userId, planId, {
+      amount,
+      expiryDate: expiryDate ? new Date(expiryDate) : undefined,
+      notes,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Subscription granted manually",
+      data: subscription,
     });
   } catch (error: any) {
     next(error);

@@ -284,22 +284,24 @@ export const getModuleCountByCourse = async (courseId: string): Promise<number> 
 /**
  * Calculate total duration of module from its lessons
  */
-export const calculateModuleDuration = async (moduleId: string): Promise<number> => {
-  const lessons = await prisma.lesson.findMany({
+export const calculateModuleDuration = async (moduleId: string, tx?: any): Promise<number> => {
+  const db = tx || prisma;
+  const result = await db.lesson.aggregate({
     where: { moduleId },
-    select: { duration: true },
+    _sum: { duration: true },
   });
 
-  return lessons.reduce((total, lesson) => total + (lesson.duration || 0), 0);
+  return result._sum.duration || 0;
 };
 
 /**
  * Update module duration based on its lessons
  */
-export const updateModuleDuration = async (moduleId: string): Promise<Module> => {
-  const totalDuration = await calculateModuleDuration(moduleId);
+export const updateModuleDuration = async (moduleId: string, tx?: any): Promise<void> => {
+  const totalDuration = await calculateModuleDuration(moduleId, tx);
+  const db = tx || prisma;
 
-  return await prisma.module.update({
+  await db.module.update({
     where: { id: moduleId },
     data: { duration: totalDuration },
   });

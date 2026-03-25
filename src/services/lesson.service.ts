@@ -382,6 +382,15 @@ export const createLesson = async (data: {
         },
       })) as Lesson;
 
+      // 4. Update Durations (side effect)
+      const { updateModuleDuration } = await import("./module.service");
+      const { updateCourseDuration } = await import("./course.service");
+
+      await updateCourseDuration(data.courseId, tx);
+      if (data.moduleId) {
+        await updateModuleDuration(data.moduleId, tx);
+      }
+
       return createdLesson;
     })
     .then(async (lesson) => {
@@ -413,6 +422,7 @@ export const updateLesson = async (
     status?: LessonStatus;
     scheduledAt?: Date | null;
     metadata?: any;
+    moduleId?: string;
     // Type-specific fields
     videoId?: string;
     textContent?: string;
@@ -453,6 +463,11 @@ export const updateLesson = async (
       if (data.status !== undefined) updateData.status = data.status;
       if (data.scheduledAt !== undefined) updateData.scheduledAt = data.scheduledAt;
       if (data.metadata !== undefined) updateData.metadata = data.metadata;
+      if (data.moduleId !== undefined) {
+        updateData.module = data.moduleId 
+          ? { connect: { id: data.moduleId } } 
+          : { disconnect: true };
+      }
 
       await tx.lesson.update({
         where: { id: lessonId },
@@ -480,7 +495,36 @@ export const updateLesson = async (
         }
       }
 
-      // 3. Return updated lesson
+      // 3. Update Durations if needed (side effect)
+      const durationChanged = data.duration !== undefined && data.duration !== existingLesson.duration;
+      const moduleChanged = data.moduleId !== undefined && data.moduleId !== existingLesson.moduleId;
+
+      if (durationChanged || moduleChanged) {
+        const { updateModuleDuration } = await import("./module.service");
+        const { updateCourseDuration } = await import("./course.service");
+
+        // Course duration always updated if duration changes
+        if (durationChanged) {
+          await updateCourseDuration(existingLesson.courseId, tx);
+        }
+
+        // Module durations
+        if (moduleChanged) {
+          // Update old module if it existed
+          if (existingLesson.moduleId) {
+            await updateModuleDuration(existingLesson.moduleId, tx);
+          }
+          // Update new module if it exists
+          if (data.moduleId) {
+            await updateModuleDuration(data.moduleId as string, tx);
+          }
+        } else if (durationChanged && existingLesson.moduleId) {
+          // Duration changed but module didn't, just update current module
+          await updateModuleDuration(existingLesson.moduleId, tx);
+        }
+      }
+
+      // 4. Return updated lesson
       const updatedLesson = (await tx.lesson.findUnique({
         where: { id: lessonId },
         include: {
@@ -542,7 +586,7 @@ export const deleteLesson = async (lessonId: string): Promise<void> => {
   // Get lesson info before deletion
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },
-    select: { id: true, courseId: true, status: true },
+    select: { id: true, courseId: true, moduleId: true, status: true },
   });
 
   if (!lesson) {
@@ -554,8 +598,19 @@ export const deleteLesson = async (lessonId: string): Promise<void> => {
     await deleteScheduledLessonJob(lessonId);
   }
 
-  await prisma.lesson.delete({
-    where: { id: lessonId },
+  await prisma.$transaction(async (tx) => {
+    await tx.lesson.delete({
+      where: { id: lessonId },
+    });
+
+    // Hook: Update Durations (side effect)
+    const { updateModuleDuration } = await import("./module.service");
+    const { updateCourseDuration } = await import("./course.service");
+
+    await updateCourseDuration(lesson.courseId, tx);
+    if (lesson.moduleId) {
+      await updateModuleDuration(lesson.moduleId, tx);
+    }
   });
 
   // Hook: Recalculate progress for all users when a lesson is deleted
