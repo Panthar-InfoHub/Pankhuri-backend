@@ -157,6 +157,7 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
       demoVideoId,
       price,
       discountedPrice,
+      whatsappCommunityLink,
     } = req.body;
 
     // Validation
@@ -180,6 +181,7 @@ export const createCourse = async (req: Request, res: Response, next: NextFuncti
       hasCertificate,
       tags,
       metadata,
+      whatsappCommunityLink,
       demoVideo: demoVideoId ? { connect: { id: demoVideoId } } : undefined,
       category: { connect: { id: categoryId } },
       trainer: { connect: { id: trainerId } },
@@ -267,6 +269,7 @@ export const bulkCreateCourses = async (req: Request, res: Response, next: NextF
       categoryId: course.categoryId,
       trainerId: course.trainerId,
       demoVideoId: course.demoVideoId,
+      whatsappCommunityLink: course.whatsappCommunityLink,
     }));
 
     await courseService.createCoursesBulk(coursesData);
@@ -396,6 +399,7 @@ export const updateCourse = async (req: Request, res: Response, next: NextFuncti
       tags,
       metadata,
       demoVideoId,
+      whatsappCommunityLink,
     } = req.body;
 
     const updateData: any = {};
@@ -412,6 +416,7 @@ export const updateCourse = async (req: Request, res: Response, next: NextFuncti
     if (hasCertificate !== undefined) updateData.hasCertificate = hasCertificate;
     if (tags !== undefined) updateData.tags = tags;
     if (metadata !== undefined) updateData.metadata = metadata;
+    if (whatsappCommunityLink !== undefined) updateData.whatsappCommunityLink = whatsappCommunityLink;
 
 
     if (demoVideoId !== undefined) {

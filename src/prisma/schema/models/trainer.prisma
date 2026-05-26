@@ -1,26 +1,24 @@
-enum TrainerStatus {
-  active
-  inactive
-}
-
 model Trainer {
   id             String        @id @default(cuid())
   userId         String        @unique
-  bio            String?       @db.Text
+  bio            String?
   specialization String[]      @default([])
-  experience     Int? // in years
+  experience     Int?
   rating         Float         @default(0)
   totalStudents  Int           @default(0)
-  socialLinks    Json? // { linkedin, twitter, website, etc. }
+  socialLinks    Json?
   status         TrainerStatus @default(active)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
-
-  // Relations
-  user    User     @relation("TrainerProfile", fields: [userId], references: [id], onDelete: Cascade)
-  courses Course[] @relation("TrainerCourses")
+  courses        Course[]      @relation("TrainerCourses")
+  user           User          @relation("TrainerProfile", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status])
   @@index([rating])
+}
+
+enum TrainerStatus {
+  active
+  inactive
 }

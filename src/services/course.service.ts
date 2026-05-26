@@ -1,6 +1,7 @@
 import { Prisma, CourseStatus, CourseLevel, PlanType } from "@/prisma/generated/prisma/client";
 import { prisma } from "../lib/db";
 import { deactivatePlansByTarget } from "./plan.service";
+import { getCourseFaqData } from "./faq.service";
 
 // ==================== HELPERS ====================
 
@@ -377,10 +378,14 @@ export const getCourseById = async (id: string, userId?: string) => {
       course.hasCertificate && hasAccess && (progress?.isCompleted || false);
   }
 
+  // --- FAQ Section ---
+  const faqData = await getCourseFaqData(id, hasAccess);
+
   return {
     ...courseWithPricing,
     curriculum,
     certificateInfo,
+    faqData,
     stats: {
       totalModules: rawModules.length,
       totalLessons,
@@ -506,6 +511,22 @@ export const deleteCourse = async (id: string) => {
 
   const course = await prisma.course.delete({ where: { id } });
   return { message: "Course deleted successfully", course };
+};
+
+/**
+ * Update course duration based on all its lessons
+ */
+export const updateCourseDuration = async (courseId: string, tx?: any): Promise<void> => {
+  const db = tx || prisma;
+  const result = await db.lesson.aggregate({
+    where: { courseId },
+    _sum: { duration: true },
+  });
+
+  await db.course.update({
+    where: { id: courseId },
+    data: { duration: result._sum.duration || 0 },
+  });
 };
 
 export const togglePublish = async (id: string, status: CourseStatus) => {

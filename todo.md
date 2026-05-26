@@ -1,3 +1,8 @@
+
+- add scheduler to expire the entiltel based on the expiry
+- duration - autocalculate - for course and module
+
+
 ----------------------
 testing 
 

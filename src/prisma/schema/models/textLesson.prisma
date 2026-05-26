@@ -1,13 +1,11 @@
 model TextLesson {
   id                String   @id @default(cuid())
   lessonId          String   @unique
-  content           String   @db.Text
-  estimatedReadTime Int? // in minutes
+  content           String
+  estimatedReadTime Int?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-
-  // Relations
-  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lesson            Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
   @@index([lessonId])
 }

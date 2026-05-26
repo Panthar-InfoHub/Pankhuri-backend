@@ -10,7 +10,7 @@ export const streamVideo = async (req: Request, res: Response, next: NextFunctio
         console.log("Streaming video with key:", key);
 
         const command = new GetObjectCommand({
-            Bucket: process.env.DO_BUCKET!,
+            Bucket: process.env.PRIVATE_BUCKET_NAME!,
             Key: key,
         })
 

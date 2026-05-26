@@ -1,18 +1,16 @@
 model Video {
-  id               String   @id @default(cuid())
+  id               String        @id @default(cuid())
   title            String
-  externalUrl      String?
-  videoDescription Json?
   thumbnailUrl     String?
   storageKey       String?
   playbackUrl      String?
-  status           String // uploading | processing | ready
+  status           String
   duration         Int?
   metadata         Json?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  // Relations
-  videoLessons VideoLesson[]
-  demoCourses  Course[]      @relation("DemoVideos")
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  videoDescription Json?
+  externalUrl      String?
+  demoCourses      Course[]      @relation("DemoVideos")
+  videoLessons     VideoLesson[]
 }

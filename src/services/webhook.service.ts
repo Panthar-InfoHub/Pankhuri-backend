@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { SubscriptionStatus } from "@/prisma/generated/prisma/client";
 import { syncSubscriptionToEntitlement, revokeEntitlement, grantEntitlement } from "./entitlement.service";
 import { cleanupRedundantSubscriptions } from "./subscription.service";
+import { sendFbPurchaseEvent } from "./facebook.service";
 
 // ==================== WEBHOOK EVENT HANDLERS ====================
 
@@ -20,7 +21,12 @@ export const handleSubscriptionAuthenticated = async (payload: any): Promise<voi
 
   const subscription = await prisma.userSubscription.findUnique({
     where: { subscriptionId },
-    include: { plan: true },
+    include: {
+      plan: true,
+      user: {
+        select: { email: true, phone: true }
+      }
+    },
   });
 
   if (!subscription || !subscription.plan) {
@@ -79,6 +85,18 @@ export const handleSubscriptionAuthenticated = async (payload: any): Promise<voi
       })
     ] : []),
   ]);
+
+  // Track to Facebook CAPI (Non-blocking)
+  sendFbPurchaseEvent({
+    email: subscription.user?.email,
+    phone: subscription.user?.phone,
+    amount: subscription.plan.trialFee,
+    currency: subscription.plan.currency,
+    orderId: subscriptionEntity.order_id,
+    paymentId: subscriptionEntity.payment_id,
+    itemName: subscription.plan.name,
+    itemType: subscription.plan.planType,
+  });
 
   // Sync Entitlement
   await syncSubscriptionToEntitlement(subscription.id);
@@ -210,39 +228,7 @@ export const handleSubscriptionActivated = async (payload: any): Promise<void> =
   }
 };
 
-/**
- * invoice.generated - Create payment record for upcoming charge
- */
-export const handleInvoiceGenerated = async (payload: any): Promise<void> => {
-  const invoiceEntity = payload.payload.invoice.entity;
-  const subscriptionId = invoiceEntity.subscription_id;
 
-  const subscription = await prisma.userSubscription.findUnique({
-    where: { subscriptionId },
-  });
-
-  if (!subscription) {
-    console.error(`[WEBHOOK] Subscription not found: ${subscriptionId}`);
-    return;
-  }
-
-  await prisma.payment.create({
-    data: {
-      userId: subscription.userId,
-      planId: subscription.planId,
-      invoiceId: invoiceEntity.id,
-      userSubscriptionId: subscription.id,
-      gatewaySubscriptionId: subscriptionId,
-      amount: invoiceEntity.amount,
-      currency: invoiceEntity.currency,
-      paymentType: "recurring",
-      status: "pending",
-      eventType: "invoice.generated",
-    },
-  });
-
-  console.log(`[WEBHOOK] Invoice generated: ${invoiceEntity.id}`);
-};
 
 /**
  * invoice.paid - Payment successful, update subscription to active
@@ -296,6 +282,25 @@ export const handleInvoicePaid = async (payload: any): Promise<void> => {
       : Promise.resolve(),
   ]);
 
+  // Track to Facebook CAPI (Non-blocking)
+  if (subscription) {
+    const fullSub = await prisma.userSubscription.findUnique({
+      where: { id: subscription.id },
+      include: { plan: true, user: { select: { email: true, phone: true } } }
+    });
+    if (fullSub?.plan) {
+      sendFbPurchaseEvent({
+        email: fullSub.user?.email,
+        phone: fullSub.user?.phone,
+        amount: invoiceEntity.amount,
+        currency: invoiceEntity.currency,
+        paymentId: paymentEntity.id,
+        itemName: fullSub.plan.name,
+        itemType: fullSub.plan.planType,
+      });
+    }
+  }
+
   // Sync Entitlement
   if (subscription) {
     await syncSubscriptionToEntitlement(subscription.id);
@@ -304,43 +309,7 @@ export const handleInvoicePaid = async (payload: any): Promise<void> => {
   console.log(`[WEBHOOK] Invoice paid: ${invoiceId}`);
 };
 
-/**
- * invoice.payment_failed - Payment failed, set grace period
- */
-export const handleInvoicePaymentFailed = async (payload: any): Promise<void> => {
-  const invoiceEntity = payload.payload.invoice.entity;
-  const invoiceId = invoiceEntity.id;
 
-  const payment = await prisma.payment.findFirst({ where: { invoiceId } });
-  if (!payment) return;
-
-  const subscription = await prisma.userSubscription.findFirst({
-    where: { subscriptionId: invoiceEntity.subscription_id },
-  });
-
-  const graceUntil = new Date();
-  graceUntil.setDate(graceUntil.getDate() + 7);
-
-  await Promise.all([
-    prisma.payment.update({
-      where: { id: payment.id },
-      data: {
-        status: "failed",
-        isWebhookProcessed: true,
-        eventType: "invoice.payment_failed",
-        metadata: { error: invoiceEntity.error_reason },
-      },
-    }),
-    subscription
-      ? prisma.userSubscription.update({
-        where: { id: subscription.id },
-        data: { status: "past_due", graceUntil },
-      })
-      : Promise.resolve(),
-  ]);
-
-  console.log(`[WEBHOOK] Payment failed: ${invoiceId}, grace until ${graceUntil}`);
-};
 
 /**
  * payment.failed - Standalone payment failure (for addon payments)
@@ -490,6 +459,23 @@ export const handleSubscriptionCharged = async (payload: any): Promise<void> => 
     }),
   ]);
 
+  // Track to Facebook CAPI (Non-blocking)
+  const fullSub = await prisma.userSubscription.findUnique({
+    where: { id: subscription.id },
+    include: { plan: true, user: { select: { email: true, phone: true } } }
+  });
+  if (fullSub?.plan) {
+    sendFbPurchaseEvent({
+      email: fullSub.user?.email,
+      phone: fullSub.user?.phone,
+      amount: paymentEntity.amount,
+      currency: paymentEntity.currency,
+      paymentId: paymentEntity.id,
+      itemName: fullSub.plan.name,
+      itemType: fullSub.plan.planType,
+    });
+  }
+
   // Sync Entitlement
   await syncSubscriptionToEntitlement(subscription.id);
 
@@ -578,6 +564,23 @@ export const handlePaymentCaptured = async (payload: any): Promise<void> => {
   }
 
   console.log(`[WEBHOOK] ✅ One-time payment captured and entitlement granted: ${orderId}`);
+
+  // Track to Facebook CAPI (Non-blocking)
+  const fullUser = await prisma.user.findUnique({
+    where: { id: payment.userId },
+    select: { email: true, phone: true }
+  });
+
+  sendFbPurchaseEvent({
+    email: fullUser?.email,
+    phone: fullUser?.phone,
+    amount: paymentEntity.amount,
+    currency: paymentEntity.currency,
+    orderId: orderId,
+    paymentId: paymentEntity.id,
+    itemName: payment.plan?.name || (payment.metadata as any)?.courseTitle || "Course",
+    itemType: payment.plan?.planType || "COURSE",
+  });
 };
 
 // ==================== WEBHOOK ROUTER ====================
@@ -590,9 +593,7 @@ export const processWebhook = async (event: string, payload: any): Promise<void>
     "subscription.authenticated": handleSubscriptionAuthenticated,
     "subscription.activated": handleSubscriptionActivated,
     "payment.failed": handlePaymentFailed,
-    "invoice.generated": handleInvoiceGenerated,
     "invoice.paid": handleInvoicePaid,
-    "invoice.payment_failed": handleInvoicePaymentFailed,
     "subscription.cancelled": handleSubscriptionCancelled,
     "subscription.halted": handleSubscriptionHalted,
     "subscription.charged": handleSubscriptionCharged,

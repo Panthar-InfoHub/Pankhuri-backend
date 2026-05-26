@@ -90,20 +90,23 @@ export const createPlanHandler = async (req: Request, res: Response, next: NextF
     }
 
     // 4. Enforce Uniqueness & Handle Deactivation
-    const existingActivePlan = await prisma.subscriptionPlan.findFirst({
+    const existingActivePlans = await prisma.subscriptionPlan.findMany({
       where: {
         planType: effectivePlanType,
-        targetId: targetId || null,
         subscriptionType: subscriptionType,
         isActive: true,
+        ...(effectivePlanType === "WHOLE_APP" 
+          ? { OR: [{ targetId: null }, { targetId: "" }] }
+          : { targetId: targetId || null }
+        ),
       },
     });
 
-    if (existingActivePlan) {
+    if (existingActivePlans.length > 0) {
       if (deactivateOthers) {
-        // Soft-delete the old plan to make room for the new one
-        await prisma.subscriptionPlan.update({
-          where: { id: existingActivePlan.id },
+        // Soft-delete ALL old duplicate plans to make room for the new one
+        await prisma.subscriptionPlan.updateMany({
+          where: { id: { in: existingActivePlans.map(p => p.id) } },
           data: { isActive: false },
         });
       } else {
@@ -127,7 +130,7 @@ export const createPlanHandler = async (req: Request, res: Response, next: NextF
       features,
       order,
       planType: effectivePlanType,
-      targetId,
+      targetId: targetId || null,
       planId,
       provider: effectiveProvider,
       isActive: true,

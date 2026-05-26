@@ -178,22 +178,6 @@ export const updatePlan = async (
  * Delete plan (soft delete - mark as inactive)
  */
 export const deletePlan = async (id: string): Promise<SubscriptionPlan> => {
-    // Check if plan has active subscriptions
-    const activeSubscriptions = await prisma.userSubscription.count({
-        where: {
-            planId: id,
-            status: {
-                in: ["pending", "trial", "active", "past_due"],
-            },
-        },
-    });
-
-    if (activeSubscriptions > 0) {
-        throw new Error(
-            "Cannot delete plan with active subscriptions. Mark as inactive instead."
-        );
-    }
-
     return await prisma.subscriptionPlan.update({
         where: { id },
         data: { isActive: false },

@@ -3,12 +3,14 @@
  * Flexible subscription with optional trial (free or paid)
  */
 
+import crypto from "crypto";
 import { prisma } from "@/lib/db";
 import { UserSubscription, SubscriptionStatus } from "@/prisma/generated/prisma/client";
 import { createGatewaySubscription, cancelGatewaySubscription, createGatewayOrder } from "@/lib/payment-gateway";
 import { GooglePlayReceipt } from "@/lib/types";
 import { google_auth } from "@/lib/pub_sub";
 import { syncSubscriptionToEntitlement } from "./entitlement.service";
+import { sendFbPurchaseEvent } from "./facebook.service";
 
 // ==================== INITIATE SUBSCRIPTION ====================
 
@@ -394,6 +396,125 @@ export const initiateSubscription = async (userId: string, planId: string, data?
   };
 };
 
+// ==================== VERIFY SUBSCRIPTION ====================
+
+/**
+ * Verify subscription payment signature and activate (from Frontend Modal)
+ */
+export const verifySubscription = async (
+  userId: string,
+  subscriptionId: string,
+  paymentId: string,
+  signature: string
+) => {
+  // 1. Verify signature
+  const expectedSignature = crypto
+    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
+    .update(paymentId + "|" + subscriptionId)
+    .digest("hex");
+
+  if (expectedSignature !== signature) {
+    throw new Error("Invalid payment signature. Fraudulent transaction detected.");
+  }
+
+  // 2. Find internal subscription record
+  const subscription = await prisma.userSubscription.findUnique({
+    where: { subscriptionId },
+    include: {
+      plan: true,
+      user: {
+        select: { email: true, phone: true }
+      }
+    },
+  });
+
+  if (!subscription || !subscription.plan) {
+    throw new Error("Subscription record or associated plan not found.");
+  }
+
+  if (subscription.userId !== userId) {
+    throw new Error("Unauthorized: Subscription does not belong to this user.");
+  }
+
+  // 3. Skip if already active/trial (avoid redundant heavy processing)
+  if (subscription.status === "active" || subscription.status === "trial") {
+    console.log(`[Verify] Subscription ${subscriptionId} already processed (status: ${subscription.status})`);
+    return subscription;
+  }
+
+  // 4. Determine status and trial dates
+  const hasTrial = subscription.plan.trialDays > 0;
+
+  let trialEndsAt: Date | null = null;
+  if (hasTrial) {
+    trialEndsAt = new Date();
+    trialEndsAt.setDate(trialEndsAt.getDate() + (subscription.plan.trialDays || 0));
+  }
+
+  const finalStatus: SubscriptionStatus = hasTrial ? "trial" : "active";
+
+  console.log(`[Verify] Manually activating subscription ${subscriptionId} to ${finalStatus}`);
+
+  // 5. Atomic Update
+  const updatedSub = await prisma.$transaction(async (tx) => {
+    // A. Update Payment Record
+    await tx.payment.updateMany({
+      where: {
+        gatewaySubscriptionId: subscriptionId,
+        status: "pending",
+      },
+      data: {
+        status: "paid",
+        paymentId,
+        updatedAt: new Date(),
+        isWebhookProcessed: true,
+      },
+    });
+
+    // B. Update Subscription
+    const sub = await tx.userSubscription.update({
+      where: { id: subscription.id },
+      data: {
+        status: finalStatus,
+        trialEndsAt,
+        updatedAt: new Date(),
+      },
+      include: { plan: true }
+    });
+
+    // C. Update User
+    if (hasTrial) {
+      await tx.user.update({
+        where: { id: userId },
+        data: { hasUsedTrial: true },
+      });
+    }
+
+    return sub;
+  });
+
+  // 6. Post-transaction tasks
+  try {
+    sendFbPurchaseEvent({
+      email: subscription.user?.email,
+      phone: subscription.user?.phone,
+      amount: subscription.plan.trialFee || 0,
+      currency: subscription.plan.currency,
+      paymentId: paymentId,
+      itemName: subscription.plan.name,
+      itemType: subscription.plan.planType,
+    });
+
+    await syncSubscriptionToEntitlement(updatedSub.id);
+    await cleanupRedundantSubscriptions(userId, subscription.plan.planType, subscription.plan.targetId || undefined);
+
+  } catch (err) {
+    console.error(`[Verify] Post-verification tasks failed:`, err);
+  }
+
+  return updatedSub;
+};
+
 // ==================== GET SUBSCRIPTIONS ====================
 
 /**
@@ -554,25 +675,6 @@ export const cancelImmediately = async (
 };
 
 // ==================== BACKGROUND JOBS ====================
-
-/**
- * Expire trial subscriptions (background job)
- */
-export const expireTrialSubscriptions = async (): Promise<number> => {
-  const result = await prisma.userSubscription.updateMany({
-    where: {
-      status: "trial",
-      isTrial: true,
-      trialEndsAt: { lte: new Date() },
-    },
-    data: {
-      status: "active",
-      isTrial: false,
-    },
-  });
-
-  return result.count;
-};
 
 /**
  * Expire grace periods (background job)
@@ -899,4 +1001,116 @@ export const getAllSubscriptions = async (
       totalPages: Math.ceil(total / limit),
     },
   };
+};
+
+/**
+ * Admin: Grant manual subscription (Cash/Offline payment)
+ */
+export const grantManualSubscription = async (
+  userId: string,
+  planId: string,
+  options: {
+    amount?: number;
+    expiryDate?: Date;
+    notes?: string;
+  } = {}
+) => {
+  const plan = await prisma.subscriptionPlan.findUnique({
+    where: { id: planId, isActive: true },
+  });
+
+  if (!plan) {
+    throw new Error("Plan not found or inactive");
+  }
+
+  // 1. Calculate Period
+  const now = new Date();
+  let currentPeriodEnd: Date | null = null;
+
+  if (options.expiryDate) {
+    currentPeriodEnd = options.expiryDate;
+  } else if (plan.subscriptionType === "lifetime") {
+    currentPeriodEnd = null; // No expiry for lifetime
+  } else if (plan.subscriptionType === "monthly") {
+    currentPeriodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  } else if (plan.subscriptionType === "yearly") {
+    currentPeriodEnd = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+  }
+
+  // 2. Atomic Transaction: Subscription, Payment, and Entitlement
+  return await prisma.$transaction(async (tx) => {
+    // A. Create/Update Subscription
+    const subscription = await tx.userSubscription.upsert({
+      where: {
+        userId_planId: { userId, planId },
+      },
+      update: {
+        status: "active",
+        provider: "manual",
+        currentPeriodStart: now,
+        currentPeriodEnd: currentPeriodEnd,
+        isTrial: false,
+        updatedAt: now,
+      },
+      create: {
+        userId,
+        planId,
+        status: "active",
+        provider: "manual",
+        currentPeriodStart: now,
+        currentPeriodEnd: currentPeriodEnd,
+        isTrial: false,
+      },
+    });
+
+    // B. Create Payment Record (Mark as Paid since it's manual/cash)
+    const officialPrice = plan.discountedPrice ?? plan.price;
+    const isCustomPrice = options.amount !== undefined && options.amount !== officialPrice;
+
+    await tx.payment.create({
+      data: {
+        userId,
+        planId,
+        userSubscriptionId: subscription.id,
+        amount: options.amount ?? officialPrice,
+        currency: plan.currency,
+        paymentGateway: "manual",
+        paymentType: "one_time", // Manual grants NEVER auto-renew, so mark as one_time
+        status: "paid",
+        metadata: {
+          grantReason: "Admin Manual Grant",
+          notes: options.notes,
+          isCustomPrice,
+          originalPlanPrice: officialPrice
+        },
+      },
+    });
+
+    // C. Grant Entitlement
+    await tx.userEntitlement.upsert({
+      where: {
+        userId_type_targetId: {
+          userId,
+          type: plan.planType,
+          targetId: plan.targetId || "",
+        },
+      },
+      update: {
+        status: "active",
+        source: "ADMIN_MANUAL",
+        validUntil: currentPeriodEnd,
+        updatedAt: now,
+      },
+      create: {
+        userId,
+        type: plan.planType,
+        targetId: plan.targetId || "",
+        status: "active",
+        source: "ADMIN_MANUAL",
+        validUntil: currentPeriodEnd,
+      },
+    });
+
+    return subscription;
+  });
 };

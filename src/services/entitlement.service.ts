@@ -306,3 +306,39 @@ export const getEntitlementsByTarget = async (type: PlanType, targetId: string) 
         }
     });
 };
+/**
+ * Daily cleanup job: Marks expired entitlements and subscriptions as EXPIRED.
+ * This is optimized to run as a single batch update for high performance.
+ */
+export const cleanupExpiredResources = async () => {
+    const now = new Date();
+
+    // 1. Expire Entitlements
+    const entitlements = await prisma.userEntitlement.updateMany({
+        where: {
+            status: "active",
+            validUntil: { lt: now },
+        },
+        data: {
+            status: "expired",
+            updatedAt: now,
+        }
+    });
+
+    // 2. Expire Subscriptions (active, past_due, or trial that reached currentPeriodEnd)
+    const subscriptions = await prisma.userSubscription.updateMany({
+        where: {
+            status: { in: ["active", "past_due", "trial"] },
+            currentPeriodEnd: { lt: now },
+        },
+        data: {
+            status: "expired",
+            updatedAt: now,
+        }
+    });
+
+    return {
+        expiredEntitlements: entitlements.count,
+        expiredSubscriptions: subscriptions.count
+    };
+};

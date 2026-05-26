@@ -1,11 +1,11 @@
 {
   "info": {
-    "_postman_id": "87d1af83-1fbb-45b7-b673-5d5db5665ca6",
+    "_postman_id": "91aeb7f0-78c9-4035-95ca-731d152d8a46",
     "name": "Panlhuri Backend New API",
     "description": "# Panthar Learning Management System - Complete API Documentation\n\n## 📋 Overview\n\nThis collection contains **ALL 143 endpoints** in the Panthar LMS backend with complete documentation, examples, and automated scripts.\n\n**Base URL:** `http://localhost:8080`  \n**Last Updated:** January 2026\n\n---\n\n## 🚀 Quick Start\n\n1. Import this collection into Postman\n    \n2. Set `{{baseUrl}}` = `http://localhost:8080`\n    \n3. Run \"Tester Login (Admin)\" to get admin token\n    \n4. Browse endpoints by category\n    \n5. Check Examples tab for sample responses\n    \n\n---\n\n## 📁 Collection Structure\n\n1. **Health Check** - Server status\n    \n2. **Authentication** - Login, logout, tokens\n    \n3. **Users & Trainers** - Profile management\n    \n4. **Categories** - Hierarchical categories\n    \n5. **Courses** - Course management\n    \n6. **Modules** - Module organization\n    \n7. **Lessons** - Lesson content, descriptions, attachments\n    \n8. **Progress Tracking** - Completion tracking, analytics\n    \n9. **Reviews & Ratings** - Course reviews\n    \n10. **Videos** - Video upload, streaming\n    \n11. **Plans & Subscriptions** - Subscription management\n    \n12. **Purchases & Entitlements** - Payment, access control\n    \n13. **Certificates** - Certificate generation\n    \n14. **Streaks & Leaderboards** - Daily streaks\n    \n15. **Webhooks** - Payment webhooks\n    \n16. **Video Streaming** - Video streaming\n    \n\n---\n\n## 🔐 Authentication\n\nAll authenticated endpoints require: `Authorization: Bearer {{authToken}}`\n\nLogin endpoints auto-save `{{authToken}}` and `{{userId}}`\n\n---\n\n## 📊 Response Format\n\n### Success\n\n``` json\n{\n  \"success\": true,\n  \"message\": \"Operation successful\",\n  \"data\": { /* response data */ }\n}\n\n ```\n\n### Error\n\n``` json\n{\n  \"success\": false,\n  \"error\": \"Error type\",\n  \"message\": \"Human-readable error message\"\n}\n\n ```\n\n---\n\n## 🎯 HTTP Status Codes\n\n- `200` - Success\n    \n- `201` - Created\n    \n- `400` - Bad Request\n    \n- `401` - Unauthorized\n    \n- `403` - Forbidden\n    \n- `404` - Not Found\n    \n- `409` - Conflict\n    \n- `500` - Server Error\n    \n\n---\n\n**Happy Testing! 🎉**",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "27592795",
-    "_collection_link": "https://go.postman.co/collection/27592795-87d1af83-1fbb-45b7-b673-5d5db5665ca6?source=collection_link"
+    "_collection_link": "https://go.postman.co/collection/27592795-91aeb7f0-78c9-4035-95ca-731d152d8a46?source=collection_link"
   },
   "item": [
     {
@@ -142,7 +142,201 @@
           ]
         },
         {
-          "name": "Phone Login",
+          "name": "Request Otp",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"phone\":\"7268854798\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/otp/request",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "otp",
+                "request"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Request Otp",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"phone\":\"7268854798\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/otp/request",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "otp",
+                    "request"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "X-Powered-By",
+                  "value": "Express"
+                },
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "50"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"32-pRwUobPmRoJzFLVY41CvCHoem1Q\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 12 Feb 2026 08:39:11 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"OTP sent successfully\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Verify Otp and login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"phone\":\"7268854798\",\n    // \"fcmToken\":\"\",// optional\n    \"otp\":\"237782\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/otp/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "otp",
+                "verify"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Verify Otp and login",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"phone\":\"7268854798\",\n    // \"fcmToken\":\"\",// optional\n    \"otp\":\"174782\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/otp/verify",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "otp",
+                    "verify"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": null,
+              "header": [
+                {
+                  "key": "X-Powered-By",
+                  "value": "Express"
+                },
+                {
+                  "key": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Content-Length",
+                  "value": "864"
+                },
+                {
+                  "key": "ETag",
+                  "value": "W/\"360-2Km57wL/luExMe8ha8A2LMjR4JM\""
+                },
+                {
+                  "key": "Date",
+                  "value": "Thu, 12 Feb 2026 08:41:59 GMT"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "Keep-Alive",
+                  "value": "timeout=5"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"success\": true,\n    \"message\": \"Authentication successful\",\n    \"data\": {\n        \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjgwNTBlODlkLWJhOGUtNDM2Ny1hYzU0LTExNDQ0NjlhMjIxOCIsImVtYWlsIjpudWxsLCJwaG9uZSI6IjcyNjg4NTQ3OTgiLCJyb2xlIjoidXNlciIsInNlc3Npb25JZCI6ImNtbGo3bXVieTAwMDF2eW8wYXVrY3hqYjEiLCJpYXQiOjE3NzA4ODU3MTksImV4cCI6MTc3MTQ5MDUxOX0.SqtcWwBBy8PdrtxLHuMnMINGOYHyvlr9KeD74pIE7VI\",\n        \"sessionId\": \"cmlj7muby0001vyo0aukcxjb1\",\n        \"user\": {\n            \"id\": \"8050e89d-ba8e-4367-ac54-1144469a2218\",\n            \"email\": null,\n            \"phone\": \"7268854798\",\n            \"displayName\": null,\n            \"profileImage\": null,\n            \"dateOfBirth\": null,\n            \"gender\": null,\n            \"countryCode\": \"RU\",\n            \"languagePreference\": \"en\",\n            \"isEmailVerified\": false,\n            \"isPhoneVerified\": true,\n            \"status\": \"active\",\n            \"role\": \"user\",\n            \"hasUsedTrial\": false,\n            \"profession\": null,\n            \"metadata\": null,\n            \"createdAt\": \"2026-02-12T08:41:59.247Z\",\n            \"updatedAt\": \"2026-02-12T08:41:59.247Z\"\n        },\n        \"isOnboardingCompleted\": false\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Phone Login - depreciated",
           "event": [
             {
               "listen": "test",
@@ -341,7 +535,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\":\"student2@example.com\"\n}"
+              "raw": "{\n  \"email\":\"vpncannada015@gmail.com\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/tester-login",
@@ -431,7 +625,7 @@
               },
               "status": "OK",
               "code": 200,
-              "_postman_previewlanguage": null,
+              "_postman_previewlanguage": "Text",
               "header": [
                 {
                   "key": "X-Powered-By",
@@ -999,7 +1193,7 @@
               },
               "status": "OK",
               "code": 200,
-              "_postman_previewlanguage": null,
+              "_postman_previewlanguage": "Text",
               "header": [
                 {
                   "key": "X-Powered-By",
@@ -1038,6 +1232,34 @@
               "body": "{\n    \"success\": true,\n    \"data\": {\n        \"uploadUrl\": \"https://pankhuri-v3.blr1.digitaloceanspaces.com/dev/user-profile/1769763285670_my-awesome-profile.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=DO00HTY6TULPQYPQWPWE%2F20260130%2Fblr1%2Fs3%2Faws4_request&X-Amz-Date=20260130T085445Z&X-Amz-Expires=600&X-Amz-Signature=a5ff282fe71191d5b1e0f2350c2235f3bcb3b3ab37101bb45308d146c6774f11&X-Amz-SignedHeaders=host&x-amz-acl=public-read&x-amz-checksum-crc32=AAAAAA%3D%3D&x-amz-sdk-checksum-algorithm=CRC32&x-id=PutObject\",\n        \"publicUrl\": \"https://pankhuri-v3.blr1.digitaloceanspaces.com/dev/user-profile/1769763285670_my-awesome-profile.jpg\",\n        \"key\": \"dev/user-profile/1769763285670_my-awesome-profile.jpg\"\n    }\n}"
             }
           ]
+        },
+        {
+          "name": "Delete user",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -1419,7 +1641,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"email\": \"neulett.dev@gmail.com\",\n    // \"phone\": \"+1234567890\",\n    \"displayName\": \"Raj Dalla\",\n    \"profileImage\": \"https://i.pinimg.com/736x/7f/bb/4f/7fbb4fcadfa8344ef475c4865aed09a2.jpg\",\n    // \"dateOfBirth\": \"1990-01-15\",\n    \"gender\": \"male\",\n    \"countryCode\": \"+1\",\n    \"role\": \"admin\",\n    \"status\": \"active\"\n}"
+              "raw": "{\n    \"email\": \"SoapMakingexpert@acadma.com\",\n    // \"phone\": \"+1234567890\",\n    \"displayName\": \"Soap Making expert\",\n    // \"profileImage\": \"https://i.pinimg.com/736x/7f/bb/4f/7fbb4fcadfa8344ef475c4865aed09a2.jpg\",\n    // \"dateOfBirth\": \"1990-01-15\",\n    \"gender\": \"male\",\n    \"countryCode\": \"+1\",\n    \"role\": \"user\",\n    \"status\": \"active\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/users/admin/users",
@@ -2074,7 +2296,7 @@
               },
               "status": "OK",
               "code": 200,
-              "_postman_previewlanguage": null,
+              "_postman_previewlanguage": "Text",
               "header": [
                 {
                   "key": "X-Powered-By",
@@ -2186,7 +2408,7 @@
               },
               "status": "OK",
               "code": 200,
-              "_postman_previewlanguage": null,
+              "_postman_previewlanguage": "Text",
               "header": [
                 {
                   "key": "X-Powered-By",
@@ -2271,7 +2493,7 @@
               },
               "status": "OK",
               "code": 200,
-              "_postman_previewlanguage": null,
+              "_postman_previewlanguage": "Text",
               "header": [
                 {
                   "key": "X-Powered-By",
@@ -2313,7 +2535,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/categories/slug/yoga-basics",
+              "raw": "{{baseUrl}}/api/categories/slug/confidence-building",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -2321,7 +2543,7 @@
                 "api",
                 "categories",
                 "slug",
-                "yoga-basics"
+                "confidence-building"
               ]
             }
           },
@@ -2346,7 +2568,7 @@
               },
               "status": "OK",
               "code": 200,
-              "_postman_previewlanguage": null,
+              "_postman_previewlanguage": "Text",
               "header": [
                 {
                   "key": "X-Powered-By",
@@ -2421,7 +2643,7 @@
               },
               "status": "OK",
               "code": 200,
-              "_postman_previewlanguage": null,
+              "_postman_previewlanguage": "Text",
               "header": [
                 {
                   "key": "X-Powered-By",
@@ -2777,7 +2999,7 @@
               },
               "status": "OK",
               "code": 200,
-              "_postman_previewlanguage": null,
+              "_postman_previewlanguage": "Text",
               "header": [
                 {
                   "key": "X-Powered-By",
@@ -2863,7 +3085,7 @@
               },
               "status": "OK",
               "code": 200,
-              "_postman_previewlanguage": null,
+              "_postman_previewlanguage": "Text",
               "header": [
                 {
                   "key": "X-Powered-By",
@@ -2936,7 +3158,7 @@
               },
               "status": "OK",
               "code": 200,
-              "_postman_previewlanguage": null,
+              "_postman_previewlanguage": "Text",
               "header": [
                 {
                   "key": "X-Powered-By",
@@ -2978,7 +3200,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/courses/slug/new-test-course",
+              "raw": "{{baseUrl}}/api/courses/slug/test-course",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -2986,7 +3208,7 @@
                 "api",
                 "courses",
                 "slug",
-                "new-test-course"
+                "test-course"
               ]
             }
           },
@@ -3011,7 +3233,7 @@
               },
               "status": "OK",
               "code": 200,
-              "_postman_previewlanguage": null,
+              "_postman_previewlanguage": "Text",
               "header": [
                 {
                   "key": "X-Powered-By",
@@ -3098,7 +3320,7 @@
               },
               "status": "OK",
               "code": 200,
-              "_postman_previewlanguage": null,
+              "_postman_previewlanguage": "Text",
               "header": [
                 {
                   "key": "X-Powered-By",
@@ -3190,7 +3412,7 @@
               },
               "status": "OK",
               "code": 200,
-              "_postman_previewlanguage": null,
+              "_postman_previewlanguage": "Text",
               "header": [
                 {
                   "key": "X-Powered-By",
@@ -4514,7 +4736,9 @@
                       "    console.log('✅ Lesson ID saved:', response.data.id);",
                       "}"
                     ],
-                    "type": "text/javascript"
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
                   }
                 }
               ],
@@ -4538,7 +4762,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n    \"courseId\": \"{{courseId}}\",\n    \"moduleId\": \"{{moduleId}}\",\n    \"videoId\": \"{{videoId}}\",\n    \"title\": \"Welcome to Yoga\",\n    \"slug\": \"welcome-to-yoga\",\n    \"description\": \"An introductory video about yoga philosophy and benefits\",\n    \"sequence\": 1,\n    \"duration\": 900,\n    \"isFree\": true,\n    \"isMandatory\": true,\n    \"status\": \"published\",\n    \"scheduledAt\": \"2026-12-25T10:00:00Z\",\n    \"metadata\": {\n        \"difficulty\": \"beginner\",\n        \"language\": \"English\",\n        \"tags\": [\"introduction\", \"philosophy\", \"basics\"]\n    }\n}"
+                  "raw": "{\n    \"courseId\": \"cmkgiltyd000uriit645y50ne\",\n    \"moduleId\": \"cmlc96zue0004s61xjljwsoue\",\n    \"videoId\": \"cmkrct7100000s61wyarrv62i\",\n    \"title\": \"scheduled lesson-2\",\n    \"slug\": \"scheduled-lesson-2\",\n    \"description\": \"An lesson\",\n    \"sequence\": 1,\n    \"duration\": 900,\n    \"isFree\": true,\n    \"isMandatory\": true,\n    // \"status\": \"published\", //dont pass status if passing scheduledAt\n    \"scheduledAt\": \"2026-02-08T18:08:00+05:30\",\n    \"metadata\": {\n        \"difficulty\": \"beginner\",\n        \"language\": \"English\",\n        \"tags\": [\"introduction\", \"philosophy\", \"basics\"]\n    }\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/lessons",
@@ -4871,7 +5095,7 @@
               },
               "status": "OK",
               "code": 200,
-              "_postman_previewlanguage": null,
+              "_postman_previewlanguage": "Text",
               "header": [
                 {
                   "key": "X-Powered-By",
@@ -5172,7 +5396,7 @@
               },
               "status": "OK",
               "code": 200,
-              "_postman_previewlanguage": null,
+              "_postman_previewlanguage": "Text",
               "header": [
                 {
                   "key": "X-Powered-By",
@@ -5225,7 +5449,7 @@
               },
               "status": "OK",
               "code": 200,
-              "_postman_previewlanguage": null,
+              "_postman_previewlanguage": "Text",
               "header": [
                 {
                   "key": "x-powered-by",
@@ -5286,7 +5510,7 @@
               },
               "status": "OK",
               "code": 200,
-              "_postman_previewlanguage": null,
+              "_postman_previewlanguage": "Text",
               "header": [
                 {
                   "key": "x-powered-by",
@@ -6931,6 +7155,34 @@
               "response": []
             },
             {
+              "name": "Bulk Create Video",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"data\" : []\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/videos/bulk",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "videos",
+                    "bulk"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
               "name": "Get All Videos",
               "request": {
                 "auth": {
@@ -6996,7 +7248,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n    \"title\": \"Introduction to Yoga - Updated\",\n    \"status\": \"published\",\n    \"duration\": 720,\n    \"metadata\": {\n        \"resolution\": \"4K\",\n        \"format\": \"mp4\"\n    }\n}"
+                  "raw": " {\n  \"title\": \"Bridal Nail Art : Masterclass - Day 1\",\n  \"duration\": 3679,\n  \"externalUrl\": \"https://pankhurico.sgp1.digitaloceanspaces.com/course/resources/courseId-4-Day_2-recordings/2f07d6ff80dea7502fbadfsample_test_video.mp4\",\n  \"metadata\": {\n    \"quality\": 360,\n    \"isShort\": false\n  },\n  \"videoDescription\": {\n    \"products\": [\n      {\n        \"name\": \"Keyboard\",\n        \"url\": \"https://www.xda-developers.com/why-upgrade-to-mechanical-keyboard/\",\n        \"image\": \"https://pankhuri-v3.blr1.digitaloceanspaces.com/dev/product-images/1770804009899_key.jpg\"\n      }\n    ],\n    \"disclaimer\": \"Bridal Nail Art : Masterclass\\n0a00038e-7fdf-1746-817f-df46330e0645\",\n    \"timestamps\": [\n      {\n        \"time_content\": \"Start\",\n        \"time_interval\": \"01:09\"\n      },\n      {\n        \"time_content\": \"Finish\",\n        \"time_interval\": \"45:24\"\n      }\n    ],\n    \"description\": \"0a00038e-7fdf-1746-817f-df46330e0645\\nBridal Nail Art : Masterclass\"\n  }\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/videos/{{videoId}}",
@@ -7237,7 +7489,7 @@
               },
               "status": "OK",
               "code": 200,
-              "_postman_previewlanguage": null,
+              "_postman_previewlanguage": "Text",
               "header": [
                 {
                   "key": "x-powered-by",
@@ -7370,7 +7622,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Course New Sale Price\",\n  \"slug\": \"course-sale-2024\",\n  \"description\": \"Special sale price\",\n  \"subscriptionType\": \"lifetime\",\n  \"planType\": \"COURSE\",\n  \"targetId\": \"{{courseId}}\",\n  \"price\": 49900, \n  \"currency\": \"INR\",\n  \"deactivateOthers\": true\n}"
+                  "raw": "{\n  \"name\": \"Valentine's Day Monthly Special\",\n  \"slug\": \"valentine-day-monthly-special\",\n  \"description\": \"Special valentine day monthly offer\",\n  \"subscriptionType\": \"monthly\",\n  \"planType\": \"WHOLE_APP\",\n//   \"targetId\": \"{{courseId}}\",\n  \"price\": 14000, \n  \"currency\": \"INR\",\n  \"deactivateOthers\": true\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/plans",
@@ -7532,7 +7784,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/plans",
+              "raw": "{{baseUrl}}/api/plans?type=whole_app",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -7543,9 +7795,8 @@
               "query": [
                 {
                   "key": "type",
-                  "value": "course",
-                  "description": "whole_app | category | course -- default is whole app",
-                  "disabled": true
+                  "value": "whole_app",
+                  "description": "whole_app | category | course -- default is whole app"
                 }
               ]
             },
@@ -7570,7 +7821,7 @@
               },
               "status": "OK",
               "code": 200,
-              "_postman_previewlanguage": null,
+              "_postman_previewlanguage": "Text",
               "header": [
                 {
                   "key": "X-Powered-By",
@@ -7634,7 +7885,7 @@
               },
               "status": "OK",
               "code": 200,
-              "_postman_previewlanguage": null,
+              "_postman_previewlanguage": "Text",
               "header": [
                 {
                   "key": "X-Powered-By",
@@ -7698,7 +7949,7 @@
               },
               "status": "OK",
               "code": 200,
-              "_postman_previewlanguage": null,
+              "_postman_previewlanguage": "Text",
               "header": [
                 {
                   "key": "X-Powered-By",
@@ -7799,6 +8050,77 @@
       "name": "Subscriptions",
       "item": [
         {
+          "name": "Admin",
+          "item": [
+            {
+              "name": "Get All User Subscriptions",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/subscriptions/admin/all?status&page&limit",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "subscriptions",
+                    "admin",
+                    "all"
+                  ],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": null,
+                      "type": "text"
+                    },
+                    {
+                      "key": "page",
+                      "value": null,
+                      "type": "text"
+                    },
+                    {
+                      "key": "limit",
+                      "value": null,
+                      "type": "text"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Manual Purchase",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userId\": \"bbda8c25-8be2-4731-a941-df60f1512754\",\n  \"planId\": \"cmlhx4qxs0002s61wtdrbo5v0\"\n//   \"amount\": 50000,      // Optional: Manual price in paise (defaults to plan selling price)\n//   \"expiryDate\": \"2026-12-31\", // Optional: Custom expiry date\n//   \"notes\": \"Payment received in cash\" // Optional: Internal notes\n}\n"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/subscriptions/admin/grant-manual",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "subscriptions",
+                    "admin",
+                    "grant-manual"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
           "name": "Initiate Subscription",
           "event": [
             {
@@ -7883,7 +8205,7 @@
               },
               "status": "OK",
               "code": 200,
-              "_postman_previewlanguage": null,
+              "_postman_previewlanguage": "Text",
               "header": [
                 {
                   "key": "x-powered-by",
@@ -8614,7 +8936,7 @@
                   },
                   "status": "OK",
                   "code": 200,
-                  "_postman_previewlanguage": null,
+                  "_postman_previewlanguage": "Text",
                   "header": [
                     {
                       "key": "x-powered-by",
@@ -8905,6 +9227,302 @@
         }
       ],
       "description": "Payment gateway webhook endpoints"
+    },
+    {
+      "name": "Brand Settings",
+      "item": [
+        {
+          "name": "Get Brand Settings",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/brand-settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "brand-settings"]
+            },
+            "description": "**Public endpoint** - Get current brand settings including global WhatsApp link and announcements bar data."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Brand Settings",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{authToken}}", "type": "string" }]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"globalWhatsappLink\": \"https://wa.me/919876543210\",\n  \"announcements\": [\n    {\n      \"id\": \"ann_1\",\n      \"text\": \"🎉 New courses launching this week!\",\n      \"link\": \"/courses\",\n      \"isActive\": true,\n      \"styles\": {\n        \"bgColor\": \"#4F46E5\",\n        \"textColor\": \"#FFFFFF\"\n      }\n    },\n    {\n      \"id\": \"ann_2\",\n      \"text\": \"📢 Join our WhatsApp community for updates\",\n      \"link\": \"https://wa.me/919876543210\",\n      \"isActive\": true,\n      \"styles\": {\n        \"bgColor\": \"#059669\",\n        \"textColor\": \"#FFFFFF\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/brand-settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "brand-settings"]
+            },
+            "description": "**Admin only** - Update brand settings. Supports partial updates.\n\n**Fields:**\n- `globalWhatsappLink` - Global WhatsApp community link (shown on all course pages)\n- `announcements` - Array of announcement bar items with text, link, active status, and styles"
+          },
+          "response": []
+        }
+      ],
+      "description": "Brand-level settings including global WhatsApp community link and announcement bar configuration"
+    },
+    {
+      "name": "FAQs",
+      "item": [
+        {
+          "name": "Public",
+          "item": [
+            {
+              "name": "Get Global FAQs",
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/faqs",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "faqs"]
+                },
+                "description": "**Public endpoint** - Get all active global/brand FAQs for the landing page. No authentication required.\n\n**Note:** Course-specific FAQs are returned as part of the course detail API response (`GET /api/courses/:id` or `GET /api/courses/slug/:slug`) in the `faqData` field."
+              },
+              "response": []
+            }
+          ],
+          "description": "Public FAQ endpoints - no authentication required"
+        },
+        {
+          "name": "Admin - Global FAQs",
+          "item": [
+            {
+              "name": "Create Global FAQ",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{authToken}}", "type": "string" }]
+                },
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"question\": \"What is this platform about?\",\n  \"answer\": \"This is a comprehensive learning platform offering courses across multiple domains.\",\n  \"order\": 0,\n  \"isActive\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/faqs/admin/global",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "faqs", "admin", "global"]
+                },
+                "description": "**Admin only** - Create a global/brand FAQ (shown on landing page).\n\n**Validation:**\n- `question` and `answer` are required\n- **Will return 400 error if `courseId` is provided** - use the course FAQ endpoint instead\n- `order` is auto-assigned if not provided (appended at end)\n- `isActive` defaults to true"
+              },
+              "response": []
+            },
+            {
+              "name": "Update Global FAQ",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{authToken}}", "type": "string" }]
+                },
+                "method": "PATCH",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"question\": \"Updated question text?\",\n  \"answer\": \"Updated answer text.\",\n  \"order\": 1,\n  \"isActive\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/faqs/admin/global/{{faqId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "faqs", "admin", "global", "{{faqId}}"]
+                },
+                "description": "**Admin only** - Update a global FAQ. Supports partial updates.\n\n**Validation:**\n- **Will return 400 if the FAQ belongs to a course** - use the course FAQ update endpoint instead\n- Returns 404 if FAQ not found"
+              },
+              "response": []
+            }
+          ],
+          "description": "Admin endpoints for managing global/brand FAQs (landing page)"
+        },
+        {
+          "name": "Admin - Course FAQs",
+          "item": [
+            {
+              "name": "Create Course FAQ",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{authToken}}", "type": "string" }]
+                },
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"courseId\": \"{{courseId}}\",\n  \"question\": \"What will I learn in this course?\",\n  \"answer\": \"You will learn the fundamentals and advanced concepts covered in this course.\",\n  \"order\": 0,\n  \"isActive\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/faqs/admin/course",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "faqs", "admin", "course"]
+                },
+                "description": "**Admin only** - Create a course-specific FAQ.\n\n**Validation:**\n- `courseId`, `question`, and `answer` are required\n- **Will return 400 error if `courseId` is NOT provided** - use the global FAQ endpoint instead\n- Returns 404 if course doesn't exist\n- `order` is auto-assigned if not provided\n- `isActive` defaults to true\n\n**Access Control:**\n- First 3 FAQs (by order) are always visible to everyone\n- FAQs 4+ are only shown to users who have access to the course\n- This is handled automatically by the course detail API"
+              },
+              "response": []
+            },
+            {
+              "name": "Update Course FAQ",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{authToken}}", "type": "string" }]
+                },
+                "method": "PATCH",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"question\": \"Updated course FAQ question?\",\n  \"answer\": \"Updated course FAQ answer.\",\n  \"order\": 2,\n  \"isActive\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/faqs/admin/course/{{faqId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "faqs", "admin", "course", "{{faqId}}"]
+                },
+                "description": "**Admin only** - Update a course-specific FAQ. Supports partial updates.\n\n**Validation:**\n- **Will return 400 if the FAQ is a global FAQ** - use the global FAQ update endpoint instead\n- Returns 404 if FAQ not found"
+              },
+              "response": []
+            }
+          ],
+          "description": "Admin endpoints for managing course-specific FAQs. Course FAQs appear in the course detail API response.\n\n**Access gating:** First 3 FAQs are free for all, rest require course access."
+        },
+        {
+          "name": "Admin - Shared Operations",
+          "item": [
+            {
+              "name": "List FAQs (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{authToken}}", "type": "string" }]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/faqs/admin?type=global",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "faqs", "admin"],
+                  "query": [
+                    { "key": "type", "value": "global", "description": "Required: 'global' or 'course'" },
+                    { "key": "courseId", "value": "{{courseId}}", "description": "Required when type=course", "disabled": true }
+                  ]
+                },
+                "description": "**Admin only** - List all FAQs (including inactive) filtered by type.\n\n**Query params:**\n- `type` (required): `global` or `course`\n- `courseId` (required when type=course): The course ID to fetch FAQs for\n\n**Examples:**\n- Global FAQs: `?type=global`\n- Course FAQs: `?type=course&courseId=xxx`\n\n**Returns 400 if:**\n- `type` is missing or invalid\n- `type=course` but `courseId` is missing"
+              },
+              "response": []
+            },
+            {
+              "name": "List Course FAQs (Admin)",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{authToken}}", "type": "string" }]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/faqs/admin?type=course&courseId={{courseId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "faqs", "admin"],
+                  "query": [
+                    { "key": "type", "value": "course" },
+                    { "key": "courseId", "value": "{{courseId}}" }
+                  ]
+                },
+                "description": "**Admin only** - List all FAQs for a specific course (including inactive ones). Same endpoint as 'List FAQs' but pre-configured for course type."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete FAQ",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{authToken}}", "type": "string" }]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/faqs/admin/{{faqId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "faqs", "admin", "{{faqId}}"]
+                },
+                "description": "**Admin only** - Delete any FAQ (global or course). Works for both types.\n\n- Returns 404 if FAQ not found"
+              },
+              "response": []
+            },
+            {
+              "name": "Reorder FAQs",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{authToken}}", "type": "string" }]
+                },
+                "method": "PATCH",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"items\": [\n    { \"id\": \"faq_id_1\", \"order\": 0 },\n    { \"id\": \"faq_id_2\", \"order\": 1 },\n    { \"id\": \"faq_id_3\", \"order\": 2 }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/faqs/admin/reorder",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "faqs", "admin", "reorder"]
+                },
+                "description": "**Admin only** - Batch reorder FAQs. Works for both global and course FAQs.\n\n**Body:**\n- `items` (required): Array of `{ id, order }` objects\n\n**Example use case:** Admin drags FAQ from position 3 to position 1 in the UI - frontend sends the new order for all affected FAQs."
+              },
+              "response": []
+            }
+          ],
+          "description": "Shared admin operations that work for both global and course FAQs"
+        }
+      ],
+      "description": "FAQ management endpoints.\n\n**Two types of FAQs:**\n1. **Global FAQs** - Brand-level FAQs shown on the landing page (public, no restrictions)\n2. **Course FAQs** - Course-specific FAQs embedded in the course detail API response\n   - First 3 FAQs are always free/visible\n   - FAQs 4+ require course access (entitlement)\n   - Returned in `faqData` field of course detail response\n\n**Admin endpoints use strict validation:**\n- Global create/update will error if courseId is present\n- Course create/update will error if courseId is missing\n- This prevents accidental cross-contamination"
+    },
+    {
+      "name": "Admin Orders",
+      "item": [
+        {
+          "name": "Get All Orders",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{authToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/orders?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "orders"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number (default: 1)" },
+                { "key": "limit", "value": "20", "description": "Items per page (default: 20, max: 100)" },
+                { "key": "status", "value": "paid", "description": "Filter: pending | paid | failed | refunded", "disabled": true },
+                { "key": "paymentType", "value": "one_time", "description": "Filter: trial | recurring | one_time", "disabled": true },
+                { "key": "paymentGateway", "value": "razorpay", "description": "Filter: razorpay | google_play | manual", "disabled": true },
+                { "key": "planType", "value": "COURSE", "description": "Filter: WHOLE_APP | CATEGORY | COURSE", "disabled": true },
+                { "key": "search", "value": "", "description": "Search by user name, email, phone, orderId, paymentId", "disabled": true },
+                { "key": "dateFrom", "value": "2026-01-01", "description": "Filter: start date (YYYY-MM-DD)", "disabled": true },
+                { "key": "dateTo", "value": "2026-12-31", "description": "Filter: end date (YYYY-MM-DD)", "disabled": true },
+                { "key": "sort", "value": "newest", "description": "Sort: newest | oldest | amount_high | amount_low", "disabled": true }
+              ]
+            },
+            "description": "**Admin only** - Get all orders (payment records) with comprehensive filtering, search, pagination, and revenue summary.\n\n**Response includes:**\n- `data` - Array of order objects with user info, plan info, amounts\n- `pagination` - Page info with total count\n- `summary` - Revenue totals and status breakdown counts\n\n**Filters (all optional):**\n- `status` - Payment status filter\n- `paymentType` - Payment type filter\n- `paymentGateway` - Gateway filter (razorpay, google_play, manual)\n- `planType` - Plan type filter (WHOLE_APP, CATEGORY, COURSE)\n- `search` - Full-text search across user name, email, phone, orderId, paymentId\n- `dateFrom` / `dateTo` - Date range filter (YYYY-MM-DD)\n- `sort` - Sort order\n\n**Amount note:** `amount` is in paise, `amountInRupees` is the human-readable value."
+          },
+          "response": []
+        }
+      ],
+      "description": "Admin dashboard order management. Queries the Payment table with user and plan details for the orders page."
     }
   ],
   "auth": {
@@ -8984,6 +9602,10 @@
     },
     {
       "key": "planId",
+      "value": ""
+    },
+    {
+      "key": "faqId",
       "value": ""
     }
   ]
